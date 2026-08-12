@@ -19,22 +19,33 @@ uv sync
 
 ## Download pipeline
 
-The downloader is a single command backed by small modules under `src/`.
+The downloader runs from `scripts/download_metadata.py`, which holds the command
+wiring and drives the `download` package under `src/`.
 
 ### Quick start
 
 Run the small sample first. It downloads 3 features across 2 instrument sets in
-under a minute and touches nothing else:
+a few seconds and touches nothing else:
 
 ```bash
 uv run python scripts/download_metadata.py --test
 ```
 
-Add `--dry-run` to any command to print the plan and estimate without querying:
+Add `--dry-run` to any command to print the plan without querying:
 
 ```bash
 uv run python scripts/download_metadata.py --test --dry-run
 ```
+
+A live progress bar shows the percentage, jobs completed, estimated time
+remaining, the job currently finishing, and the running row and failure counts:
+
+```
+  Ultimum Chasma [MRO/CTX/EDR]  ━━━━━━━━━━━━━━━  100.0% 25/25 00:00 4,332 rows
+done in 15.5s: 25 jobs, 4,332 rows, 4 empty, 0 failed
+```
+
+Use `--quiet` to suppress the bar and print only the final summary.
 
 ### Options
 
@@ -52,6 +63,7 @@ uv run python scripts/download_metadata.py --test --dry-run
 | `--dry-run` | Print the plan without querying. |
 | `--force` | Re-download instead of skipping existing files. |
 | `--refresh-catalog` | Re-fetch the feature and instrument catalogs. |
+| `--quiet` | Suppress the progress bar, print only the final summary. |
 
 Feature and instrument names are case insensitive. An instrument set is written
 as `IHID/IID/PT`, for example `MRO/CTX/EDR`.
@@ -117,4 +129,56 @@ conversion step:
 duckdb -c "SELECT feature_class, iid, count(*)
            FROM read_json_auto('data/metadata/**/*.jsonl')
            GROUP BY 1, 2 ORDER BY 3 DESC"
+```
+
+## Project layout
+
+Dependencies point inward: models know nothing about services, services know
+nothing about orchestration, and only the command layer knows about the
+terminal.
+
+```
+scripts/download_metadata.py   command wiring and entry point
+
+src/download/
+  configs.py          every tunable constant, imports nothing from the package
+  models/             shared vocabulary, one file per group
+    feature.py        Feature
+    instrument.py     InstrumentSet
+    product.py        ProductRecord, InstrumentSetInfo
+    job.py            Job, JobOutcome, DownloadPlan
+    progress.py       ProgressEvent, RunSummary
+  ode/                ODE REST access
+    client.py         HTTP with retry and backoff
+    catalog.py        feature and instrument catalogs, cached
+    products.py       count and paged metadata fetch
+  storage/
+    layout.py         slugs and output paths
+    writer.py         atomic JSONL write
+  planner.py          selects features, builds the job plan
+  runner.py           parallel execution, yields ProgressEvent
+  cli/
+    args.py           argument definitions
+    progress.py       rich rendering of progress events
+```
+
+The runner never prints. It yields `ProgressEvent` objects carrying the
+completed count, total, elapsed time, ETA, current job, and running totals, and
+the caller decides how to render them. Anything else, a notebook or the coming
+analysis stage, can drive the same runner and ignore the rendering entirely.
+
+## Development
+
+Linting and formatting use [ruff](https://docs.astral.sh/ruff/):
+
+```bash
+uv run ruff check .
+uv run ruff format
+```
+
+A pre-push git hook blocks pushes when ruff reports problems. Enable it once per
+clone:
+
+```bash
+git config core.hooksPath .githooks
 ```

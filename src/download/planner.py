@@ -3,26 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
 from pathlib import Path
 
-from mars_remote_sensing_pipeline.ode.models import Feature, InstrumentSet
-from mars_remote_sensing_pipeline.storage.layout import product_file
-
-
-@dataclass(frozen=True)
-class Job:
-    """One feature and instrument set to download.
-
-    Attributes:
-        feature: The feature to query.
-        instrument_set: The instrument set to query.
-        output_path: The JSONL file the results are written to.
-    """
-
-    feature: Feature
-    instrument_set: InstrumentSet
-    output_path: Path
+from download.models import DownloadPlan, Feature, InstrumentSet, Job
+from download.storage.layout import product_file
 
 
 def select_features(
@@ -62,32 +46,45 @@ def select_features(
     return usable, degenerate
 
 
-def build_jobs(
+def build_plan(
     features: Sequence[Feature],
     instrument_sets: Sequence[InstrumentSet],
     out_root: Path,
     *,
+    names: Sequence[str] | None = None,
+    classes: Sequence[str] | None = None,
     force: bool = False,
-) -> tuple[list[Job], int]:
-    """Build a job for every feature and instrument set, skipping existing files.
+) -> DownloadPlan:
+    """Select features and build the jobs still needed for a run.
+
+    A job whose output file already exists is left out unless force is set, so
+    interrupted runs resume where they stopped.
 
     Args:
-        features: The usable features to download.
+        features: The full feature catalog.
         instrument_sets: The instrument sets to download for each feature.
         out_root: The metadata root directory.
+        names: Optional feature names to keep.
+        classes: Optional feature classes to keep.
         force: When True, include jobs whose output file already exists.
 
     Returns:
-        A pair (jobs, skipped_existing) where skipped_existing counts outputs
-        left in place because they already exist.
+        The plan describing the selection and the jobs to run.
     """
+    usable, degenerate = select_features(features, names=names, classes=classes)
     jobs: list[Job] = []
     skipped_existing = 0
-    for feature in features:
+    for feature in usable:
         for instrument_set in instrument_sets:
             path = product_file(out_root, feature, instrument_set)
             if path.exists() and not force:
                 skipped_existing += 1
                 continue
             jobs.append(Job(feature, instrument_set, path))
-    return jobs, skipped_existing
+    return DownloadPlan(
+        jobs=tuple(jobs),
+        feature_count=len(usable),
+        instrument_set_count=len(instrument_sets),
+        degenerate_features=len(degenerate),
+        skipped_existing=skipped_existing,
+    )

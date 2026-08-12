@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from download import configs
+
 
 def build_parser() -> argparse.ArgumentParser:
     """Build the argument parser for the metadata downloader.
@@ -13,7 +15,7 @@ def build_parser() -> argparse.ArgumentParser:
         The configured argument parser.
     """
     parser = argparse.ArgumentParser(
-        prog="download_metadata",
+        prog="download-metadata",
         description=(
             "Download ODE observation metadata grouped by geological feature "
             "class, feature name, and instrument set."
@@ -39,15 +41,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--loc",
-        default="o",
-        choices=["b", "f", "o", "i"],
+        default=configs.DEFAULT_LOC,
+        choices=list(configs.LOC_CHOICES),
         help="ODE containment mode; 'o' keeps products fully inside the feature.",
     )
     parser.add_argument(
         "--workers",
         type=int,
-        default=4,
-        help="Concurrent workers, clamped to 6 (default: 4).",
+        default=configs.DEFAULT_WORKERS,
+        help=f"Concurrent workers, clamped to {configs.MAX_WORKERS}.",
     )
     parser.add_argument(
         "--min-obs-time",
@@ -62,14 +64,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--out",
         type=Path,
-        default=Path("data/metadata"),
-        help="Metadata output root (default: data/metadata).",
+        default=configs.METADATA_ROOT,
+        help=f"Metadata output root (default: {configs.METADATA_ROOT}).",
     )
     parser.add_argument(
         "--cache",
         type=Path,
-        default=Path("data/_catalog"),
-        help="Catalog cache directory (default: data/_catalog).",
+        default=configs.CATALOG_ROOT,
+        help=f"Catalog cache directory (default: {configs.CATALOG_ROOT}).",
     )
     parser.add_argument(
         "--test",
@@ -90,5 +92,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--refresh-catalog",
         action="store_true",
         help="Re-fetch the feature and instrument catalogs.",
+    )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress the progress bar and print only the final summary.",
     )
     return parser

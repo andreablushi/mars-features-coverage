@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from mars_remote_sensing_pipeline.ode.models import Feature, InstrumentSet
+from download.models import Feature, InstrumentSet
 
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 

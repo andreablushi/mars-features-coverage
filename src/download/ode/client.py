@@ -8,8 +8,7 @@ from typing import Any
 
 import httpx
 
-BASE_URL = "https://oderest.rsl.wustl.edu/live2/"
-_RETRYABLE_STATUS = frozenset({403, 429, 500, 502, 503, 504})
+from download import configs
 
 
 class ODEError(RuntimeError):
@@ -41,9 +40,9 @@ class ODEClient:
     def __init__(
         self,
         *,
-        timeout: float = 30.0,
-        max_retries: int = 5,
-        backoff_base: float = 0.5,
+        timeout: float = configs.REQUEST_TIMEOUT,
+        max_retries: int = configs.MAX_RETRIES,
+        backoff_base: float = configs.BACKOFF_BASE,
         client: httpx.Client | None = None,
     ) -> None:
         """Create a client.
@@ -65,10 +64,10 @@ class ODEClient:
     def query(self, params: dict[str, str]) -> dict[str, Any]:
         """Run one ODE query and return its parsed ODEResults payload.
 
-        Output is always requested as JSON. Transient transport failures and
-        retryable HTTP statuses are retried with exponential backoff and
-        jitter. An ODE body with Status ERROR is deterministic and is raised
-        without retrying.
+        Output is always requested as JSON. Transient transport failures,
+        retryable HTTP statuses, and malformed bodies are retried with
+        exponential backoff and jitter. An ODE body reporting Status ERROR is
+        deterministic and is raised without retrying.
 
         Args:
             params: Query parameters excluding the output format.
@@ -83,12 +82,12 @@ class ODEClient:
         last_error: Exception | None = None
         for attempt in range(self._max_retries + 1):
             try:
-                response = self._client.get(BASE_URL, params=merged)
+                response = self._client.get(configs.ODE_BASE_URL, params=merged)
             except httpx.HTTPError as exc:
                 last_error = exc
                 self._maybe_sleep(attempt)
                 continue
-            if response.status_code in _RETRYABLE_STATUS:
+            if response.status_code in configs.RETRYABLE_STATUS:
                 last_error = ODEError(f"HTTP {response.status_code}")
                 self._maybe_sleep(attempt)
                 continue

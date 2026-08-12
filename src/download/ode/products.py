@@ -3,40 +3,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any
 
-from mars_remote_sensing_pipeline.ode.client import ODEClient, as_list
-from mars_remote_sensing_pipeline.ode.models import Feature, InstrumentSet
-
-RETAINED_FIELDS = (
-    "ode_id",
-    "pdsid",
-    "ihid",
-    "iid",
-    "pt",
-    "Data_Set_Id",
-    "UTC_start_time",
-    "UTC_stop_time",
-    "Observation_time",
-    "Center_latitude",
-    "Center_longitude",
-    "Minimum_latitude",
-    "Maximum_latitude",
-    "Westernmost_longitude",
-    "Easternmost_longitude",
-    "Footprint_C0_geometry",
-    "Emission_angle",
-    "Incidence_angle",
-    "Phase_angle",
-    "Solar_longitude",
-    "Map_scale",
-    "Product_creation_time",
-    "Start_orbit_number",
-    "Stop_orbit_number",
-)
-
-_PAGE_SIZE = 5000
-_ORDER = "oba"
+from download import configs
+from download.models import Feature, InstrumentSet, ProductRecord
+from download.ode.client import ODEClient, as_list
 
 
 def _base_params(
@@ -60,7 +30,7 @@ def _base_params(
     """
     params = {
         "query": "product",
-        "target": "mars",
+        "target": configs.ODE_TARGET,
         "ihid": instrument_set.ihid,
         "iid": instrument_set.iid,
         "pt": instrument_set.pt,
@@ -79,7 +49,7 @@ def count(
     feature: Feature,
     instrument_set: InstrumentSet,
     *,
-    loc: str = "o",
+    loc: str = configs.DEFAULT_LOC,
     min_obs_time: str | None = None,
     max_obs_time: str | None = None,
 ) -> int:
@@ -107,11 +77,11 @@ def fetch_products(
     feature: Feature,
     instrument_set: InstrumentSet,
     *,
-    loc: str = "o",
+    loc: str = configs.DEFAULT_LOC,
     total: int | None = None,
     min_obs_time: str | None = None,
     max_obs_time: str | None = None,
-) -> list[dict[str, Any]]:
+) -> list[ProductRecord]:
     """Fetch all product metadata for a feature and instrument set.
 
     Each record keeps the retained ODE fields plus provenance describing the
@@ -133,7 +103,7 @@ def fetch_products(
         max_obs_time: Optional maximum UTC observation time.
 
     Returns:
-        One deduplicated dictionary per product.
+        One deduplicated record per product.
     """
     if total is None:
         total = count(
@@ -156,7 +126,7 @@ def fetch_products(
         "loc_mode": loc,
         "retrieved_at": datetime.now(timezone.utc).isoformat(),
     }
-    records: list[dict[str, Any]] = []
+    records: list[ProductRecord] = []
     seen: set[str] = set()
     offset = 0
     while len(seen) < total:
@@ -164,8 +134,8 @@ def fetch_products(
         params.update(
             {
                 "results": "opm",
-                "order": _ORDER,
-                "limit": str(_PAGE_SIZE),
+                "order": configs.PAGE_ORDER,
+                "limit": str(configs.PAGE_SIZE),
                 "offset": str(offset),
             }
         )
@@ -178,7 +148,9 @@ def fetch_products(
             if key in seen:
                 continue
             seen.add(key)
-            record = {field: item[field] for field in RETAINED_FIELDS if field in item}
+            record = {
+                field: item[field] for field in configs.RETAINED_FIELDS if field in item
+            }
             record.update(provenance)
             records.append(record)
             added += 1
