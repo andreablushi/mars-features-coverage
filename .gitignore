@@ -15,6 +15,7 @@ __pycache__/
 .python-version
 uv.lock
 .venv/
+.ruff_cache/
 
 # Environment variables
 .env
