@@ -62,7 +62,7 @@ def resolve_feature_selection(
 
 
 def describe_plan(plan: DownloadPlan, workers: int, console: Console) -> None:
-    """Print what a run is about to do.
+    """Print the initial state of the download plan to the console.
 
     Args:
         plan: The plan produced by the planner.
@@ -126,15 +126,26 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
 
         events = runner.run(plan.jobs)
-        if args.quiet:
-            progress_view.consume(events)
-        else:
-            progress_view.render(events, len(plan.jobs), console)
+        interrupted = False
+        try:
+            if args.quiet:
+                progress_view.consume(events)
+            else:
+                progress_view.render(events, len(plan.jobs), console)
+        except KeyboardInterrupt:
+            interrupted = True
+            events.close()
+            console.print(
+                "[yellow]interrupted: pending jobs cancelled, finished files kept. "
+                "Re-run to resume.[/yellow]"
+            )
 
     summary = runner.summary
     if summary is None:
-        return 0
+        return 130 if interrupted else 0
     progress_view.print_summary(summary, console)
+    if interrupted:
+        return 130
     return 1 if summary.failed else 0
 
 

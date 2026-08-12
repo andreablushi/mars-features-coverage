@@ -82,33 +82,35 @@ class DownloadRunner:
         empty = 0
         failed = 0
         total = len(jobs)
-        if total:
-            with ThreadPoolExecutor(max_workers=self._workers) as pool:
-                futures = [pool.submit(self._run_one, job) for job in jobs]
-                for completed, future in enumerate(as_completed(futures), start=1):
-                    outcome = future.result()
-                    if outcome.failed:
-                        failed += 1
-                    else:
-                        ran += 1
-                        rows += outcome.rows
-                        if outcome.rows == 0:
-                            empty += 1
-                    yield ProgressEvent(
-                        completed=completed,
-                        total=total,
-                        elapsed=time.monotonic() - started,
-                        outcome=outcome,
-                        rows=rows,
-                        failed=failed,
-                    )
-        self._summary = RunSummary(
-            ran=ran,
-            rows=rows,
-            empty=empty,
-            failed=failed,
-            elapsed=time.monotonic() - started,
-        )
+        pool = ThreadPoolExecutor(max_workers=self._workers)
+        try:
+            futures = [pool.submit(self._run_one, job) for job in jobs]
+            for completed, future in enumerate(as_completed(futures), start=1):
+                outcome = future.result()
+                if outcome.failed:
+                    failed += 1
+                else:
+                    ran += 1
+                    rows += outcome.rows
+                    if outcome.rows == 0:
+                        empty += 1
+                yield ProgressEvent(
+                    completed=completed,
+                    total=total,
+                    elapsed=time.monotonic() - started,
+                    outcome=outcome,
+                    rows=rows,
+                    failed=failed,
+                )
+        finally:
+            pool.shutdown(wait=False, cancel_futures=True)
+            self._summary = RunSummary(
+                ran=ran,
+                rows=rows,
+                empty=empty,
+                failed=failed,
+                elapsed=time.monotonic() - started,
+            )
 
     def _run_one(self, job: Job) -> JobOutcome:
         """Download and write one job, counting first to skip empty fetches.
