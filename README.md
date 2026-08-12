@@ -1,1 +1,1 @@
-# mars-rs-pipeline
+# Mars Remote Sensing Pipeline
