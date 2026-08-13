@@ -52,11 +52,14 @@ class JobOutcome:
     Attributes:
         job: The job that was run.
         events: How many observation rows were written.
+        discarded: How many stored records carried no footprint or no start
+            time and so could not be measured.
         error: The error raised, or None on success.
     """
 
     job: CoverageJob
     events: int = 0
+    discarded: int = 0
     error: Exception | None = None
 
     @property
@@ -76,6 +79,15 @@ class JobOutcome:
             True when an error was recorded.
         """
         return self.error is not None
+
+    @property
+    def empty(self) -> bool:
+        """Return whether the job ran but had nothing left to measure.
+
+        Returns:
+            True when no error was raised and no row was written.
+        """
+        return self.error is None and self.events == 0
 
 
 @dataclass(frozen=True)

@@ -44,39 +44,46 @@ def run_job(job: CoverageJob) -> JobOutcome:
         prepared = _prepare(job)
         if prepared is None:
             return JobOutcome(job=job)
-        box, region, projected = prepared
+        box, region, projected, discarded = prepared
+        if not projected:
+            return JobOutcome(job=job, discarded=discarded)
         events, summary = coverage.compute(box, region, projected)
         writer.write(events, EVENTS, job.events_path)
         writer.write([summary], SUMMARY, job.summary_path)
-        return JobOutcome(job=job, events=len(events))
+        return JobOutcome(job=job, events=len(events), discarded=discarded)
     except Exception as exc:
         return JobOutcome(job=job, error=exc)
 
 
 def _prepare(
     job: CoverageJob,
-) -> tuple[FeatureBox, FeatureRegion, list[ProjectedObservation]] | None:
+) -> tuple[FeatureBox, FeatureRegion, list[ProjectedObservation], int] | None:
     """Load projected footprints, from the cache when it is still valid.
+
+    A cache hit reports no discards. Only a set that yielded something is ever
+    cached, so the sets whose discards matter are always read afresh.
 
     Args:
         job: The instrument set being computed.
 
     Returns:
-        The feature box, its projected region, and the projected observations,
-        or None when the set holds nothing usable.
+        The feature box, its projected region, the projected observations, and
+        how many stored records were discarded, or None when the set holds no
+        records at all.
     """
     cached = geometry.load(job.geometry_path, job.source)
     if cached is not None:
         box, projected = cached
-        return box, _region(box), projected
+        return box, _region(box), projected, 0
     loaded = records.load_set(job.source)
     if loaded is None:
         return None
-    box, observations = loaded
+    box, observations, discarded = loaded
     region = _region(box)
     projected = prepare.project(region, observations)
-    geometry.save(job.geometry_path, box, projected)
-    return box, region, projected
+    if projected:
+        geometry.save(job.geometry_path, box, projected)
+    return box, region, projected, discarded
 
 
 def _region(box: FeatureBox) -> FeatureRegion:
@@ -109,7 +116,9 @@ class CoverageRunner:
             None.
         """
         self._workers = max(1, workers)
-        self._summary = RunSummary(computed=0, failed=0, events=0, elapsed=0.0)
+        self._summary = RunSummary(
+            computed=0, empty=0, failed=0, events=0, discarded=0, elapsed=0.0
+        )
 
     @property
     def workers(self) -> int:
@@ -139,14 +148,17 @@ class CoverageRunner:
             One ProgressEvent per finished set, in completion order.
         """
         started = time.monotonic()
-        computed = failed = events = 0
+        computed = empty = failed = events = discarded = 0
         pool = ProcessPoolExecutor(max_workers=self._workers)
         try:
             futures = [pool.submit(run_job, job) for job in jobs]
             for completed, future in enumerate(as_completed(futures), start=1):
                 outcome = future.result()
+                discarded += outcome.discarded
                 if outcome.failed:
                     failed += 1
+                elif outcome.empty:
+                    empty += 1
                 else:
                     computed += 1
                     events += outcome.events
@@ -155,7 +167,9 @@ class CoverageRunner:
             pool.shutdown(wait=False, cancel_futures=True)
             self._summary = RunSummary(
                 computed=computed,
+                empty=empty,
                 failed=failed,
                 events=events,
+                discarded=discarded,
                 elapsed=time.monotonic() - started,
             )

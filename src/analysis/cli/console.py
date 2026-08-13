@@ -48,3 +48,9 @@ def print_summary(
         f"{summary.events:,} observation rows, {summary.failed} failed, "
         f"{indexed:,} rows indexed"
     )
+    if summary.empty or summary.discarded:
+        console.print(
+            f"[yellow]{summary.empty} sets measured nothing, "
+            f"{summary.discarded:,} records discarded for no footprint "
+            f"or no start time[/yellow]"
+        )

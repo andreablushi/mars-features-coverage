@@ -18,7 +18,7 @@ class Event:
         pt: The product type.
         pdsid: The PDS product identifier.
         t_start: When the observation started.
-        t_stop: When the observation finished.
+        t_stop: When the observation finished, or None when none was published.
         own_km2: Ground this footprint covers inside the feature.
         new_km2: Ground its instrument set had not covered before.
         cum_km2: Ground its instrument set has covered including this one.
@@ -35,7 +35,7 @@ class Event:
     pt: str
     pdsid: str
     t_start: datetime
-    t_stop: datetime
+    t_stop: datetime | None
     own_km2: float
     new_km2: float
     cum_km2: float

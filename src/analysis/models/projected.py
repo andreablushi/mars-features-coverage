@@ -22,7 +22,7 @@ class ProjectedObservation:
         iid: The instrument identifier.
         pt: The product type.
         start: When the observation started.
-        stop: When the observation finished.
+        stop: When the observation finished, or None when none was published.
         shape: The projected footprint, clipped to the feature.
         width_km: The swath width used, or None when the footprint had area.
         width_source: Where the swath width came from, or None.
@@ -33,7 +33,7 @@ class ProjectedObservation:
     iid: str
     pt: str
     start: datetime
-    stop: datetime
+    stop: datetime | None
     shape: BaseGeometry
     width_km: float | None
     width_source: str | None

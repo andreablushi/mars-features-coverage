@@ -20,7 +20,7 @@ class Observation:
         iid: The instrument identifier.
         pt: The product type.
         start: When the observation started.
-        stop: When the observation finished.
+        stop: When the observation finished, or None when none was published.
         wkt: The footprint as well-known text, left unparsed.
     """
 
@@ -29,7 +29,7 @@ class Observation:
     iid: str
     pt: str
     start: datetime
-    stop: datetime
+    stop: datetime | None
     wkt: str
 
     @property
@@ -55,6 +55,7 @@ class Observation:
         """Return how long the observation lasted.
 
         Returns:
-            The elapsed time in seconds.
+            The elapsed time in seconds, or zero when no stop was published,
+            which leaves a track to take the fallback swath width.
         """
-        return (self.stop - self.start).total_seconds()
+        return (self.stop - self.start).total_seconds() if self.stop else 0.0
