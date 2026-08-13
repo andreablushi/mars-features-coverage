@@ -13,7 +13,7 @@ where the projection is undefined.
 from __future__ import annotations
 
 import numpy as np
-from shapely import Polygon, covers, prepare, segmentize, transform, union_all
+from shapely import Polygon, segmentize, transform, union_all
 from shapely.geometry.base import BaseGeometry
 
 from analysis import configs
@@ -61,6 +61,15 @@ class FeatureRegion:
             margin_deg=configs.LINE_CLIP_MARGIN_DEG,
         )
 
+    @property
+    def shape(self) -> BaseGeometry:
+        """Return the projected feature the footprints are cut to.
+
+        Returns:
+            The bounding box as a polygon in equal-area metres.
+        """
+        return self._shape
+
     def footprint(self, geom: BaseGeometry, swath_width_m: float) -> BaseGeometry:
         """Return the ground one observation covers inside the feature.
 
@@ -98,56 +107,3 @@ class FeatureRegion:
             coords[:, 0], coords[:, 1], self.centre_lon, self.centre_lat
         )
         return np.column_stack((x, y))
-
-
-class CoverageUnion:
-    """A running union of the ground covered so far.
-
-    What an observation adds is the growth of the union's area rather than a
-    separate difference against it, so folding one in costs a single union.
-
-    Most observations repeat ground their instrument has already seen, and a
-    footprint the union already covers cannot change its area. Testing that
-    first against a prepared index is far cheaper than the union it avoids,
-    and it is exact: the skipped footprints contribute nothing by definition.
-
-    Attributes:
-        area_m2: The ground covered so far in square metres.
-    """
-
-    def __init__(self) -> None:
-        """Start an empty union.
-
-        Returns:
-            None.
-        """
-        self._shape: BaseGeometry = _EMPTY
-        self.area_m2 = 0.0
-
-    @property
-    def shape(self) -> BaseGeometry:
-        """Return the union built so far.
-
-        Returns:
-            The accumulated geometry, empty until something is added.
-        """
-        return self._shape
-
-    def add(self, shape: BaseGeometry) -> float:
-        """Fold one footprint into the union.
-
-        Args:
-            shape: The projected footprint to add.
-
-        Returns:
-            The area in square metres the footprint covered that the union had
-            not already reached.
-        """
-        if shape.is_empty or covers(self._shape, shape):
-            return 0.0
-        self._shape = union_all([self._shape, shape])
-        prepare(self._shape)
-        grown = self._shape.area
-        fresh = max(grown - self.area_m2, 0.0)
-        self.area_m2 = grown
-        return fresh

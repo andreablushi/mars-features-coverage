@@ -30,6 +30,10 @@ LINE_CLIP_MARGIN_DEG = 2.0
 
 LAEA_MIN_DENOMINATOR = 1e-12
 
+# The union is kept per tile so each insert touches a small shape, not the
+# whole accumulated one; tiles are disjoint so summing their areas is exact
+UNION_TILES = 16
+
 # Straight lon/lat edges curve once projected, so resample below this step
 MAX_SEGMENT_DEG = 0.25
 

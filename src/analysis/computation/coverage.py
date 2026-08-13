@@ -15,7 +15,8 @@ from datetime import datetime
 from shapely.geometry.base import BaseGeometry
 
 from analysis import configs
-from analysis.computation.region import CoverageUnion, FeatureRegion
+from analysis.computation.region import FeatureRegion
+from analysis.computation.tiles import TiledUnion
 from analysis.models.feature import FeatureBox
 from analysis.models.projected import ProjectedObservation
 from analysis.models.results import Event, Summary
@@ -37,7 +38,7 @@ def compute(
         One event row per observation, the summary row for the set, and the
         set's final union so the pooled row can be assembled from it later.
     """
-    covered = CoverageUnion()
+    covered = TiledUnion(region)
     gridded = observations[0].set_key in configs.GRIDDED_SETS
     events = [
         _event(
@@ -63,7 +64,7 @@ def compute(
 def _event(
     box: FeatureBox,
     observation: ProjectedObservation,
-    covered: CoverageUnion,
+    covered: TiledUnion,
     fresh_m2: float,
     region: FeatureRegion,
     gridded: bool,
