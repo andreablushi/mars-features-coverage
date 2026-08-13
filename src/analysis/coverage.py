@@ -2,10 +2,7 @@
 
 Observations are walked once, in chronological order across every instrument
 set at once. Each is drawn a single time and folded into two running masks: the
-one for its own instrument set, and the one pooling every instrument. That
-single pass yields both plots the analysis needs, the area an observation added
-that nothing had seen before, and the running total behind it, without binning
-anything. Binning stays a choice made when plotting.
+one for its own instrument set, and the one pooling every instrument.
 """
 
 from __future__ import annotations
@@ -17,7 +14,8 @@ import numpy as np
 
 from analysis import configs, footprints, geodesy, swath
 from analysis.grid import FeatureGrid
-from analysis.records import FeatureBox, Observation
+from analysis.models.feature import FeatureBox
+from analysis.models.observation import Observation
 
 
 def compute(
@@ -34,9 +32,6 @@ def compute(
         with a pooled row across every set appended to the summaries.
     """
     grid = FeatureGrid(box.min_lat, box.max_lat, box.west_lon, box.east_lon)
-    if grid.degenerate:
-        return [], [_degenerate_summary(box)]
-
     widths = _track_widths(observations)
     area_km2 = grid.area_m2 / 1e6
     per_cell = area_km2 / grid.total_cells
@@ -295,35 +290,4 @@ def _summary(
         ),
         "cell_km": grid.cell_m / 1000.0,
         "gridded": gridded,
-        "degenerate": False,
-    }
-
-
-def _degenerate_summary(box: FeatureBox) -> dict[str, Any]:
-    """Build the single row standing in for a feature with no area.
-
-    Args:
-        box: The feature whose bounding box encloses nothing.
-
-    Returns:
-        The summary row, with every coverage figure left empty.
-    """
-    label = configs.ALL_SETS_LABEL
-    return {
-        "feature_class": box.feature_class,
-        "feature_name": box.name,
-        "ihid": label,
-        "iid": label,
-        "pt": label,
-        "feature_area_km2": 0.0,
-        "covered_km2": None,
-        "covered_frac": None,
-        "n_obs": 0,
-        "n_contributing": 0,
-        "t_first": None,
-        "t_last": None,
-        "span_days": None,
-        "cell_km": None,
-        "gridded": False,
-        "degenerate": True,
     }

@@ -5,12 +5,12 @@ from __future__ import annotations
 from dataclasses import asdict
 from pathlib import Path
 
+from common.jsonl import read_jsonl, write_jsonl
 from download import configs
 from download.api.client import ODEClient, as_items
 from download.models.feature import Feature
 from download.models.product import InstrumentSetInfo
 from download.selection.dedupe import dedupe
-from download.storage.writer import read_jsonl, write_jsonl
 
 
 def fetch_features(client: ODEClient) -> list[Feature]:

@@ -1,20 +1,17 @@
-"""Atomic JSONL writing and reading."""
+"""JSONL reading and writing shared by both pipelines."""
 
 from __future__ import annotations
 
 import json
-import os
-import tempfile
 from collections.abc import Iterable, Iterator, Mapping
 from pathlib import Path
 from typing import Any
 
+from common.atomic import atomic_path
+
 
 def write_jsonl(path: Path, rows: Iterable[Mapping[str, Any]]) -> int:
     """Write rows as JSONL, atomically via a temp file and rename.
-
-    The parent directory is created if needed. On any failure the temp file is
-    removed and the destination is left untouched.
 
     Args:
         path: Destination file path.
@@ -23,19 +20,12 @@ def write_jsonl(path: Path, rows: Iterable[Mapping[str, Any]]) -> int:
     Returns:
         The number of rows written.
     """
-    path.parent.mkdir(parents=True, exist_ok=True)
     count = 0
-    fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            for row in rows:
-                handle.write(json.dumps(row, ensure_ascii=False))
-                handle.write("\n")
-                count += 1
-    except BaseException:
-        os.unlink(tmp)
-        raise
-    os.replace(tmp, path)
+    with atomic_path(path) as tmp, tmp.open("w", encoding="utf-8") as handle:
+        for row in rows:
+            handle.write(json.dumps(row, ensure_ascii=False))
+            handle.write("\n")
+            count += 1
     return count
 
 

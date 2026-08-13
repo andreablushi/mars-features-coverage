@@ -6,12 +6,13 @@ import time
 from collections.abc import Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from common.jsonl import write_jsonl
+from common.models.progress import ProgressEvent
 from download import configs
 from download.api import products
 from download.api.client import ODEClient
 from download.models.job import Job, JobOutcome
-from download.models.progress import ProgressEvent, RunSummary
-from download.storage.writer import write_jsonl
+from download.models.progress import RunSummary
 
 
 class DownloadRunner:

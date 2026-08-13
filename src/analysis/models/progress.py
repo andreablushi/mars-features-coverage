@@ -1,4 +1,4 @@
-"""Summary model for a finished download run."""
+"""Summary model for a finished coverage run."""
 
 from __future__ import annotations
 
@@ -10,11 +10,13 @@ class RunSummary:
     """Totals for a finished run.
 
     Attributes:
-        ran: Jobs executed successfully.
-        failed: Jobs that raised an error.
+        computed: Features computed successfully.
+        failed: Features that raised an error.
+        events: Observation rows written across every feature.
         elapsed: Total run duration in seconds.
     """
 
-    ran: int
+    computed: int
     failed: int
+    events: int
     elapsed: float

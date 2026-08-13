@@ -1,20 +1,20 @@
-"""Console output for a coverage run: plan, progress, and totals."""
+"""Console output for a coverage run: plan and totals."""
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-
 from rich.console import Console
-from rich.progress import BarColumn, MofNCompleteColumn, Progress, TimeRemainingColumn
 
-from analysis.models import ProgressEvent, RunSummary
+from analysis.models.job import CoveragePlan
+from analysis.models.progress import RunSummary
 
 
-def describe_plan(features: int, workers: int, console: Console | None = None) -> None:
-    """Print what the run is about to do.
+def describe_plan(
+    plan: CoveragePlan, workers: int, console: Console | None = None
+) -> None:
+    """Print the initial state of the coverage plan.
 
     Args:
-        features: How many feature directories were discovered.
+        plan: The plan produced by the planner.
         workers: The effective worker count.
         console: Optional console to print on.
 
@@ -22,74 +22,28 @@ def describe_plan(features: int, workers: int, console: Console | None = None) -
         None.
     """
     console = console or Console()
-    console.print(f"plan: {features} features, {workers} workers")
-
-
-def render(
-    events: Iterable[ProgressEvent], total: int, console: Console | None = None
-) -> None:
-    """Draw a live progress bar while consuming runner events.
-
-    Shows the bar, the completed and total feature counts, and the estimated
-    time remaining. Failures are printed above the bar as they happen.
-
-    Args:
-        events: The progress events produced by the runner.
-        total: The number of features in the run.
-        console: Optional console to render on.
-
-    Returns:
-        None.
-    """
-    console = console or Console()
-    with Progress(
-        BarColumn(bar_width=None),
-        MofNCompleteColumn(),
-        TimeRemainingColumn(compact=True),
-        console=console,
-    ) as progress:
-        task = progress.add_task("coverage", total=total)
-        for event in events:
-            if event.outcome.failed:
-                console.print(
-                    f"[red]error[/red] {event.outcome.label}: {event.outcome.error}"
-                )
-            progress.update(task, completed=event.completed)
-
-
-def print_interrupted(console: Console | None = None) -> None:
-    """Print the notice shown when the run is stopped with Ctrl-C.
-
-    Args:
-        console: Optional console to print on.
-
-    Returns:
-        None.
-    """
-    console = console or Console()
     console.print(
-        "[yellow]interrupted: pending features cancelled, finished files kept. "
-        "Re-run to recompute.[/yellow]"
+        f"plan: {plan.feature_count} features, {len(plan.jobs)} to compute, "
+        f"{plan.skipped_existing} already done, {workers} workers"
     )
 
 
-def print_summary(summary: RunSummary, console: Console | None = None) -> None:
+def print_summary(
+    summary: RunSummary, indexed: int, console: Console | None = None
+) -> None:
     """Print the totals for a finished run.
 
     Args:
         summary: The summary produced by the runner.
+        indexed: Summary rows gathered into the catalogue index.
         console: Optional console to print on.
 
     Returns:
         None.
     """
     console = console or Console()
-    if summary.degenerate:
-        console.print(
-            f"[yellow]{summary.degenerate} features had a zero-area bounding box "
-            "and were recorded without coverage[/yellow]"
-        )
     console.print(
-        f"done in {summary.elapsed:.1f}s: {summary.features} features, "
-        f"{summary.events:,} observation rows, {summary.failed} failed"
+        f"done in {summary.elapsed:.1f}s: {summary.computed} features, "
+        f"{summary.events:,} observation rows, {summary.failed} failed, "
+        f"{indexed:,} rows indexed"
     )

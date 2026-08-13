@@ -1,36 +1,33 @@
-"""Download job models."""
+"""Coverage job models."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
 
-from download.models.feature import Feature
-from download.models.instrument import InstrumentSet
-
 
 @dataclass(frozen=True)
-class Job:
-    """One feature and instrument set to download.
+class CoverageJob:
+    """One feature to compute coverage for.
 
     Attributes:
-        feature: The feature to query.
-        instrument_set: The instrument set to query.
-        output_path: The JSONL file the results are written to.
+        source: The metadata directory holding one JSONL file per set.
+        events_path: The parquet file the per-observation rows go to.
+        summary_path: The parquet file the per-instrument-set rows go to.
     """
 
-    feature: Feature
-    instrument_set: InstrumentSet
-    output_path: Path
+    source: Path
+    events_path: Path
+    summary_path: Path
 
     @property
     def label(self) -> str:
         """Return a short human readable name for this job.
 
         Returns:
-            The feature name followed by the instrument set key.
+            The feature class and name slugs, joined by a slash.
         """
-        return f"{self.feature.name} [{self.instrument_set.key}]"
+        return f"{self.source.parent.name}/{self.source.name}"
 
 
 @dataclass(frozen=True)
@@ -39,10 +36,12 @@ class JobOutcome:
 
     Attributes:
         job: The job that was run.
+        events: How many observation rows were written.
         error: The error raised, or None on success.
     """
 
-    job: Job
+    job: CoverageJob
+    events: int = 0
     error: Exception | None = None
 
     @property
@@ -65,19 +64,15 @@ class JobOutcome:
 
 
 @dataclass(frozen=True)
-class DownloadPlan:
+class CoveragePlan:
     """The work selected for a run.
 
     Attributes:
-        jobs: Jobs that still need downloading.
-        feature_count: Usable features selected.
-        instrument_set_count: Instrument sets selected.
-        degenerate_features: Features skipped for having a zero area box.
-        skipped_existing: Outputs left in place because they already exist.
+        jobs: Features that still need computing.
+        feature_count: Features discovered on disk.
+        skipped_existing: Features left alone because they are already done.
     """
 
-    jobs: tuple[Job, ...]
+    jobs: tuple[CoverageJob, ...]
     feature_count: int
-    instrument_set_count: int
-    degenerate_features: int
     skipped_existing: int

@@ -8,6 +8,7 @@ from contextlib import closing
 
 from rich.console import Console
 
+from common.cli import progress
 from download import configs, planner
 from download.api import catalog
 from download.api.client import ODEClient
@@ -44,7 +45,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
 
         with closing(runner.run(plan.jobs)) as events:
-            view.render(events, len(plan.jobs), console)
+            progress.render(events, len(plan.jobs), "download", console)
 
     view.print_summary(runner.summary, console)
     return 1 if runner.summary.failed else 0
@@ -54,5 +55,5 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except KeyboardInterrupt:
-        view.print_interrupted()
+        progress.print_interrupted("jobs")
         raise SystemExit(130) from None

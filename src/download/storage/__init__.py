@@ -1,1 +1,1 @@
-"""On-disk layout and JSONL writing for downloaded metadata."""
+"""On-disk layout for downloaded metadata."""

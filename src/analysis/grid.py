@@ -107,11 +107,6 @@ class FeatureGrid:
         self._x_min, self._y_max = float(x.min()), float(y.max())
         width, height = float(x.max() - x.min()), float(y.max() - y.min())
         self.cell_m = max(width, height) / configs.GRID_MAX_DIM
-        if self.area_m2 <= 0.0 or self.cell_m <= 0.0:
-            self.mask = np.zeros((1, 1), dtype=bool)
-            self.total_cells = 0
-            self._tight = self._wide = None
-            return
         self._rows = max(1, math.ceil(height / self.cell_m))
         self._columns = max(1, math.ceil(width / self.cell_m))
         ring = self._to_pixels(np.column_stack((x, y)))
@@ -125,15 +120,6 @@ class FeatureGrid:
             east_lon,
             margin_deg=configs.LINE_CLIP_MARGIN_DEG,
         )
-
-    @property
-    def degenerate(self) -> bool:
-        """Report whether the bounding box encloses no area at all.
-
-        Returns:
-            True when the feature has a zero-area box and must be skipped.
-        """
-        return self.total_cells == 0
 
     def empty_mask(self) -> np.ndarray:
         """Build a blank running mask sized for this raster.

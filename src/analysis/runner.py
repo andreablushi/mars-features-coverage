@@ -1,9 +1,9 @@
-"""Run coverage computation across every downloaded feature.
+"""Run coverage jobs concurrently, emitting structured progress events.
 
 Each feature is an independent CPU-bound job, so the work runs on a process
 pool rather than the thread pool the download stage uses. A worker writes its
-own parquet files and hands back only its summary rows, keeping the millions of
-event rows a full catalogue produces out of the parent process entirely.
+own parquet files and hands back only a count, keeping the millions of event
+rows a full catalogue produces out of the parent process entirely.
 """
 
 from __future__ import annotations
@@ -11,60 +11,37 @@ from __future__ import annotations
 import time
 from collections.abc import Iterator, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from pathlib import Path
-from typing import Any
 
-from analysis import configs, coverage, layout, records, writer
-from analysis.models import FeatureOutcome, ProgressEvent, RunSummary
-
-
-def discover(root: Path = configs.METADATA_ROOT) -> list[Path]:
-    """Find every feature directory holding downloaded metadata.
-
-    Args:
-        root: The metadata root directory.
-
-    Returns:
-        The feature directories, sorted, that hold at least one JSONL file.
-    """
-    return sorted(
-        path for path in root.glob("*/*") if path.is_dir() and any(path.glob("*.jsonl"))
-    )
+from analysis import configs, coverage
+from analysis.loader import schemas, writer
+from analysis.loader.records import load_feature
+from analysis.models.job import CoverageJob, JobOutcome
+from analysis.models.progress import RunSummary
+from common.models.progress import ProgressEvent
 
 
-def compute_feature(
-    directory: Path, root: Path
-) -> tuple[FeatureOutcome, list[dict[str, Any]]]:
-    """Compute and write coverage for one feature directory.
+def run_job(job: CoverageJob) -> JobOutcome:
+    """Compute and write coverage for one feature.
+
+    The events are written before the summary, so a summary on disk means the
+    whole feature finished and a later run can skip it.
 
     Args:
-        directory: The feature directory holding one JSONL file per set.
-        root: The coverage artifacts root directory.
+        job: The feature to compute.
 
     Returns:
-        The outcome and the feature's summary rows.
+        The outcome, carrying the error when the job failed.
     """
-    box, observations = records.load_feature(directory)
-    if box is None:
-        return FeatureOutcome(label=directory.name), []
-    events, summaries = coverage.compute(box, observations)
-    if events:
-        writer.write(
-            events,
-            writer.EVENTS_SCHEMA,
-            layout.events_path(root, box.feature_class, box.name),
-        )
-    writer.write(
-        summaries,
-        writer.SUMMARY_SCHEMA,
-        layout.summary_path(root, box.feature_class, box.name),
-    )
-    outcome = FeatureOutcome(
-        label=f"{box.feature_class}/{box.name}",
-        events=len(events),
-        degenerate=bool(summaries) and summaries[0]["degenerate"],
-    )
-    return outcome, summaries
+    try:
+        data = load_feature(job.source)
+        if data is None:
+            return JobOutcome(job=job)
+        events, summaries = coverage.compute(data.box, data.observations)
+        writer.write(events, schemas.EVENTS, job.events_path)
+        writer.write(summaries, schemas.SUMMARY, job.summary_path)
+        return JobOutcome(job=job, events=len(events))
+    except Exception as exc:
+        return JobOutcome(job=job, error=exc)
 
 
 class CoverageRunner:
@@ -75,27 +52,17 @@ class CoverageRunner:
     all rendering to the caller.
     """
 
-    def __init__(
-        self,
-        *,
-        workers: int = configs.DEFAULT_WORKERS,
-        artifacts_root: Path = configs.ARTIFACTS_ROOT,
-    ) -> None:
+    def __init__(self, *, workers: int = configs.DEFAULT_WORKERS) -> None:
         """Create a runner.
 
         Args:
             workers: Requested worker count, at least one.
-            artifacts_root: Where computed artifacts are written.
 
         Returns:
             None.
         """
         self._workers = max(1, workers)
-        self._artifacts_root = artifacts_root
-        self._coverage_root = artifacts_root / configs.COVERAGE_DIR
-        self._summary = RunSummary(
-            features=0, failed=0, degenerate=0, events=0, elapsed=0.0
-        )
+        self._summary = RunSummary(computed=0, failed=0, events=0, elapsed=0.0)
 
     @property
     def workers(self) -> int:
@@ -115,47 +82,33 @@ class CoverageRunner:
         """
         return self._summary
 
-    def run(self, directories: Sequence[Path]) -> Iterator[ProgressEvent]:
-        """Compute every feature, yielding progress as each finishes.
+    def run(self, jobs: Sequence[CoverageJob]) -> Iterator[ProgressEvent]:
+        """Execute jobs concurrently, yielding progress as each finishes.
 
         Args:
-            directories: The feature directories to compute.
+            jobs: The features to compute.
 
         Yields:
             One ProgressEvent per finished feature, in completion order.
         """
         started = time.monotonic()
-        rows: list[dict[str, Any]] = []
-        features = failed = degenerate = events = 0
+        computed = failed = events = 0
         pool = ProcessPoolExecutor(max_workers=self._workers)
         try:
-            futures = {
-                pool.submit(compute_feature, directory, self._coverage_root): directory
-                for directory in directories
-            }
+            futures = [pool.submit(run_job, job) for job in jobs]
             for completed, future in enumerate(as_completed(futures), start=1):
-                try:
-                    outcome, summaries = future.result()
-                    rows.extend(summaries)
-                    features += 1
-                    events += outcome.events
-                    degenerate += outcome.degenerate
-                except Exception as exc:
+                outcome = future.result()
+                if outcome.failed:
                     failed += 1
-                    outcome = FeatureOutcome(label=futures[future].name, error=exc)
+                else:
+                    computed += 1
+                    events += outcome.events
                 yield ProgressEvent(completed=completed, outcome=outcome)
         finally:
             pool.shutdown(wait=False, cancel_futures=True)
-            if rows:
-                writer.write(
-                    rows,
-                    writer.SUMMARY_SCHEMA,
-                    layout.catalog_summary_path(self._artifacts_root),
-                )
             self._summary = RunSummary(
-                features=features,
+                computed=computed,
                 failed=failed,
-                degenerate=degenerate,
                 events=events,
                 elapsed=time.monotonic() - started,
             )
