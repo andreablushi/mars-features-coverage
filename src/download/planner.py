@@ -6,8 +6,10 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from download import configs
-from download.models import DownloadPlan, Feature, InstrumentSet, Job
-from download.selection import select_features
+from download.models.feature import Feature
+from download.models.instrument import InstrumentSet
+from download.models.job import DownloadPlan, Job
+from download.selection.features import select_features
 from download.storage.layout import product_file
 
 

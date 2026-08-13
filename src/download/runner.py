@@ -9,7 +9,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from download import configs
 from download.api import products
 from download.api.client import ODEClient
-from download.models import Job, JobOutcome, ProgressEvent, RunSummary
+from download.models.job import Job, JobOutcome
+from download.models.progress import ProgressEvent, RunSummary
 from download.storage.writer import write_jsonl
 
 
@@ -35,14 +36,14 @@ class DownloadRunner:
         """
         self._client = client
         self._workers = max(1, min(workers, configs.MAX_WORKERS))
-        self._summary: RunSummary | None = None
+        self._summary = RunSummary(ran=0, failed=0, elapsed=0.0)
 
     @property
-    def summary(self) -> RunSummary | None:
-        """Return the summary of the last completed run.
+    def summary(self) -> RunSummary:
+        """Return the summary of the last run.
 
         Returns:
-            The summary, or None if no run has finished yet.
+            The summary, zeroed until a run has finished.
         """
         return self._summary
 

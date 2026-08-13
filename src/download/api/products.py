@@ -6,8 +6,10 @@ from datetime import datetime, timezone
 
 from download import configs
 from download.api.client import ODEClient, as_items
-from download.models import Feature, InstrumentSet, ProductRecord
-from download.selection import retain_fields
+from download.models.feature import Feature
+from download.models.instrument import InstrumentSet
+from download.models.product import ProductRecord
+from download.selection.fields import retain_fields
 
 
 def _base_params(feature: Feature, instrument_set: InstrumentSet) -> dict[str, str]:
@@ -49,11 +51,7 @@ def count(client: ODEClient, feature: Feature, instrument_set: InstrumentSet) ->
 
 
 def fetch_products(
-    client: ODEClient,
-    feature: Feature,
-    instrument_set: InstrumentSet,
-    *,
-    total: int | None = None,
+    client: ODEClient, feature: Feature, instrument_set: InstrumentSet
 ) -> list[ProductRecord]:
     """Fetch all product metadata for a feature and instrument set.
 
@@ -72,13 +70,11 @@ def fetch_products(
         client: The ODE client to query with.
         feature: The feature whose name sets the query bounding box.
         instrument_set: The instrument host, instrument, and product type.
-        total: The known product count, fetched if not given.
 
     Returns:
         One deduplicated record per product.
     """
-    if total is None:
-        total = count(client, feature, instrument_set)
+    total = count(client, feature, instrument_set)
     if total == 0:
         return []
     provenance = {

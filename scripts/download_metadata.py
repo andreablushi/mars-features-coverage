@@ -11,9 +11,9 @@ from rich.console import Console
 from download import configs, planner
 from download.api import catalog
 from download.api.client import ODEClient
-from download.cli import progress as progress_view
+from download.cli import console as view
 from download.cli.args import build_parser
-from download.models import InstrumentSet
+from download.models.instrument import InstrumentSet
 from download.runner import DownloadRunner
 
 
@@ -38,15 +38,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             features, instrument_sets, names=args.feature_name, force=args.force
         )
         runner = DownloadRunner(client, workers=args.workers)
-        progress_view.describe_plan(plan, runner.workers, console)
+        view.describe_plan(plan, runner.workers, console)
         if not plan.jobs:
             console.print("nothing to do")
             return 0
 
         with closing(runner.run(plan.jobs)) as events:
-            progress_view.render(events, len(plan.jobs), console)
+            view.render(events, len(plan.jobs), console)
 
-    progress_view.print_summary(runner.summary, console)
+    view.print_summary(runner.summary, console)
     return 1 if runner.summary.failed else 0
 
 
@@ -54,5 +54,5 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except KeyboardInterrupt:
-        progress_view.print_interrupted()
+        view.print_interrupted()
         raise SystemExit(130) from None

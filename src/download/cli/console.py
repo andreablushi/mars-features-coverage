@@ -1,4 +1,4 @@
-"""Rendering of runner progress events for the terminal."""
+"""Console output for a download run: plan, progress, and totals."""
 
 from __future__ import annotations
 
@@ -7,7 +7,8 @@ from collections.abc import Iterable
 from rich.console import Console
 from rich.progress import BarColumn, MofNCompleteColumn, Progress, TimeRemainingColumn
 
-from download.models import DownloadPlan, ProgressEvent, RunSummary
+from download.models.job import DownloadPlan
+from download.models.progress import ProgressEvent, RunSummary
 
 
 def describe_plan(

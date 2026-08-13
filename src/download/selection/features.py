@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from download.models import Feature
+from download.models.feature import Feature
 
 
 def select_features(

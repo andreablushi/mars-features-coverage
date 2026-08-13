@@ -15,7 +15,7 @@ class ODEError(RuntimeError):
     """Raised when ODE reports an error or a query keeps failing."""
 
 
-def as_list(value: Any) -> list[Any]:
+def _as_list(value: Any) -> list[Any]:
     """Normalise an ODE field that may be missing, a single object, or a list.
 
     ODE returns a bare object rather than a one element list when a result set
@@ -52,7 +52,7 @@ def as_items(results: dict[str, Any], container: str, item: str) -> list[Any]:
     section = results.get(container)
     if not isinstance(section, dict):
         return []
-    return as_list(section.get(item))
+    return _as_list(section.get(item))
 
 
 class ODEClient:

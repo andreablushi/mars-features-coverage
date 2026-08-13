@@ -5,7 +5,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from download.models import Feature, InstrumentSet
+from download.models.feature import Feature
+from download.models.instrument import InstrumentSet
 
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 

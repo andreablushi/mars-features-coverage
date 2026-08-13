@@ -7,8 +7,9 @@ from pathlib import Path
 
 from download import configs
 from download.api.client import ODEClient, as_items
-from download.models import Feature, InstrumentSetInfo
-from download.selection import dedupe
+from download.models.feature import Feature
+from download.models.product import InstrumentSetInfo
+from download.selection.dedupe import dedupe
 from download.storage.writer import read_jsonl, write_jsonl
 
 
