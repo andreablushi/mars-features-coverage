@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 from download import configs
 from download.models import Feature, InstrumentSet, ProductRecord
-from download.ode.client import ODEClient, as_list
+from download.ode.client import ODEClient, as_items
 from download.selection import retain_fields
 
 
@@ -104,7 +104,7 @@ def fetch_products(
                 "offset": str(offset),
             }
         )
-        items = as_list(client.query(params).get("Products", {}).get("Product"))
+        items = as_items(client.query(params), "Products", "Product")
         if not items:
             break
         added = 0

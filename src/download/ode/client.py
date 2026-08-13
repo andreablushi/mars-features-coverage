@@ -34,6 +34,27 @@ def as_list(value: Any) -> list[Any]:
     return [value]
 
 
+def as_items(results: dict[str, Any], container: str, item: str) -> list[Any]:
+    """Read a result container's items, tolerating ODE's placeholder strings.
+
+    ODE replaces the container object with a message such as "No Products Found"
+    once a query runs past the end of a result set, so the container cannot be
+    assumed to be an object.
+
+    Args:
+        results: The parsed ODEResults object.
+        container: The container field name, for example "Products".
+        item: The item field name inside the container, for example "Product".
+
+    Returns:
+        The items, empty when the container is missing or is a placeholder.
+    """
+    section = results.get(container)
+    if not isinstance(section, dict):
+        return []
+    return as_list(section.get(item))
+
+
 class ODEClient:
     """A thin, retrying wrapper over the ODE REST GET interface."""
 

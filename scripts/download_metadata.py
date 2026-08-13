@@ -11,33 +11,10 @@ from rich.console import Console
 from download import configs, planner
 from download.cli import progress as progress_view
 from download.cli.args import build_parser
-from download.models import DownloadPlan, InstrumentSet
+from download.models import InstrumentSet
 from download.ode import catalog
 from download.ode.client import ODEClient
 from download.runner import DownloadRunner
-
-
-def describe_plan(plan: DownloadPlan, workers: int, console: Console) -> None:
-    """Print the initial state of the download plan to the console.
-
-    Args:
-        plan: The plan produced by the planner.
-        workers: The effective worker count.
-        console: The console to print on.
-
-    Returns:
-        None.
-    """
-    if plan.degenerate_features:
-        console.print(
-            f"[yellow]skipping {plan.degenerate_features} degenerate features "
-            "(zero-area bbox)[/yellow]"
-        )
-    console.print(
-        f"plan: {plan.feature_count} features x {plan.instrument_set_count} sets, "
-        f"{len(plan.jobs)} jobs to run, {plan.skipped_existing} already downloaded, "
-        f"{workers} workers"
-    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -61,7 +38,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             features, instrument_sets, names=args.feature_name, force=args.force
         )
         runner = DownloadRunner(client, workers=args.workers)
-        describe_plan(plan, runner.workers, console)
+        progress_view.describe_plan(plan, runner.workers, console)
         if not plan.jobs:
             console.print("nothing to do")
             return 0

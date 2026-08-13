@@ -7,7 +7,33 @@ from collections.abc import Iterable
 from rich.console import Console
 from rich.progress import BarColumn, MofNCompleteColumn, Progress, TimeRemainingColumn
 
-from download.models import ProgressEvent, RunSummary
+from download.models import DownloadPlan, ProgressEvent, RunSummary
+
+
+def describe_plan(
+    plan: DownloadPlan, workers: int, console: Console | None = None
+) -> None:
+    """Print the initial state of the download plan.
+
+    Args:
+        plan: The plan produced by the planner.
+        workers: The effective worker count.
+        console: Optional console to print on.
+
+    Returns:
+        None.
+    """
+    console = console or Console()
+    if plan.degenerate_features:
+        console.print(
+            f"[yellow]skipping {plan.degenerate_features} degenerate features "
+            "(zero-area bbox)[/yellow]"
+        )
+    console.print(
+        f"plan: {plan.feature_count} features x {plan.instrument_set_count} sets, "
+        f"{len(plan.jobs)} jobs to run, {plan.skipped_existing} already downloaded, "
+        f"{workers} workers"
+    )
 
 
 def render(

@@ -7,7 +7,7 @@ from pathlib import Path
 
 from download import configs
 from download.models import Feature, InstrumentSetInfo
-from download.ode.client import ODEClient, as_list
+from download.ode.client import ODEClient, as_items
 from download.selection import dedupe
 from download.storage.writer import read_jsonl, write_jsonl
 
@@ -22,7 +22,7 @@ def fetch_features(client: ODEClient) -> list[Feature]:
         The list of unique features.
     """
     results = client.query({"query": "featuredata", "odemetadb": configs.ODE_META_DB})
-    raw = as_list(results.get("Features", {}).get("Feature"))
+    raw = as_items(results, "Features", "Feature")
     features = [
         Feature(
             name=item["FeatureName"],
@@ -50,7 +50,7 @@ def fetch_instrument_sets(client: ODEClient) -> list[InstrumentSetInfo]:
         One entry per unique instrument set, with availability flags.
     """
     results = client.query({"query": "iipt", "odemetadb": configs.ODE_META_DB})
-    raw = as_list(results.get("IIPTSets", {}).get("IIPTSet"))
+    raw = as_items(results, "IIPTSets", "IIPTSet")
     unique = dedupe(
         raw, key=lambda item: (item.get("IHID"), item.get("IID"), item.get("PT"))
     )
