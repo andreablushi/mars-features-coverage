@@ -12,9 +12,11 @@ import time
 from collections.abc import Iterator, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-from analysis import configs, coverage
-from analysis.loader import schemas, writer
+from analysis import configs
+from analysis.computation import coverage
+from analysis.loader import writer
 from analysis.loader.records import load_feature
+from analysis.models import schemas
 from analysis.models.job import CoverageJob, JobOutcome
 from analysis.models.progress import RunSummary
 from common.models.progress import ProgressEvent

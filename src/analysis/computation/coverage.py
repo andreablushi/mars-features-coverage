@@ -12,8 +12,9 @@ from typing import Any
 
 import numpy as np
 
-from analysis import configs, footprints, geodesy, swath
-from analysis.grid import FeatureGrid
+from analysis import configs
+from analysis.computation import footprints, geodesy, swath
+from analysis.computation.grid import FeatureGrid
 from analysis.models.feature import FeatureBox
 from analysis.models.observation import Observation
 

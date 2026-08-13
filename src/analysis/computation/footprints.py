@@ -17,7 +17,7 @@ import math
 from shapely import box, from_wkt
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
-from analysis import geodesy
+from analysis.computation import geodesy
 
 
 def parse(wkt: str) -> BaseGeometry:

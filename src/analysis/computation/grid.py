@@ -25,7 +25,8 @@ from PIL import Image, ImageDraw
 from shapely import segmentize, transform
 from shapely.geometry.base import BaseGeometry
 
-from analysis import configs, footprints, geodesy
+from analysis import configs
+from analysis.computation import footprints, geodesy
 
 
 @dataclass(frozen=True, slots=True)

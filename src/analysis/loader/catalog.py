@@ -14,7 +14,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from analysis import configs
-from analysis.loader import layout, schemas
+from analysis.loader import layout
+from analysis.models import schemas
 from common.atomic import atomic_path
 
 
