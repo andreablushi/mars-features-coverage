@@ -50,7 +50,6 @@ SUMMARY = pa.schema(
         ("t_first", _TIMESTAMP),
         ("t_last", _TIMESTAMP),
         ("span_days", pa.float64()),
-        ("cell_km", pa.float64()),
         ("gridded", pa.bool_()),
     ]
 )

@@ -144,19 +144,6 @@ def laea_forward(
     return x, y
 
 
-def ring_area(x: np.ndarray, y: np.ndarray) -> float:
-    """Return the area enclosed by a closed planar ring.
-
-    Args:
-        x: The ring eastings in metres.
-        y: The ring northings in metres.
-
-    Returns:
-        The enclosed area in square metres.
-    """
-    return 0.5 * abs(float(np.dot(x, np.roll(y, -1)) - np.dot(np.roll(x, -1), y)))
-
-
 def haversine_length(lon: np.ndarray, lat: np.ndarray) -> float:
     """Return the great-circle length along a sequence of lon/lat points.
 
