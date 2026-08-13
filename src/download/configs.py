@@ -20,8 +20,9 @@ RETRYABLE_STATUS = frozenset({403, 429, 500, 502, 503, 504})
 PAGE_SIZE = 5000
 PAGE_ORDER = "oba"
 
-# "o" keeps only products whose footprint falls fully inside the feature box
-DEFAULT_LOC = "o"
+# "f" keeps every product whose footprint intersects the feature box, even
+# partly; "o" would keep only products falling entirely inside it
+DEFAULT_LOC = "f"
 
 DEFAULT_WORKERS = 4
 MAX_WORKERS = 6
@@ -33,30 +34,18 @@ FEATURES_CACHE_NAME = "features.jsonl"
 INSTRUMENT_SETS_CACHE_NAME = "instrument_sets.jsonl"
 
 RETAINED_FIELDS = (
-    "ode_id",
     "pdsid",
     "ihid",
     "iid",
     "pt",
-    "Data_Set_Id",
     "UTC_start_time",
     "UTC_stop_time",
-    "Observation_time",
-    "Center_latitude",
-    "Center_longitude",
     "Minimum_latitude",
     "Maximum_latitude",
     "Westernmost_longitude",
     "Easternmost_longitude",
     "Footprint_C0_geometry",
-    "Emission_angle",
-    "Incidence_angle",
-    "Phase_angle",
-    "Solar_longitude",
     "Map_scale",
-    "Product_creation_time",
-    "Start_orbit_number",
-    "Stop_orbit_number",
 )
 
 DEFAULT_INSTRUMENT_SETS = (
@@ -67,5 +56,4 @@ DEFAULT_INSTRUMENT_SETS = (
     ("MRO", "CRISM", "TRDR"),
     ("MRO", "SHARAD", "RDR"),
     ("MGS", "MOLA", "MEGDR"),
-    ("MEX", "HRSC", "DTMRDR"),
 )

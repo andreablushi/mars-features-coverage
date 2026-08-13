@@ -13,8 +13,6 @@ from download.selection import retain_fields
 def _base_params(feature: Feature, instrument_set: InstrumentSet) -> dict[str, str]:
     """Build the shared product query parameters for a feature and set.
 
-    No observation time bounds are sent, so ODE returns every observation time.
-
     Args:
         feature: The feature whose name sets the query bounding box.
         instrument_set: The instrument host, instrument, and product type.
