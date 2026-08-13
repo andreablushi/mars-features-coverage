@@ -48,12 +48,12 @@ RETAINED_FIELDS = (
     "Map_scale",
 )
 
+# Every default carries both a footprint and an acquisition time, which is
+# what the coverage stage needs to place an observation on a time axis
 DEFAULT_INSTRUMENT_SETS = (
     ("MRO", "CTX", "EDR"),
     ("MRO", "HIRISE", "RDRV11"),
-    ("MRO", "HIRISE", "DTM"),
     ("MRO", "CRISM", "MTRDR"),
     ("MRO", "CRISM", "TRDR"),
     ("MRO", "SHARAD", "RDR"),
-    ("MGS", "MOLA", "MEGDR"),
 )
