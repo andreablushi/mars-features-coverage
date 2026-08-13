@@ -13,20 +13,22 @@ from analysis.models.job import CoverageJob, CoveragePlan
 def build_plan(
     sources: Sequence[Path],
     coverage_root: Path = configs.COVERAGE_ROOT,
+    geometry_root: Path = configs.GEOMETRY_ROOT,
     *,
     force: bool = False,
 ) -> CoveragePlan:
     """Build the jobs still needed for a run.
 
-    A feature whose summary already exists is left out unless force is set, so
-    an interrupted run resumes where it stopped. The summary is written after
-    the events and both are written atomically, so its presence means the
-    feature finished rather than merely started.
+    An instrument set whose summary already exists is left out unless force is
+    set, so an interrupted run resumes where it stopped. That summary is
+    written after the events and the union, and every output is written
+    atomically, so its presence means the set finished rather than started.
 
     Args:
-        sources: The feature metadata directories discovered on disk.
+        sources: The instrument set metadata files discovered on disk.
         coverage_root: The coverage artifacts root directory.
-        force: When True, recompute features that are already done.
+        geometry_root: The projected geometry cache root directory.
+        force: When True, recompute sets that are already done.
 
     Returns:
         The plan describing the discovery and the jobs to run.
@@ -34,19 +36,19 @@ def build_plan(
     jobs: list[CoverageJob] = []
     skipped_existing = 0
     for source in sources:
-        summary = layout.summary_path(coverage_root, source)
-        if summary.exists() and not force:
+        if layout.set_summary_path(coverage_root, source).exists() and not force:
             skipped_existing += 1
             continue
         jobs.append(
             CoverageJob(
                 source=source,
                 events_path=layout.events_path(coverage_root, source),
-                summary_path=summary,
+                geometry_path=layout.geometry_path(geometry_root, source),
             )
         )
     return CoveragePlan(
         jobs=tuple(jobs),
-        feature_count=len(sources),
+        feature_count=len({source.parent for source in sources}),
+        set_count=len(sources),
         skipped_existing=skipped_existing,
     )

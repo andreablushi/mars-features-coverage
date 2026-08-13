@@ -23,8 +23,6 @@ class Event:
         new_km2: Ground its instrument set had not covered before.
         cum_km2: Ground its instrument set has covered including this one.
         cum_frac: The same as a share of the feature.
-        new_all_km2: Ground no instrument had covered before.
-        cum_all_frac: The share every instrument together has covered so far.
         contributed: Whether the observation added anything new to its set.
         width_km: The swath width used, or None when the footprint had area.
         width_source: Where the swath width came from, or None.
@@ -43,8 +41,6 @@ class Event:
     new_km2: float
     cum_km2: float
     cum_frac: float
-    new_all_km2: float
-    cum_all_frac: float
     contributed: bool
     width_km: float | None
     width_source: str | None
@@ -65,7 +61,9 @@ class Summary:
         covered_km2: How much of it the set reached.
         covered_frac: The same as a share of the feature.
         n_obs: How many observations the row covers.
-        n_contributing: How many of them added ground nothing had covered.
+        n_contributing: How many of them added ground nothing had covered,
+            or None on the pooled row, which is assembled from finished
+            unions rather than walked observation by observation.
         t_first: When the earliest of them started.
         t_last: When the latest of them started.
         span_days: How long the row's observations span.
@@ -81,7 +79,7 @@ class Summary:
     covered_km2: float
     covered_frac: float
     n_obs: int
-    n_contributing: int
+    n_contributing: int | None
     t_first: datetime | None
     t_last: datetime | None
     span_days: float | None

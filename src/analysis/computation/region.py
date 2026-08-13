@@ -124,6 +124,15 @@ class CoverageUnion:
         self._shape: BaseGeometry = _EMPTY
         self.area_m2 = 0.0
 
+    @property
+    def shape(self) -> BaseGeometry:
+        """Return the union built so far.
+
+        Returns:
+            The accumulated geometry, empty until something is added.
+        """
+        return self._shape
+
     def add(self, shape: BaseGeometry) -> float:
         """Fold one footprint into the union.
 

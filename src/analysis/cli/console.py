@@ -23,8 +23,9 @@ def describe_plan(
     """
     console = console or Console()
     console.print(
-        f"plan: {plan.feature_count} features, {len(plan.jobs)} to compute, "
-        f"{plan.skipped_existing} already done, {workers} workers"
+        f"plan: {plan.feature_count} features, {plan.set_count} instrument sets, "
+        f"{len(plan.jobs)} to compute, {plan.skipped_existing} already done, "
+        f"{workers} workers"
     )
 
 
@@ -43,7 +44,7 @@ def print_summary(
     """
     console = console or Console()
     console.print(
-        f"done in {summary.elapsed:.1f}s: {summary.computed} features, "
+        f"done in {summary.elapsed:.1f}s: {summary.computed} sets, "
         f"{summary.events:,} observation rows, {summary.failed} failed, "
         f"{indexed:,} rows indexed"
     )

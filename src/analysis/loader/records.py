@@ -1,4 +1,4 @@
-"""Reading one feature's downloaded observation metadata off disk."""
+"""Reading one instrument set's downloaded observation metadata off disk."""
 
 from __future__ import annotations
 
@@ -8,33 +8,31 @@ from typing import Any
 
 from analysis.models.feature import FeatureBox
 from analysis.models.observation import Observation
-from analysis.models.records import FeatureData
 from common.jsonl import read_jsonl
 
 
-def load_feature(directory: Path) -> FeatureData | None:
-    """Read every instrument set stored for one feature.
+def load_set(path: Path) -> tuple[FeatureBox, list[Observation]] | None:
+    """Read the observations stored for one feature and instrument set.
 
     Args:
-        directory: The feature directory holding one JSONL file per set.
+        path: The JSONL file holding the set's observations.
 
     Returns:
-        The feature's box and its observations sorted into chronological order
-        across every instrument set, or None when nothing usable was stored.
+        The feature box taken from the stored provenance and the observations
+        in chronological order, or None when nothing usable was stored.
     """
     box: FeatureBox | None = None
     observations: list[Observation] = []
-    for path in sorted(directory.glob("*.jsonl")):
-        for item in read_jsonl(path):
-            if box is None:
-                box = _box(item)
-            observation = _observation(item)
-            if observation is not None:
-                observations.append(observation)
+    for item in read_jsonl(path):
+        if box is None:
+            box = _box(item)
+        observation = _observation(item)
+        if observation is not None:
+            observations.append(observation)
     if box is None or not observations:
         return None
     observations.sort(key=lambda observation: (observation.start, observation.pdsid))
-    return FeatureData(box=box, observations=observations)
+    return box, observations
 
 
 def _box(item: dict[str, Any]) -> FeatureBox:

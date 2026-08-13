@@ -23,12 +23,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         argv: Optional argument list, defaulting to sys.argv.
 
     Returns:
-        A process exit code, non zero when any feature failed.
+        A process exit code, non zero when any instrument set failed.
     """
     args = build_parser().parse_args(argv)
     console = Console()
 
-    sources = discovery.find_features()
+    sources = discovery.find_sets()
     plan = planner.build_plan(sources, force=args.force)
     runner = CoverageRunner(workers=args.workers)
     view.describe_plan(plan, runner.workers, console)
@@ -37,7 +37,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         with closing(runner.run(plan.jobs)) as events:
             progress.render(events, len(plan.jobs), "coverage", console)
 
+    for feature_dir in sorted({source.parent for source in sources}):
+        catalog.finalise_feature(configs.COVERAGE_ROOT, feature_dir)
     indexed = catalog.rebuild(configs.ARTIFACTS_ROOT, configs.COVERAGE_ROOT)
+
     view.print_summary(runner.summary, indexed, console)
     return 1 if runner.summary.failed else 0
 
@@ -46,5 +49,5 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except KeyboardInterrupt:
-        progress.print_interrupted("features")
+        progress.print_interrupted("instrument sets")
         raise SystemExit(130) from None

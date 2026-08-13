@@ -26,8 +26,6 @@ EVENTS = pa.schema(
         ("new_km2", pa.float64()),
         ("cum_km2", pa.float64()),
         ("cum_frac", pa.float64()),
-        ("new_all_km2", pa.float64()),
-        ("cum_all_frac", pa.float64()),
         ("contributed", pa.bool_()),
         ("width_km", pa.float64()),
         ("width_source", pa.string()),
@@ -51,5 +49,25 @@ SUMMARY = pa.schema(
         ("t_last", _TIMESTAMP),
         ("span_days", pa.float64()),
         ("gridded", pa.bool_()),
+    ]
+)
+
+GEOMETRY = pa.schema(
+    [
+        ("feature_class", pa.string()),
+        ("feature_name", pa.string()),
+        ("min_lat", pa.float64()),
+        ("max_lat", pa.float64()),
+        ("west_lon", pa.float64()),
+        ("east_lon", pa.float64()),
+        ("pdsid", pa.string()),
+        ("ihid", pa.string()),
+        ("iid", pa.string()),
+        ("pt", pa.string()),
+        ("t_start", _TIMESTAMP),
+        ("t_stop", _TIMESTAMP),
+        ("width_km", pa.float64()),
+        ("width_source", pa.string()),
+        ("wkb", pa.binary()),
     ]
 )
