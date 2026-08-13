@@ -1,63 +1,22 @@
-"""Build the list of download jobs from a feature and instrument selection."""
+"""Build the list of download jobs from a feature selection."""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 from pathlib import Path
 
+from download import configs
 from download.models import DownloadPlan, Feature, InstrumentSet, Job
+from download.selection import select_features
 from download.storage.layout import product_file
-
-
-def select_features(
-    features: Sequence[Feature],
-    *,
-    names: Sequence[str] | None = None,
-    classes: Sequence[str] | None = None,
-) -> tuple[list[Feature], list[Feature]]:
-    """Filter the catalog to the requested features and split off degenerate ones.
-
-    Names take precedence over classes. Matching is case insensitive, and the
-    catalog's own spelling is preserved for querying. When neither names nor
-    classes are given, every feature is selected.
-
-    Args:
-        features: The full feature catalog.
-        names: Optional feature names to keep.
-        classes: Optional feature classes to keep.
-
-    Returns:
-        A pair (usable, degenerate) where degenerate features have a zero or
-        negative latitude span and cannot be queried.
-    """
-    # Format the requested names and classes into sets
-    wanted_names = {name.strip().lower() for name in names} if names else None
-    wanted_classes = {cls.strip().lower() for cls in classes} if classes else None
-
-    # Filter the catalog to the requested features, preserving its own spelling
-    selected: list[Feature] = []
-    for feature in features:
-        if wanted_names is not None:
-            if feature.name.lower() not in wanted_names:
-                continue
-        elif wanted_classes is not None:
-            if feature.feature_class.lower() not in wanted_classes:
-                continue
-        selected.append(feature)
-
-    # Split the selected features into usable and degenerate lists
-    usable = [feature for feature in selected if not feature.is_degenerate]
-    degenerate = [feature for feature in selected if feature.is_degenerate]
-    return usable, degenerate
 
 
 def build_plan(
     features: Sequence[Feature],
     instrument_sets: Sequence[InstrumentSet],
-    out_root: Path,
+    out_root: Path = configs.METADATA_ROOT,
     *,
     names: Sequence[str] | None = None,
-    classes: Sequence[str] | None = None,
     force: bool = False,
 ) -> DownloadPlan:
     """Select features and build the jobs still needed for a run.
@@ -68,15 +27,14 @@ def build_plan(
     Args:
         features: The full feature catalog.
         instrument_sets: The instrument sets to download for each feature.
-        out_root: The metadata root directory.
+        out_root: The metadata output root directory.
         names: Optional feature names to keep.
-        classes: Optional feature classes to keep.
         force: When True, include jobs whose output file already exists.
 
     Returns:
         The plan describing the selection and the jobs to run.
     """
-    usable, degenerate = select_features(features, names=names, classes=classes)
+    usable, degenerate = select_features(features, names=names)
 
     # Assemble the jobs still needed, skipping existing output files unless forced
     jobs: list[Job] = []

@@ -38,21 +38,3 @@ class InstrumentSet:
         """
         raw = f"{self.ihid}_{self.iid}_{self.pt}"
         return raw.replace("/", "-").replace(" ", "-")
-
-    @classmethod
-    def parse(cls, text: str) -> InstrumentSet:
-        """Build an instrument set from an "IHID/IID/PT" string.
-
-        Args:
-            text: A triple such as "MRO/CTX/EDR".
-
-        Returns:
-            The parsed instrument set.
-
-        Raises:
-            ValueError: If the text does not have exactly three parts.
-        """
-        parts = [part.strip() for part in text.split("/")]
-        if len(parts) != 3 or not all(parts):
-            raise ValueError(f"instrument must be IHID/IID/PT, got {text!r}")
-        return cls(ihid=parts[0], iid=parts[1], pt=parts[2])

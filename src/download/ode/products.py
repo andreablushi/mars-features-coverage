@@ -7,66 +7,44 @@ from datetime import datetime, timezone
 from download import configs
 from download.models import Feature, InstrumentSet, ProductRecord
 from download.ode.client import ODEClient, as_list
+from download.selection import retain_fields
 
 
-def _base_params(
-    feature: Feature,
-    instrument_set: InstrumentSet,
-    loc: str,
-    min_obs_time: str | None,
-    max_obs_time: str | None,
-) -> dict[str, str]:
+def _base_params(feature: Feature, instrument_set: InstrumentSet) -> dict[str, str]:
     """Build the shared product query parameters for a feature and set.
+
+    No observation time bounds are sent, so ODE returns every observation time.
 
     Args:
         feature: The feature whose name sets the query bounding box.
         instrument_set: The instrument host, instrument, and product type.
-        loc: The ODE containment mode.
-        min_obs_time: Optional minimum UTC observation time.
-        max_obs_time: Optional maximum UTC observation time.
 
     Returns:
         The parameter dictionary without a results selector.
     """
-    params = {
+    return {
         "query": "product",
         "target": configs.ODE_TARGET,
         "ihid": instrument_set.ihid,
         "iid": instrument_set.iid,
         "pt": instrument_set.pt,
         "featurename": feature.name,
-        "loc": loc,
+        "loc": configs.DEFAULT_LOC,
     }
-    if min_obs_time:
-        params["minobtime"] = min_obs_time
-    if max_obs_time:
-        params["maxobtime"] = max_obs_time
-    return params
 
 
-def count(
-    client: ODEClient,
-    feature: Feature,
-    instrument_set: InstrumentSet,
-    *,
-    loc: str = configs.DEFAULT_LOC,
-    min_obs_time: str | None = None,
-    max_obs_time: str | None = None,
-) -> int:
+def count(client: ODEClient, feature: Feature, instrument_set: InstrumentSet) -> int:
     """Return how many products match a feature and instrument set.
 
     Args:
         client: The ODE client to query with.
         feature: The feature whose name sets the query bounding box.
         instrument_set: The instrument host, instrument, and product type.
-        loc: The ODE containment mode, "o" for strict containment.
-        min_obs_time: Optional minimum UTC observation time.
-        max_obs_time: Optional maximum UTC observation time.
 
     Returns:
         The product count.
     """
-    params = _base_params(feature, instrument_set, loc, min_obs_time, max_obs_time)
+    params = _base_params(feature, instrument_set)
     params["results"] = "c"
     results = client.query(params)
     return int(results.get("Count", 0))
@@ -77,10 +55,7 @@ def fetch_products(
     feature: Feature,
     instrument_set: InstrumentSet,
     *,
-    loc: str = configs.DEFAULT_LOC,
     total: int | None = None,
-    min_obs_time: str | None = None,
-    max_obs_time: str | None = None,
 ) -> list[ProductRecord]:
     """Fetch all product metadata for a feature and instrument set.
 
@@ -91,29 +66,21 @@ def fetch_products(
     ODE offset paging is only stable when a sort order is given, so a fixed
     order is requested and records are deduplicated by product id and gathered
     until the authoritative count is reached. This tolerates the occasional
-    duplicate ODE returns at a page boundary.
+    duplicate ODE returns at a page boundary. The deduplication runs while
+    paging rather than through selection.dedupe, so a large feature never holds
+    every raw page in memory at once.
 
     Args:
         client: The ODE client to query with.
         feature: The feature whose name sets the query bounding box.
         instrument_set: The instrument host, instrument, and product type.
-        loc: The ODE containment mode, "o" for strict containment.
         total: The known product count, fetched if not given.
-        min_obs_time: Optional minimum UTC observation time.
-        max_obs_time: Optional maximum UTC observation time.
 
     Returns:
         One deduplicated record per product.
     """
     if total is None:
-        total = count(
-            client,
-            feature,
-            instrument_set,
-            loc=loc,
-            min_obs_time=min_obs_time,
-            max_obs_time=max_obs_time,
-        )
+        total = count(client, feature, instrument_set)
     if total == 0:
         return []
     provenance = {
@@ -123,14 +90,14 @@ def fetch_products(
         "feature_max_lat": feature.max_lat,
         "feature_west_lon": feature.west_lon,
         "feature_east_lon": feature.east_lon,
-        "loc_mode": loc,
+        "loc_mode": configs.DEFAULT_LOC,
         "retrieved_at": datetime.now(timezone.utc).isoformat(),
     }
     records: list[ProductRecord] = []
     seen: set[str] = set()
     offset = 0
     while len(seen) < total:
-        params = _base_params(feature, instrument_set, loc, min_obs_time, max_obs_time)
+        params = _base_params(feature, instrument_set)
         params.update(
             {
                 "results": "opm",
@@ -148,11 +115,7 @@ def fetch_products(
             if key in seen:
                 continue
             seen.add(key)
-            record = {
-                field: item[field] for field in configs.RETAINED_FIELDS if field in item
-            }
-            record.update(provenance)
-            records.append(record)
+            records.append(retain_fields(item) | provenance)
             added += 1
         if added == 0:
             break

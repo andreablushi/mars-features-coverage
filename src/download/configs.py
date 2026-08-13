@@ -19,8 +19,9 @@ RETRYABLE_STATUS = frozenset({403, 429, 500, 502, 503, 504})
 
 PAGE_SIZE = 5000
 PAGE_ORDER = "oba"
+
+# "o" keeps only products whose footprint falls fully inside the feature box
 DEFAULT_LOC = "o"
-LOC_CHOICES = ("b", "f", "o", "i")
 
 DEFAULT_WORKERS = 4
 MAX_WORKERS = 6
@@ -67,11 +68,4 @@ DEFAULT_INSTRUMENT_SETS = (
     ("MRO", "SHARAD", "RDR"),
     ("MGS", "MOLA", "MEGDR"),
     ("MEX", "HRSC", "DTMRDR"),
-)
-
-TEST_FEATURE_NAMES = ("Gale", "Baetis Chasma", "Jezero")
-
-TEST_INSTRUMENT_SETS = (
-    ("MRO", "CTX", "EDR"),
-    ("MRO", "CRISM", "MTRDR"),
 )

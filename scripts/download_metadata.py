@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import argparse
 from collections.abc import Sequence
 from contextlib import closing
 
@@ -16,50 +15,6 @@ from download.models import DownloadPlan, InstrumentSet
 from download.ode import catalog
 from download.ode.client import ODEClient
 from download.runner import DownloadRunner
-
-
-def resolve_instrument_sets(args: argparse.Namespace) -> list[InstrumentSet]:
-    """Choose the instrument sets to download from the parsed arguments.
-
-    Args:
-        args: The parsed command line arguments.
-
-    Returns:
-        The instrument sets to use.
-
-    Raises:
-        SystemExit: If an --instrument value is not a valid triple.
-    """
-    if args.instrument:
-        try:
-            return [InstrumentSet.parse(text) for text in args.instrument]
-        except ValueError as exc:
-            raise SystemExit(f"error: {exc}") from exc
-    source = (
-        configs.TEST_INSTRUMENT_SETS if args.test else configs.DEFAULT_INSTRUMENT_SETS
-    )
-    return [InstrumentSet(*triple) for triple in source]
-
-
-def resolve_feature_selection(
-    args: argparse.Namespace,
-) -> tuple[list[str] | None, list[str] | None]:
-    """Choose the feature names or classes to download.
-
-    Args:
-        args: The parsed command line arguments.
-
-    Returns:
-        A pair (names, classes) where at most one is set; both None means all
-        features.
-    """
-    if args.feature_name:
-        return list(args.feature_name), None
-    if args.feature_class:
-        return None, list(args.feature_class)
-    if args.test:
-        return list(configs.TEST_FEATURE_NAMES), None
-    return None, None
 
 
 def describe_plan(plan: DownloadPlan, workers: int, console: Console) -> None:
@@ -96,41 +51,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     """
     args = build_parser().parse_args(argv)
     console = Console()
-    instrument_sets = resolve_instrument_sets(args)
-    names, classes = resolve_feature_selection(args)
+    instrument_sets = [
+        InstrumentSet(*triple) for triple in configs.DEFAULT_INSTRUMENT_SETS
+    ]
 
     with ODEClient() as client:
-        features = catalog.load_features(
-            client, args.cache, refresh=args.refresh_catalog
-        )
+        features = catalog.load_features(client, refresh=args.refresh_catalog)
         plan = planner.build_plan(
-            features,
-            instrument_sets,
-            args.out,
-            names=names,
-            classes=classes,
-            force=args.force,
+            features, instrument_sets, names=args.feature_name, force=args.force
         )
-        runner = DownloadRunner(
-            client,
-            loc=args.loc,
-            workers=args.workers,
-            min_obs_time=args.min_obs_time,
-            max_obs_time=args.max_obs_time,
-        )
+        runner = DownloadRunner(client, workers=args.workers)
         describe_plan(plan, runner.workers, console)
-        if args.dry_run:
-            console.print("dry run: no queries issued")
-            return 0
         if not plan.jobs:
             console.print("nothing to do")
             return 0
 
         with closing(runner.run(plan.jobs)) as events:
-            if args.quiet:
-                progress_view.consume(events)
-            else:
-                progress_view.render(events, len(plan.jobs), console)
+            progress_view.render(events, len(plan.jobs), console)
 
     progress_view.print_summary(runner.summary, console)
     return 1 if runner.summary.failed else 0

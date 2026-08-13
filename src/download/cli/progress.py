@@ -42,19 +42,6 @@ def render(
             progress.update(task, completed=event.completed)
 
 
-def consume(events: Iterable[ProgressEvent]) -> None:
-    """Consume runner events without rendering anything.
-
-    Args:
-        events: The progress events produced by the runner.
-
-    Returns:
-        None.
-    """
-    for _ in events:
-        pass
-
-
 def print_interrupted(console: Console | None = None) -> None:
     """Print the notice shown when the run is stopped with Ctrl-C.
 

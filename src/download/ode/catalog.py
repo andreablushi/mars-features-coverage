@@ -8,6 +8,7 @@ from pathlib import Path
 from download import configs
 from download.models import Feature, InstrumentSetInfo
 from download.ode.client import ODEClient, as_list
+from download.selection import dedupe
 from download.storage.writer import read_jsonl, write_jsonl
 
 
@@ -22,10 +23,8 @@ def fetch_features(client: ODEClient) -> list[Feature]:
     """
     results = client.query({"query": "featuredata", "odemetadb": configs.ODE_META_DB})
     raw = as_list(results.get("Features", {}).get("Feature"))
-    seen: set[Feature] = set()
-    features: list[Feature] = []
-    for item in raw:
-        feature = Feature(
+    features = [
+        Feature(
             name=item["FeatureName"],
             feature_class=item["FeatureClass"],
             min_lat=float(item["MinLat"]),
@@ -33,11 +32,9 @@ def fetch_features(client: ODEClient) -> list[Feature]:
             west_lon=float(item["WestLon"]),
             east_lon=float(item["EastLon"]),
         )
-        if feature in seen:
-            continue
-        seen.add(feature)
-        features.append(feature)
-    return features
+        for item in raw
+    ]
+    return dedupe(features, key=lambda feature: feature)
 
 
 def fetch_instrument_sets(client: ODEClient) -> list[InstrumentSetInfo]:
@@ -54,13 +51,11 @@ def fetch_instrument_sets(client: ODEClient) -> list[InstrumentSetInfo]:
     """
     results = client.query({"query": "iipt", "odemetadb": configs.ODE_META_DB})
     raw = as_list(results.get("IIPTSets", {}).get("IIPTSet"))
-    seen: set[tuple[str, str, str]] = set()
+    unique = dedupe(
+        raw, key=lambda item: (item.get("IHID"), item.get("IID"), item.get("PT"))
+    )
     rows: list[InstrumentSetInfo] = []
-    for item in raw:
-        triple = (item.get("IHID"), item.get("IID"), item.get("PT"))
-        if triple in seen:
-            continue
-        seen.add(triple)
+    for item in unique:
         number = item.get("NumberProducts")
         rows.append(
             InstrumentSetInfo(
@@ -78,7 +73,7 @@ def fetch_instrument_sets(client: ODEClient) -> list[InstrumentSetInfo]:
 
 
 def load_features(
-    client: ODEClient, cache_dir: Path, *, refresh: bool = False
+    client: ODEClient, cache_dir: Path = configs.CATALOG_ROOT, *, refresh: bool = False
 ) -> list[Feature]:
     """Load the geological feature catalog from cache, fetching and caching on a miss.
 
@@ -99,7 +94,7 @@ def load_features(
 
 
 def load_instrument_sets(
-    client: ODEClient, cache_dir: Path, *, refresh: bool = False
+    client: ODEClient, cache_dir: Path = configs.CATALOG_ROOT, *, refresh: bool = False
 ) -> list[InstrumentSetInfo]:
     """Load the instrument catalog from cache, fetching and caching on a miss.
 

@@ -22,31 +22,19 @@ class DownloadRunner:
     """
 
     def __init__(
-        self,
-        client: ODEClient,
-        *,
-        loc: str = configs.DEFAULT_LOC,
-        workers: int = configs.DEFAULT_WORKERS,
-        min_obs_time: str | None = None,
-        max_obs_time: str | None = None,
+        self, client: ODEClient, *, workers: int = configs.DEFAULT_WORKERS
     ) -> None:
         """Create a runner.
 
         Args:
             client: The shared ODE client.
-            loc: The ODE containment mode.
             workers: Requested worker count, clamped to the safe maximum.
-            min_obs_time: Optional minimum UTC observation time.
-            max_obs_time: Optional maximum UTC observation time.
 
         Returns:
             None.
         """
         self._client = client
-        self._loc = loc
         self._workers = max(1, min(workers, configs.MAX_WORKERS))
-        self._min_obs_time = min_obs_time
-        self._max_obs_time = max_obs_time
         self._summary: RunSummary | None = None
 
     @property
@@ -109,12 +97,7 @@ class DownloadRunner:
         """
         try:
             records = products.fetch_products(
-                self._client,
-                job.feature,
-                job.instrument_set,
-                loc=self._loc,
-                min_obs_time=self._min_obs_time,
-                max_obs_time=self._max_obs_time,
+                self._client, job.feature, job.instrument_set
             )
             write_jsonl(job.output_path, records)
             return JobOutcome(job=job)
