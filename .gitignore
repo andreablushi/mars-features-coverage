@@ -13,8 +13,8 @@ __pycache__/
 
 # uv
 .python-version
-uv.lock
 .venv/
+.ruff_cache/
 
 # Environment variables
 .env
