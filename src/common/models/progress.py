@@ -7,10 +7,9 @@ they become a progress bar, a log line, or nothing at all.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol, runtime_checkable
+from typing import Protocol
 
 
-@runtime_checkable
 class Outcome(Protocol):
     """What every runner reports back about one finished unit of work."""
 

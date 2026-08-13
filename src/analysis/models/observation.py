@@ -8,12 +8,11 @@ from datetime import datetime
 
 @dataclass(frozen=True, slots=True)
 class Observation:
-    """One downloaded observation awaiting rasterization.
+    """One downloaded observation awaiting projection.
 
     The footprint stays as text until the moment it is drawn. A large feature
     holds far more observations than geometries that need to exist at once, so
-    parsing lazily keeps a worker's memory flat in the size of the raster
-    rather than the size of the feature.
+    parsing lazily keeps only the geometries actually in use alive.
 
     Attributes:
         pdsid: The PDS product identifier.

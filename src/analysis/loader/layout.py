@@ -14,7 +14,7 @@ from pathlib import Path
 from analysis import configs
 
 
-def artifact_dir(root: Path, source: Path) -> Path:
+def _artifact_dir(root: Path, source: Path) -> Path:
     """Return the directory holding one feature's coverage artifacts.
 
     Args:
@@ -37,7 +37,7 @@ def events_path(root: Path, source: Path) -> Path:
     Returns:
         The path to the events parquet file.
     """
-    return artifact_dir(root, source) / configs.EVENTS_NAME
+    return _artifact_dir(root, source) / configs.EVENTS_NAME
 
 
 def summary_path(root: Path, source: Path) -> Path:
@@ -53,7 +53,7 @@ def summary_path(root: Path, source: Path) -> Path:
     Returns:
         The path to the summary parquet file.
     """
-    return artifact_dir(root, source) / configs.SUMMARY_NAME
+    return _artifact_dir(root, source) / configs.SUMMARY_NAME
 
 
 def catalog_summary_path(root: Path) -> Path:
