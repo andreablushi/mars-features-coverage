@@ -77,7 +77,6 @@ class ODEClient:
         Returns:
             None.
         """
-        self._timeout = timeout
         self._max_retries = max_retries
         self._backoff_base = backoff_base
         self._client = client or httpx.Client(timeout=timeout)
@@ -85,10 +84,11 @@ class ODEClient:
     def query(self, params: dict[str, str]) -> dict[str, Any]:
         """Run one ODE query and return its parsed ODEResults payload.
 
-        Output is always requested as JSON. Transient transport failures,
-        retryable HTTP statuses, and malformed bodies are retried with
-        exponential backoff and jitter. An ODE body reporting Status ERROR is
-        deterministic and is raised without retrying.
+        Output is always requested as JSON. Transport failures and retryable
+        HTTP statuses are retried with exponential backoff and jitter. ODE
+        answers 200 even for a bad request and reports the failure as Status
+        ERROR in the body, which is deterministic and is raised without
+        retrying.
 
         Args:
             params: Query parameters excluding the output format.
@@ -112,7 +112,6 @@ class ODEClient:
                 last_error = ODEError(f"HTTP {response.status_code}")
                 self._maybe_sleep(attempt)
                 continue
-            response.raise_for_status()
             try:
                 payload = response.json()
             except ValueError as exc:

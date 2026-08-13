@@ -9,11 +9,11 @@ from contextlib import closing
 from rich.console import Console
 
 from download import configs, planner
+from download.api import catalog
+from download.api.client import ODEClient
 from download.cli import progress as progress_view
 from download.cli.args import build_parser
 from download.models import InstrumentSet
-from download.ode import catalog
-from download.ode.client import ODEClient
 from download.runner import DownloadRunner
 
 

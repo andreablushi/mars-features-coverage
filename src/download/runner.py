@@ -7,9 +7,9 @@ from collections.abc import Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from download import configs
+from download.api import products
+from download.api.client import ODEClient
 from download.models import Job, JobOutcome, ProgressEvent, RunSummary
-from download.ode import products
-from download.ode.client import ODEClient
 from download.storage.writer import write_jsonl
 
 

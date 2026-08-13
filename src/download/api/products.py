@@ -5,8 +5,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from download import configs
+from download.api.client import ODEClient, as_items
 from download.models import Feature, InstrumentSet, ProductRecord
-from download.ode.client import ODEClient, as_items
 from download.selection import retain_fields
 
 
