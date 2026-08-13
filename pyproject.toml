@@ -26,6 +26,11 @@ module-name = ["common", "download", "analysis"]
 dev = [
     "ruff>=0.16.2",
 ]
+notebook = [
+    "ipywidgets>=8.1.5",
+    "jupyterlab>=4.3.0",
+    "matplotlib>=3.10.0",
+]
 
 [tool.ruff]
 line-length = 88

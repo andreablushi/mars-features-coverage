@@ -16,8 +16,6 @@ import time
 from collections.abc import Iterator, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-from shapely import to_wkb
-
 from analysis import configs
 from analysis.computation import coverage, prepare
 from analysis.computation.region import FeatureRegion
@@ -33,8 +31,8 @@ from common.models.progress import ProgressEvent
 def run_job(job: CoverageJob) -> JobOutcome:
     """Compute and write coverage for one feature and instrument set.
 
-    The events and the union are written before the summary, so a summary on
-    disk means the whole set finished and a later run can skip it.
+    The events are written before the summary, so a summary on disk means the
+    whole set finished and a later run can skip it.
 
     Args:
         job: The instrument set to compute.
@@ -47,9 +45,8 @@ def run_job(job: CoverageJob) -> JobOutcome:
         if prepared is None:
             return JobOutcome(job=job)
         box, region, projected = prepared
-        events, summary, union = coverage.compute(box, region, projected)
+        events, summary = coverage.compute(box, region, projected)
         writer.write(events, EVENTS, job.events_path)
-        writer.write_bytes(to_wkb(union), job.union_path)
         writer.write([summary], SUMMARY, job.summary_path)
         return JobOutcome(job=job, events=len(events))
     except Exception as exc:

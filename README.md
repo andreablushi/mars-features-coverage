@@ -131,6 +131,36 @@ duckdb -c "SELECT feature_class, iid, count(*)
            GROUP BY 1, 2 ORDER BY 3 DESC"
 ```
 
+## Coverage analysis
+
+Turns the downloaded metadata into how much of each feature every instrument
+set reached, and when. It reads the whole metadata tree and needs no selection
+arguments:
+
+```bash
+uv run python scripts/compute_coverage.py
+```
+
+Finished instrument sets are skipped, so an interrupted run resumes where it
+stopped. Pass `--force` to recompute regardless, and `--workers N` to change the
+process count.
+
+Results land in `data/artifacts/coverage/<class>/<feature>/`, one
+`<set>.events.parquet` with a row per observation and one `<set>.summary.parquet`
+with the row for the set, plus a per-feature `summary.parquet`. Every feature's
+summary rows are gathered into `data/artifacts/summary.parquet`.
+
+## Notebook
+
+`notebooks/coverage.ipynb` reads those artifacts one feature at a time: pick a
+feature type and name, confirm, and it plots what each observation covered and
+how much each instrument has reached in total. Features with nothing computed
+locally are marked in the dropdown and show a grey panel instead of plots.
+
+```bash
+uv run --group notebook jupyter lab notebooks/coverage.ipynb
+```
+
 ## Project layout
 
 Dependencies point inward: models know nothing about services, services know

@@ -26,43 +26,14 @@ class CoverageJob:
     geometry_path: Path
 
     @property
-    def union_path(self) -> Path:
-        """Return where this set's finished union belongs.
-
-        Returns:
-            The path to the well-known-binary file beside the events.
-        """
-        return self._sibling(".union.wkb")
-
-    @property
     def summary_path(self) -> Path:
         """Return where this set's own summary row belongs.
 
         Returns:
             The path to the summary parquet file beside the events.
         """
-        return self._sibling(".summary.parquet")
-
-    def _sibling(self, suffix: str) -> Path:
-        """Return a companion output named after the events file.
-
-        Args:
-            suffix: The suffix replacing ".events.parquet".
-
-        Returns:
-            The companion path in the same directory.
-        """
         stem = self.events_path.name[: -len(".events.parquet")]
-        return self.events_path.with_name(stem + suffix)
-
-    @property
-    def feature_dir(self) -> Path:
-        """Return the metadata directory the source file sits in.
-
-        Returns:
-            The feature's metadata directory.
-        """
-        return self.source.parent
+        return self.events_path.with_name(stem + ".summary.parquet")
 
     @property
     def label(self) -> str:

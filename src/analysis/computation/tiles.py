@@ -13,7 +13,7 @@ the bookkeeping is partitioned, never the geometry.
 
 from __future__ import annotations
 
-from shapely import GeometryCollection, box, covers, prepare, union_all
+from shapely import box, covers, prepare, union_all
 from shapely.geometry.base import BaseGeometry
 
 from analysis import configs
@@ -46,16 +46,6 @@ class TiledUnion:
         self._areas = [0.0] * (tiles * tiles)
         self._caps: list[float | None] = [None] * (tiles * tiles)
         self.area_m2 = 0.0
-
-    @property
-    def shape(self) -> BaseGeometry:
-        """Return the union built so far, seams between tiles healed.
-
-        Returns:
-            The accumulated geometry, empty until something is added.
-        """
-        parts = [shape for shape in self._shapes if shape is not None]
-        return union_all(parts) if parts else GeometryCollection()
 
     def add(self, shape: BaseGeometry) -> float:
         """Fold one footprint into the union.

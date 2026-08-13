@@ -41,17 +41,3 @@ def write_rows(rows: Sequence[dict[str, Any]], schema: pa.Schema, path: Path) ->
     table = pa.Table.from_pylist(list(rows), schema=schema)
     with atomic_path(path) as tmp:
         pq.write_table(table, tmp, compression="zstd")
-
-
-def write_bytes(payload: bytes, path: Path) -> None:
-    """Write raw bytes to a file, atomically.
-
-    Args:
-        payload: The bytes to write.
-        path: The destination file.
-
-    Returns:
-        None.
-    """
-    with atomic_path(path) as tmp:
-        tmp.write_bytes(payload)

@@ -44,12 +44,9 @@ COVERAGE_DIR = "coverage"
 COVERAGE_ROOT = ARTIFACTS_ROOT / COVERAGE_DIR
 GEOMETRY_DIR = "geometry"
 GEOMETRY_ROOT = ARTIFACTS_ROOT / GEOMETRY_DIR
-EVENTS_NAME = "events.parquet"
 SUMMARY_NAME = "summary.parquet"
 
 # Whole-planet basemaps cover everything, so they are tagged and excluded
 GRIDDED_SETS = frozenset({("MGS", "MOLA", "MEGDR")})
-
-ALL_SETS_LABEL = "ALL"
 
 DEFAULT_WORKERS = 8

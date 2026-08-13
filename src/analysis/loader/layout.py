@@ -40,27 +40,11 @@ def events_path(root: Path, source: Path) -> Path:
     return _feature_dir(root, source.parent) / f"{source.stem}.events.parquet"
 
 
-def union_path(root: Path, source: Path) -> Path:
-    """Return the file holding one instrument set's finished union.
-
-    Keeping the union lets the pooled row be assembled by combining finished
-    sets rather than by walking every observation of the feature again.
-
-    Args:
-        root: The coverage artifacts root directory.
-        source: The instrument set's metadata JSONL file.
-
-    Returns:
-        The path to the well-known-binary file.
-    """
-    return _feature_dir(root, source.parent) / f"{source.stem}.union.wkb"
-
-
 def set_summary_path(root: Path, source: Path) -> Path:
     """Return the summary file for one instrument set.
 
-    It is written after the events and the union, so its presence is what
-    marks a set as fully computed when a later run decides what to skip.
+    It is written after the events, so its presence is what marks a set as
+    fully computed when a later run decides what to skip.
 
     Args:
         root: The coverage artifacts root directory.
