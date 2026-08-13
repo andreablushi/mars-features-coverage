@@ -13,7 +13,7 @@ where the projection is undefined.
 from __future__ import annotations
 
 import numpy as np
-from shapely import Polygon, segmentize, transform, union_all
+from shapely import Polygon, covers, prepare, segmentize, transform, union_all
 from shapely.geometry.base import BaseGeometry
 
 from analysis import configs
@@ -106,6 +106,11 @@ class CoverageUnion:
     What an observation adds is the growth of the union's area rather than a
     separate difference against it, so folding one in costs a single union.
 
+    Most observations repeat ground their instrument has already seen, and a
+    footprint the union already covers cannot change its area. Testing that
+    first against a prepared index is far cheaper than the union it avoids,
+    and it is exact: the skipped footprints contribute nothing by definition.
+
     Attributes:
         area_m2: The ground covered so far in square metres.
     """
@@ -129,9 +134,10 @@ class CoverageUnion:
             The area in square metres the footprint covered that the union had
             not already reached.
         """
-        if shape.is_empty:
+        if shape.is_empty or covers(self._shape, shape):
             return 0.0
         self._shape = union_all([self._shape, shape])
+        prepare(self._shape)
         grown = self._shape.area
         fresh = max(grown - self.area_m2, 0.0)
         self.area_m2 = grown
