@@ -1,0 +1,78 @@
+"""Writing coverage results out as parquet.
+
+Both schemas are declared rather than inferred. A feature whose observations
+happen to carry no swath width, or none at all, would otherwise write a column
+typed differently from its neighbours, and the per-feature files could no
+longer be read back as one dataset.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from pathlib import Path
+from typing import Any
+
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+_TIMESTAMP = pa.timestamp("us", tz="UTC")
+
+EVENTS_SCHEMA = pa.schema(
+    [
+        ("feature_class", pa.string()),
+        ("feature_name", pa.string()),
+        ("ihid", pa.string()),
+        ("iid", pa.string()),
+        ("pt", pa.string()),
+        ("pdsid", pa.string()),
+        ("t_start", _TIMESTAMP),
+        ("t_stop", _TIMESTAMP),
+        ("own_km2", pa.float64()),
+        ("new_km2", pa.float64()),
+        ("cum_km2", pa.float64()),
+        ("cum_frac", pa.float64()),
+        ("new_all_km2", pa.float64()),
+        ("cum_all_frac", pa.float64()),
+        ("contributed", pa.bool_()),
+        ("width_km", pa.float64()),
+        ("width_source", pa.string()),
+        ("gridded", pa.bool_()),
+    ]
+)
+
+SUMMARY_SCHEMA = pa.schema(
+    [
+        ("feature_class", pa.string()),
+        ("feature_name", pa.string()),
+        ("ihid", pa.string()),
+        ("iid", pa.string()),
+        ("pt", pa.string()),
+        ("feature_area_km2", pa.float64()),
+        ("covered_km2", pa.float64()),
+        ("covered_frac", pa.float64()),
+        ("n_obs", pa.int64()),
+        ("n_contributing", pa.int64()),
+        ("t_first", _TIMESTAMP),
+        ("t_last", _TIMESTAMP),
+        ("span_days", pa.float64()),
+        ("cell_km", pa.float64()),
+        ("gridded", pa.bool_()),
+        ("degenerate", pa.bool_()),
+    ]
+)
+
+
+def write(rows: Sequence[dict[str, Any]], schema: pa.Schema, path: Path) -> None:
+    """Write rows to a parquet file, creating the directory it lives in.
+
+    Args:
+        rows: The rows to write, each keyed by the schema's field names.
+        schema: The schema to write them under.
+        path: The destination parquet file.
+
+    Returns:
+        None.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    table = pa.Table.from_pylist(list(rows), schema=schema)
+    pq.write_table(table, path, compression="zstd")
