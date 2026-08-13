@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Sequence
+from contextlib import closing
 
 from rich.console import Console
 
@@ -125,29 +126,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             console.print("nothing to do")
             return 0
 
-        events = runner.run(plan.jobs)
-        interrupted = False
-        try:
+        with closing(runner.run(plan.jobs)) as events:
             if args.quiet:
                 progress_view.consume(events)
             else:
                 progress_view.render(events, len(plan.jobs), console)
-        except KeyboardInterrupt:
-            interrupted = True
-            events.close()
-            console.print(
-                "[yellow]interrupted: pending jobs cancelled, finished files kept. "
-                "Re-run to resume.[/yellow]"
-            )
 
-    summary = runner.summary
-    if summary is None:
-        return 130 if interrupted else 0
-    progress_view.print_summary(summary, console)
-    if interrupted:
-        return 130
-    return 1 if summary.failed else 0
+    progress_view.print_summary(runner.summary, console)
+    return 1 if runner.summary.failed else 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except KeyboardInterrupt:
+        progress_view.print_interrupted()
+        raise SystemExit(130) from None

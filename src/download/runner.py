@@ -78,10 +78,7 @@ class DownloadRunner:
         """
         started = time.monotonic()
         ran = 0
-        rows = 0
-        empty = 0
         failed = 0
-        total = len(jobs)
         pool = ThreadPoolExecutor(max_workers=self._workers)
         try:
             futures = [pool.submit(self._run_one, job) for job in jobs]
@@ -91,29 +88,15 @@ class DownloadRunner:
                     failed += 1
                 else:
                     ran += 1
-                    rows += outcome.rows
-                    if outcome.rows == 0:
-                        empty += 1
-                yield ProgressEvent(
-                    completed=completed,
-                    total=total,
-                    elapsed=time.monotonic() - started,
-                    outcome=outcome,
-                    rows=rows,
-                    failed=failed,
-                )
+                yield ProgressEvent(completed=completed, outcome=outcome)
         finally:
             pool.shutdown(wait=False, cancel_futures=True)
             self._summary = RunSummary(
-                ran=ran,
-                rows=rows,
-                empty=empty,
-                failed=failed,
-                elapsed=time.monotonic() - started,
+                ran=ran, failed=failed, elapsed=time.monotonic() - started
             )
 
     def _run_one(self, job: Job) -> JobOutcome:
-        """Download and write one job, counting first to skip empty fetches.
+        """Download and write one job.
 
         An output file is always written, empty included, so a later run can
         skip it. Nothing is written when the job fails.
@@ -125,7 +108,7 @@ class DownloadRunner:
             The outcome, carrying the error when the job failed.
         """
         try:
-            total = products.count(
+            records = products.fetch_products(
                 self._client,
                 job.feature,
                 job.instrument_set,
@@ -133,20 +116,7 @@ class DownloadRunner:
                 min_obs_time=self._min_obs_time,
                 max_obs_time=self._max_obs_time,
             )
-            records = (
-                products.fetch_products(
-                    self._client,
-                    job.feature,
-                    job.instrument_set,
-                    loc=self._loc,
-                    total=total,
-                    min_obs_time=self._min_obs_time,
-                    max_obs_time=self._max_obs_time,
-                )
-                if total
-                else []
-            )
-            written = write_jsonl(job.output_path, records)
-            return JobOutcome(job=job, rows=written)
+            write_jsonl(job.output_path, records)
+            return JobOutcome(job=job)
         except Exception as exc:
-            return JobOutcome(job=job, rows=0, error=exc)
+            return JobOutcome(job=job, error=exc)

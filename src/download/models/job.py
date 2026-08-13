@@ -39,12 +39,10 @@ class JobOutcome:
 
     Attributes:
         job: The job that was run.
-        rows: Product records written, or 0 when the job failed.
         error: The error raised, or None on success.
     """
 
     job: Job
-    rows: int
     error: Exception | None = None
 
     @property

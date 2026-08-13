@@ -30,8 +30,11 @@ def select_features(
         A pair (usable, degenerate) where degenerate features have a zero or
         negative latitude span and cannot be queried.
     """
+    # Format the requested names and classes into sets
     wanted_names = {name.strip().lower() for name in names} if names else None
     wanted_classes = {cls.strip().lower() for cls in classes} if classes else None
+
+    # Filter the catalog to the requested features, preserving its own spelling
     selected: list[Feature] = []
     for feature in features:
         if wanted_names is not None:
@@ -41,6 +44,8 @@ def select_features(
             if feature.feature_class.lower() not in wanted_classes:
                 continue
         selected.append(feature)
+
+    # Split the selected features into usable and degenerate lists
     usable = [feature for feature in selected if not feature.is_degenerate]
     degenerate = [feature for feature in selected if feature.is_degenerate]
     return usable, degenerate
@@ -72,6 +77,8 @@ def build_plan(
         The plan describing the selection and the jobs to run.
     """
     usable, degenerate = select_features(features, names=names, classes=classes)
+
+    # Assemble the jobs still needed, skipping existing output files unless forced
     jobs: list[Job] = []
     skipped_existing = 0
     for feature in usable:
@@ -81,6 +88,7 @@ def build_plan(
                 skipped_existing += 1
                 continue
             jobs.append(Job(feature, instrument_set, path))
+
     return DownloadPlan(
         jobs=tuple(jobs),
         feature_count=len(usable),

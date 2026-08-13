@@ -80,7 +80,7 @@ def fetch_instrument_sets(client: ODEClient) -> list[InstrumentSetInfo]:
 def load_features(
     client: ODEClient, cache_dir: Path, *, refresh: bool = False
 ) -> list[Feature]:
-    """Load the feature catalog from cache, fetching and caching on a miss.
+    """Load the geological feature catalog from cache, fetching and caching on a miss.
 
     Args:
         client: The ODE client to query with.
