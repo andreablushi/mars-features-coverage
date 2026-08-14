@@ -6,8 +6,8 @@ download:
     - MRO/CTX/EDR
     - MRO/HIRISE/RDRV11
     - MRO/CRISM/MTRDR
-    - MRO/CRISM/TRDR
-    - MRO/SHARAD/RDR
+    - MRO/CRISM/MRDR4
+    - MRO/SHARAD/USRDRV2
 
   # Which products ODE returns for a feature's bounding box.
   #   b  the product's own box overlaps it
@@ -33,4 +33,4 @@ coverage:
   force: false
 
   # Concurrent worker processes.
-  workers: 8
+  workers: 4
