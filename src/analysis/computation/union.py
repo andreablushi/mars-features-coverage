@@ -13,6 +13,8 @@ the area of what survives is its own new ground.
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
+
 import numpy as np
 from shapely import area, covers, difference, prepare, union_all
 from shapely.geometry.base import BaseGeometry
@@ -33,8 +35,11 @@ def accumulate(grid: TileGrid, count: int) -> np.ndarray:
         before it had reached, indexed as the observations were given.
     """
     fresh = np.zeros(count, dtype=float)
-    for rectangle, cap, reaching in grid:
-        _fill_tile(grid, rectangle, cap, reaching, fresh)
+    with ThreadPoolExecutor(max_workers=configs.UNION_THREADS) as pool:
+        shares = pool.map(lambda tile: _fill_tile(grid, *tile), grid)
+        for share in shares:
+            for index, added in share:
+                fresh[index] += added
     return fresh
 
 
@@ -43,41 +48,45 @@ def _fill_tile(
     rectangle: BaseGeometry,
     cap: float,
     reaching: np.ndarray,
-    fresh: np.ndarray,
-) -> None:
-    """Accumulate one tile, adding what it contributes to every observation.
+) -> list[tuple[int, float]]:
+    """Accumulate one tile and report what it contributes to each observation.
+
+    The share is returned rather than written, because tiles are accumulated
+    concurrently and one observation is reached by several of them.
 
     Args:
         grid: The tile grid, used to cut a chunk down to this tile.
         rectangle: The tile being accumulated.
         cap: The ground in square metres the tile could ever hold.
         reaching: The indices of the observations reaching it, in order.
-        fresh: The per-observation totals to add this tile's share to.
 
     Returns:
-        None.
+        The ground in square metres this tile saw each observation cover first,
+        as observation index and area pairs.
     """
     covered: BaseGeometry | None = None
     arrived: list[BaseGeometry] = []
+    share: list[tuple[int, float]] = []
     limit = cap * (1.0 - configs.SATURATION_TOLERANCE)
     for start in range(0, reaching.size, configs.UNION_CHUNK):
         chunk = reaching[start : start + configs.UNION_CHUNK]
         indices, pieces = grid.clip(chunk, rectangle)
         if not indices.size:
             continue
-        _measure(indices, pieces, covered, fresh)
+        _measure(indices, pieces, covered, share)
         arrived.extend(pieces)
         covered = union_all(arrived)
         prepare(covered)
         if covered.area >= limit:
-            return
+            break
+    return share
 
 
 def _measure(
     indices: np.ndarray,
     pieces: np.ndarray,
     covered: BaseGeometry | None,
-    fresh: np.ndarray,
+    share: list[tuple[int, float]],
 ) -> None:
     """Record what each footprint in one chunk newly covers.
 
@@ -90,7 +99,7 @@ def _measure(
         pieces: The footprints clipped to the tile, in the same order.
         covered: The tile's union of everything before this chunk, or None when
             the chunk is the first to reach the tile.
-        fresh: The per-observation totals to add each residual's area to.
+        share: The tile's contributions so far, appended to in place.
 
     Returns:
         None.
@@ -106,5 +115,5 @@ def _measure(
             residual = difference(residual, within)
             if residual.is_empty:
                 continue
-        fresh[index] += area(residual)
+        share.append((int(index), area(residual)))
         within = residual if within is None else union_all([within, residual])

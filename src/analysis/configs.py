@@ -31,8 +31,14 @@ LINE_CLIP_MARGIN_DEG = 2.0
 LAEA_MIN_DENOMINATOR = 1e-12
 
 # The union is kept per tile so each insert touches a small shape, not the
-# whole accumulated one; tiles are disjoint so summing their areas is exact
-UNION_TILES = 16
+# whole accumulated one; tiles are disjoint so summing their areas is exact.
+# A tile is sized to the footprints it will hold, within these bounds
+MIN_UNION_TILES = 4
+MAX_UNION_TILES = 32
+
+# How many tiles of one feature are accumulated at once. Tiles are independent,
+# and shapely releases the interpreter lock inside GEOS, so threads are enough
+UNION_THREADS = 4
 
 # How many observations a tile folds in before its union is rebuilt in one
 # batch; a sequential pairwise union shreds its own boundary into slivers

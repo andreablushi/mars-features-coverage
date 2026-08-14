@@ -11,10 +11,11 @@ This module owns the grid alone. The accumulation inside a tile is in union.py.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Iterator, Sequence
 
 import numpy as np
-from shapely import STRtree, area, box, intersection, is_empty
+from shapely import STRtree, area, bounds, box, intersection, is_empty
 from shapely.geometry.base import BaseGeometry
 
 from analysis import configs
@@ -33,7 +34,7 @@ class TileGrid:
         self,
         region: FeatureRegion,
         shapes: Sequence[BaseGeometry],
-        tiles: int = configs.UNION_TILES,
+        tiles: int | None = None,
     ) -> None:
         """Lay a tile grid over one feature and index the shapes against it.
 
@@ -41,12 +42,15 @@ class TileGrid:
             region: The projected feature the tiles cover.
             shapes: The projected footprints to be indexed, in the order their
                 observations are to be walked.
-            tiles: How many tiles to use along each axis.
+            tiles: How many tiles to use along each axis, or None to size the
+                grid to the footprints.
 
         Returns:
             None.
         """
         min_x, min_y, max_x, max_y = region.shape.bounds
+        if tiles is None:
+            tiles = _tile_count(max_x - min_x, max_y - min_y, shapes)
         step_x, step_y = (max_x - min_x) / tiles, (max_y - min_y) / tiles
         self._shapes = np.asarray(shapes, dtype=object)
         self._rectangles = np.asarray(
@@ -100,3 +104,29 @@ class TileGrid:
         pieces = intersection(self._shapes[reaching], rectangle)
         kept = ~is_empty(pieces)
         return reaching[kept], pieces[kept]
+
+
+def _tile_count(width: float, height: float, shapes: Sequence[BaseGeometry]) -> int:
+    """Choose how many tiles a feature needs along each axis.
+
+    A tile much smaller than a footprint is the expensive mistake: the footprint
+    is then cut against dozens of tiles that each hold a sliver of it. Matching
+    the tile to the typical footprint keeps that to a handful.
+
+    Args:
+        width: The feature's projected width in metres.
+        height: The feature's projected height in metres.
+        shapes: The projected footprints the grid will hold.
+
+    Returns:
+        The tile count per axis, within the configured bounds.
+    """
+    boxes = bounds(np.asarray(shapes, dtype=object))
+    spans = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
+    typical = (
+        float(np.sqrt(np.median(spans[spans > 0.0]))) if (spans > 0.0).any() else 0.0
+    )
+    if typical <= 0.0:
+        return configs.MAX_UNION_TILES
+    wanted = round(math.sqrt(width * height) / typical)
+    return int(min(max(wanted, configs.MIN_UNION_TILES), configs.MAX_UNION_TILES))
