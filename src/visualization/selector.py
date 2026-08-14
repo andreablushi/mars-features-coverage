@@ -1,22 +1,4 @@
-"""Picking one feature, and the areas that redraw themselves once it is picked.
-
-Running the notebook top to bottom cannot pause at the picker, because the
-kernel runs the queued cells straight through. So the cells below the picker do
-not read a chosen feature, they claim an area and register how to fill it.
-Confirming loads the feature once and refills every claimed area in place, which
-is also what makes a second choice update the plots without rerunning anything.
-
-An area is a container holding exactly one widget, and refilling it replaces
-that widget. Capturing cell output into it would be the obvious alternative and
-is the wrong one: a redraw runs inside a button callback, where a request to
-clear captured output never takes effect, so every confirm would stack another
-copy on the ones before it.
-
-The catalogue holds far more features than have ever been downloaded, so a name
-carries whether anything was computed for it. Choosing one that has nothing is
-allowed and answered with the grey panel, which is what tells a missing plot
-apart from an empty one.
-"""
+"""Picking one feature, and the areas that redraw themselves once it is picked."""
 
 from __future__ import annotations
 
@@ -25,10 +7,9 @@ from collections.abc import Callable, Sequence
 import ipywidgets as widgets
 from IPython.display import display
 
-from analysis.loader import artifacts
-from analysis.models.coverage import SetCoverage
-from common.files import slugify
-from download.storage import cache
+from models.results import SetCoverage
+from storage import catalog, parquet
+from storage.files import slugify
 from visualization import configs, panels
 
 Render = Callable[[Sequence[SetCoverage]], widgets.Widget]
@@ -51,7 +32,7 @@ class FeatureSelector:
             None.
         """
         self._names = _names_by_class()
-        self._computed = artifacts.computed_features()
+        self._computed = parquet.computed_features()
         self.selection: tuple[str, str] | None = None
         self.coverage: list[SetCoverage] = []
         self._areas: list[tuple[widgets.Box, Render]] = []
@@ -162,7 +143,7 @@ class FeatureSelector:
         feature_class, name = self._class.value, self._name.value
         self.selection = (feature_class, name)
         if self._has_data(feature_class, name):
-            self.coverage = artifacts.load_feature(feature_class, name)
+            self.coverage = parquet.load_feature(feature_class, name)
             note = widgets.HTML(
                 f"Loaded <b>{feature_class} / {name}</b>. "
                 f"The cells below have filled in."
@@ -184,7 +165,7 @@ def _names_by_class() -> dict[str, list[str]]:
         The sorted names of every catalogued feature, keyed by feature class.
     """
     grouped: dict[str, list[str]] = {}
-    for feature in cache.read_features():
+    for feature in catalog.read_features():
         grouped.setdefault(feature.feature_class, []).append(feature.name)
     for names in grouped.values():
         names.sort()

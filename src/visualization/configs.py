@@ -1,9 +1,4 @@
-"""Central configuration for the interactive layer.
-
-Every size, colour and standing message the widgets and figures use, so a
-change to how the notebook looks is made in one place rather than hunted for
-across the plots.
-"""
+"""Central configuration for the interactive layer."""
 
 from __future__ import annotations
 

@@ -5,13 +5,14 @@ from __future__ import annotations
 from dataclasses import asdict
 from pathlib import Path
 
-from common.files import write_jsonl
+import configs as root_configs
 from download import configs
 from download.api.client import ODEClient, as_items
-from download.models.feature import Feature
-from download.models.product import InstrumentSetInfo
 from download.selection.dedupe import dedupe
-from download.storage import cache
+from models.feature import Feature
+from models.product import InstrumentSetInfo
+from storage import catalog
+from storage.files import write_jsonl
 
 
 def fetch_features(client: ODEClient) -> list[Feature]:
@@ -75,7 +76,10 @@ def fetch_instrument_sets(client: ODEClient) -> list[InstrumentSetInfo]:
 
 
 def load_features(
-    client: ODEClient, cache_dir: Path = configs.CATALOG_ROOT, *, refresh: bool = False
+    client: ODEClient,
+    cache_dir: Path = root_configs.CATALOG_ROOT,
+    *,
+    refresh: bool = False,
 ) -> list[Feature]:
     """Load the geological feature catalog from cache, fetching and caching on a miss.
 
@@ -87,16 +91,19 @@ def load_features(
     Returns:
         The list of features.
     """
-    path = cache.features_path(cache_dir)
+    path = catalog.features_path(cache_dir)
     if path.exists() and not refresh:
-        return cache.read_features(cache_dir)
+        return catalog.read_features(cache_dir)
     features = fetch_features(client)
     write_jsonl(path, [asdict(feature) for feature in features])
     return features
 
 
 def load_instrument_sets(
-    client: ODEClient, cache_dir: Path = configs.CATALOG_ROOT, *, refresh: bool = False
+    client: ODEClient,
+    cache_dir: Path = root_configs.CATALOG_ROOT,
+    *,
+    refresh: bool = False,
 ) -> list[InstrumentSetInfo]:
     """Load the instrument catalog from cache, fetching and caching on a miss.
 
@@ -108,9 +115,9 @@ def load_instrument_sets(
     Returns:
         One entry per unique instrument set.
     """
-    path = cache.instrument_sets_path(cache_dir)
+    path = catalog.instrument_sets_path(cache_dir)
     if path.exists() and not refresh:
-        return cache.read_instrument_sets(cache_dir)
+        return catalog.read_instrument_sets(cache_dir)
     rows = fetch_instrument_sets(client)
     write_jsonl(path, [asdict(row) for row in rows])
     return rows

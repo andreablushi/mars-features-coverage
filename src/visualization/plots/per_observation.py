@@ -7,8 +7,8 @@ from collections.abc import Sequence
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
 import numpy as np
+from models.coverage import SetCoverage
 
-from analysis.models.coverage import SetCoverage
 from visualization import configs, panels
 
 
