@@ -5,12 +5,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 from pathlib import Path
 
-from download import configs
-from download.models.feature import Feature
-from download.models.instrument import InstrumentSet
-from download.models.job import DownloadPlan, Job
+import configs
 from download.selection.features import select_features
-from download.storage.layout import product_file
+from models.feature import Feature
+from models.instrument import InstrumentSet
+from models.job import DownloadJob, DownloadPlan
+from storage import layout
 
 
 def build_plan(
@@ -38,16 +38,15 @@ def build_plan(
     """
     usable, degenerate = select_features(features, names=names)
 
-    # Assemble the jobs still needed, skipping existing output files unless forced
-    jobs: list[Job] = []
+    jobs: list[DownloadJob] = []
     skipped_existing = 0
     for feature in usable:
         for instrument_set in instrument_sets:
-            path = product_file(out_root, feature, instrument_set)
+            path = layout.metadata_file(out_root, feature, instrument_set)
             if path.exists() and not force:
                 skipped_existing += 1
                 continue
-            jobs.append(Job(feature, instrument_set, path))
+            jobs.append(DownloadJob(feature, instrument_set, path))
 
     return DownloadPlan(
         jobs=tuple(jobs),
