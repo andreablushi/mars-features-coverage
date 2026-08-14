@@ -1,12 +1,6 @@
-"""Central configuration for the download pipeline.
-
-This module holds every tunable constant and imports nothing from the rest of
-the stage, so it can be imported anywhere without creating a cycle.
-"""
+"""Central configuration for the download pipeline."""
 
 from __future__ import annotations
-
-from common.configs import REPO_ROOT
 
 ODE_BASE_URL = "https://oderest.rsl.wustl.edu/live2/"
 ODE_META_DB = "mars"
@@ -31,12 +25,6 @@ CONFIG_SECTION = "download"
 
 DEFAULT_WORKERS = 4
 
-DATA_ROOT = REPO_ROOT / "data"
-METADATA_ROOT = DATA_ROOT / "metadata"
-CATALOG_ROOT = DATA_ROOT / "_catalog"
-FEATURES_CACHE_NAME = "features.jsonl"
-INSTRUMENT_SETS_CACHE_NAME = "instrument_sets.jsonl"
-
 RETAINED_FIELDS = (
     "pdsid",
     "ihid",
@@ -50,14 +38,4 @@ RETAINED_FIELDS = (
     "Easternmost_longitude",
     "Footprint_C0_geometry",
     "Map_scale",
-)
-
-# Every default carries both a footprint and an acquisition time, which is
-# what the coverage stage needs to place an observation on a time axis
-DEFAULT_INSTRUMENT_SETS = (
-    ("MRO", "CTX", "EDR"),
-    ("MRO", "HIRISE", "RDRV11"),
-    ("MRO", "CRISM", "MTRDR"),
-    ("MRO", "CRISM", "TRDR"),
-    ("MRO", "SHARAD", "RDR"),
 )

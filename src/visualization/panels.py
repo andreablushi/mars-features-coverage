@@ -1,16 +1,4 @@
-"""How a figure reads: its colours, its axes, and what stands in for it.
-
-Colours, axis styling, and the placeholder shown when there is nothing to draw
-are one decision rather than three, because they are what makes two figures of
-the same feature look like they belong together. A missing line in a plot can
-mean the instrument never observed the feature or that nothing was downloaded
-for it, and the grey panel is what keeps the second from reading as the first.
-
-Nothing here prints or displays. Every piece is returned as a widget, because
-the notebook redraws from a button callback, where captured cell output cannot
-be cleared and every redraw would pile up on the last one. A widget that is
-handed back can simply replace the one before it.
-"""
+"""How a figure reads: its colours, its axes, and what stands in for it."""
 
 from __future__ import annotations
 
@@ -24,7 +12,7 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.ticker import PercentFormatter
 
-from analysis.models.coverage import SetCoverage
+from models.results import SetCoverage
 from visualization import configs
 
 Colour = tuple[float, float, float]

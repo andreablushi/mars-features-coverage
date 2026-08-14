@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 from pathlib import Path
 
-from analysis import configs
-from analysis.loader import layout
-from analysis.models.job import CoverageJob, CoveragePlan
+import configs
+from models.job import CoverageJob, CoveragePlan
+from storage import layout
 
 
 def build_plan(
@@ -20,9 +20,10 @@ def build_plan(
     """Build the jobs still needed for a run.
 
     An instrument set whose summary already exists is left out unless force is
-    set, so an interrupted run resumes where it stopped. That summary is
-    written after the events and the union, and every output is written
-    atomically, so its presence means the set finished rather than started.
+    set, so an interrupted run resumes where it stopped. The jobs that remain
+    are ordered largest first, so the pool starts the long ones early: the sets
+    differ in size by orders of magnitude, and in discovery order the pool can
+    pick the largest up last and grind on it with every worker idle.
 
     Args:
         sources: The instrument set metadata files discovered on disk.
@@ -35,14 +36,16 @@ def build_plan(
     """
     jobs: list[CoverageJob] = []
     skipped_existing = 0
-    for source in sources:
-        if layout.set_summary_path(coverage_root, source).exists() and not force:
+    for source in sorted(sources, key=lambda path: -path.stat().st_size):
+        summary_path = layout.set_summary_path(coverage_root, source)
+        if summary_path.exists() and not force:
             skipped_existing += 1
             continue
         jobs.append(
             CoverageJob(
                 source=source,
                 events_path=layout.events_path(coverage_root, source),
+                summary_path=summary_path,
                 geometry_path=layout.geometry_path(geometry_root, source),
             )
         )
@@ -51,4 +54,26 @@ def build_plan(
         feature_count=len({source.parent for source in sources}),
         set_count=len(sources),
         skipped_existing=skipped_existing,
+    )
+
+
+def unfinished(
+    sources: Sequence[Path], coverage_root: Path = configs.COVERAGE_ROOT
+) -> tuple[Path, ...]:
+    """Return the instrument sets that still have no coverage artifact.
+
+    An interrupted run leaves nothing behind saying so, so the gaps are read
+    back off disk. A set whose records are all unusable is in here too.
+
+    Args:
+        sources: The instrument set metadata files discovered on disk.
+        coverage_root: The coverage artifacts root directory.
+
+    Returns:
+        The metadata files with no summary beside them, in discovery order.
+    """
+    return tuple(
+        source
+        for source in sources
+        if not layout.set_summary_path(coverage_root, source).exists()
     )

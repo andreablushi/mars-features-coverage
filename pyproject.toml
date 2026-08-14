@@ -21,7 +21,7 @@ requires = ["uv_build>=0.10.2,<0.11.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = ["common", "download", "analysis", "visualization"]
+module-name = ["cli", "models", "storage", "download", "analysis", "visualization"]
 
 [dependency-groups]
 dev = [

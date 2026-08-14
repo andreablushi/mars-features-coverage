@@ -1,14 +1,4 @@
-"""The feature itself: the ground it covers, and what it looks like from orbit.
-
-The picture is pulled from the USGS Mars basemap when the panel is drawn and
-kept in memory only, so looking at a feature never adds anything to the data on
-disk. A view that has already been fetched is reused, which is what keeps
-flipping between two features from asking twice.
-
-The area is the feature's bounding box, not its true outline, because the box
-is the whole the coverage numbers are shares of and the catalogue carries
-nothing finer.
-"""
+"""The feature itself: the ground it covers, and what it looks like from orbit."""
 
 from __future__ import annotations
 
@@ -19,11 +9,11 @@ from functools import lru_cache
 import httpx
 import ipywidgets as widgets
 
-from analysis.computation import geodesy
-from analysis.models.coverage import SetCoverage
-from common.files import slugify
-from download.models.feature import Feature
-from download.storage import cache
+from analysis.utils import geodesy
+from models.feature import Feature
+from models.results import SetCoverage
+from storage import catalog
+from storage.files import slugify
 from visualization import configs, panels
 
 
@@ -179,7 +169,7 @@ def _catalogue() -> dict[tuple[str, str], Feature]:
     """
     return {
         (slugify(feature.feature_class), slugify(feature.name)): feature
-        for feature in cache.read_features()
+        for feature in catalog.read_features()
     }
 
 

@@ -6,10 +6,10 @@ from datetime import datetime, timezone
 
 from download import configs
 from download.api.client import ODEClient, as_items
-from download.models.feature import Feature
-from download.models.instrument import InstrumentSet
-from download.models.product import ProductRecord
 from download.selection.fields import retain_fields
+from models.feature import Feature
+from models.instrument import InstrumentSet
+from models.product import ProductRecord
 
 
 def _base_params(
