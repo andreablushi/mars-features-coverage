@@ -37,11 +37,11 @@ Add `--dry-run` to any command to print the plan without querying:
 uv run python scripts/download_metadata.py --test --dry-run
 ```
 
-A live progress bar shows the percentage, jobs completed, estimated time
-remaining, the job currently finishing, and the running row and failure counts:
+A live progress bar shows how many jobs have finished, with failures printed
+above it as they happen:
 
 ```
-  Ultimum Chasma [MRO/CTX/EDR]  ━━━━━━━━━━━━━━━  100.0% 25/25 00:00 4,332 rows
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 25/25
 done in 15.5s: 25 jobs, 4,332 rows, 4 empty, 0 failed
 ```
 
@@ -194,9 +194,9 @@ src/download/
 ```
 
 The runner never prints. It yields `ProgressEvent` objects carrying the
-completed count, total, elapsed time, ETA, current job, and running totals, and
-the caller decides how to render them. Anything else, a notebook or the coming
-analysis stage, can drive the same runner and ignore the rendering entirely.
+completed count and the unit that just finished, and the caller decides how to
+render them. Anything else, a notebook or the analysis stage, can drive the same
+runner and ignore the rendering entirely.
 
 ## Development
 

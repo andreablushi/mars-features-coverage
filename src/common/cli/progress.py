@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from rich.console import Console
-from rich.progress import BarColumn, MofNCompleteColumn, Progress, TimeRemainingColumn
+from rich.progress import BarColumn, MofNCompleteColumn, Progress
 
 from common.models.progress import ProgressEvent
 
@@ -18,8 +18,8 @@ def render(
 ) -> None:
     """Draw a live progress bar while consuming runner events.
 
-    Shows the bar, the completed and total counts, and the estimated time
-    remaining. Failures are printed above the bar as they happen.
+    Shows the bar and the completed and total counts. Failures are printed
+    above the bar as they happen.
 
     Args:
         events: The progress events produced by a runner.
@@ -34,7 +34,6 @@ def render(
     with Progress(
         BarColumn(bar_width=None),
         MofNCompleteColumn(),
-        TimeRemainingColumn(compact=True),
         console=console,
     ) as progress:
         task = progress.add_task(description, total=total)
