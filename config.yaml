@@ -10,8 +10,10 @@ download:
     - MRO/SHARAD/RDR
 
   # Which products ODE returns for a feature's bounding box.
-  #   f  every product whose footprint overlaps the box, even partly
-  #   o  only products falling entirely inside it
+  #   b  the product's own box overlaps it
+  #   f  the product's footprint overlaps it, even partly
+  #   o  the product falls entirely inside it
+  #   i  the product contains the whole feature
   loc: f
 
   # Re-download instead of skipping instrument sets already on disk.
@@ -22,6 +24,9 @@ download:
 
 coverage:
   # Accumulate the running union of covered ground, which is the expensive
+  # half of the work. Off still measures what each observation covered on
+  # its own, but leaves every cumulative column empty, so there is no
+  # coverage fraction and no cumulative plot.
   cumulative_union: true
 
   # Recompute instead of skipping instrument sets already computed.
