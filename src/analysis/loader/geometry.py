@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from pathlib import Path
 
+import numpy as np
 import pyarrow.parquet as pq
 from shapely import from_wkb, to_wkb
 
@@ -44,31 +45,43 @@ def load(
     stored = pq.read_schema(path).metadata or {}
     if stored.get(GEOMETRY_VERSION_KEY) != configs.GEOMETRY_VERSION:
         return None
-    rows = pq.read_table(path, schema=GEOMETRY).to_pylist()
-    if not rows:
+    table = pq.read_table(path, schema=GEOMETRY)
+    if not table.num_rows:
         return None
-    first = rows[0]
+    columns = {name: table.column(name).to_pylist() for name in GEOMETRY.names}
     box = FeatureBox(
-        name=first["feature_name"],
-        feature_class=first["feature_class"],
-        min_lat=first["min_lat"],
-        max_lat=first["max_lat"],
-        west_lon=first["west_lon"],
-        east_lon=first["east_lon"],
+        name=columns["feature_name"][0],
+        feature_class=columns["feature_class"][0],
+        min_lat=columns["min_lat"][0],
+        max_lat=columns["max_lat"][0],
+        west_lon=columns["west_lon"][0],
+        east_lon=columns["east_lon"][0],
     )
+    shapes = from_wkb(np.asarray(columns["wkb"], dtype=object))
     return box, [
         ProjectedObservation(
-            pdsid=row["pdsid"],
-            ihid=row["ihid"],
-            iid=row["iid"],
-            pt=row["pt"],
-            start=row["t_start"],
-            stop=row["t_stop"],
-            shape=from_wkb(row["wkb"]),
-            width_km=row["width_km"],
-            width_source=row["width_source"],
+            pdsid=pdsid,
+            ihid=ihid,
+            iid=iid,
+            pt=pt,
+            start=start,
+            stop=stop,
+            shape=shape,
+            width_km=width_km,
+            width_source=width_source,
         )
-        for row in rows
+        for pdsid, ihid, iid, pt, start, stop, shape, width_km, width_source in zip(
+            columns["pdsid"],
+            columns["ihid"],
+            columns["iid"],
+            columns["pt"],
+            columns["t_start"],
+            columns["t_stop"],
+            shapes,
+            columns["width_km"],
+            columns["width_source"],
+            strict=True,
+        )
     ]
 
 
@@ -85,24 +98,26 @@ def save(
     Returns:
         None.
     """
-    rows = [
-        {
-            "feature_class": box.feature_class,
-            "feature_name": box.name,
-            "min_lat": box.min_lat,
-            "max_lat": box.max_lat,
-            "west_lon": box.west_lon,
-            "east_lon": box.east_lon,
-            "pdsid": observation.pdsid,
-            "ihid": observation.ihid,
-            "iid": observation.iid,
-            "pt": observation.pt,
-            "t_start": observation.start,
-            "t_stop": observation.stop,
-            "width_km": observation.width_km,
-            "width_source": observation.width_source,
-            "wkb": to_wkb(observation.shape),
-        }
-        for observation in observations
-    ]
-    writer.write_rows(rows, GEOMETRY, path)
+    count = len(observations)
+    columns = {
+        "feature_class": [box.feature_class] * count,
+        "feature_name": [box.name] * count,
+        "min_lat": [box.min_lat] * count,
+        "max_lat": [box.max_lat] * count,
+        "west_lon": [box.west_lon] * count,
+        "east_lon": [box.east_lon] * count,
+        "pdsid": [observation.pdsid for observation in observations],
+        "ihid": [observation.ihid for observation in observations],
+        "iid": [observation.iid for observation in observations],
+        "pt": [observation.pt for observation in observations],
+        "t_start": [observation.start for observation in observations],
+        "t_stop": [observation.stop for observation in observations],
+        "width_km": [observation.width_km for observation in observations],
+        "width_source": [observation.width_source for observation in observations],
+        "wkb": to_wkb(
+            np.asarray(
+                [observation.shape for observation in observations], dtype=object
+            )
+        ).tolist(),
+    }
+    writer.write_columns(columns, GEOMETRY, path)

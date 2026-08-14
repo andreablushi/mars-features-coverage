@@ -52,6 +52,10 @@ SATURATION_TOLERANCE = 1e-12
 # Straight lon/lat edges curve once projected, so resample below this step
 MAX_SEGMENT_DEG = 0.25
 
+# Segments per quarter circle when a track is buffered to its swath. A buffer
+# is an inscribed polygon, so too few segments understate the swath's area
+BUFFER_QUAD_SEGMENTS = 16
+
 DATA_ROOT = REPO_ROOT / "data"
 METADATA_ROOT = DATA_ROOT / "metadata"
 ARTIFACTS_ROOT = DATA_ROOT / "artifacts"

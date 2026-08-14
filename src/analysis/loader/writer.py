@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from dataclasses import asdict
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +15,9 @@ from common.files import atomic_path
 def write(rows: Sequence[Any], schema: pa.Schema, path: Path) -> None:
     """Write dataclass rows to a parquet file.
 
+    The rows are read column by column rather than turned into dictionaries,
+    because arrow wants columns anyway and a row is only ever read once.
+
     Args:
         rows: The dataclass rows to write, whose fields match the schema.
         schema: The schema to write them under.
@@ -24,20 +26,23 @@ def write(rows: Sequence[Any], schema: pa.Schema, path: Path) -> None:
     Returns:
         None.
     """
-    write_rows([asdict(row) for row in rows], schema, path)
+    columns = {name: [getattr(row, name) for row in rows] for name in schema.names}
+    write_columns(columns, schema, path)
 
 
-def write_rows(rows: Sequence[dict[str, Any]], schema: pa.Schema, path: Path) -> None:
-    """Write mapping rows to a parquet file, atomically.
+def write_columns(
+    columns: Mapping[str, Sequence[Any]], schema: pa.Schema, path: Path
+) -> None:
+    """Write columns to a parquet file, atomically.
 
     Args:
-        rows: The rows to write, each keyed by the schema's field names.
+        columns: The columns to write, keyed by the schema's field names.
         schema: The schema to write them under.
         path: The destination parquet file.
 
     Returns:
         None.
     """
-    table = pa.Table.from_pylist(list(rows), schema=schema)
+    table = pa.Table.from_pydict(dict(columns), schema=schema)
     with atomic_path(path) as tmp:
         pq.write_table(table, tmp, compression="zstd")

@@ -13,13 +13,44 @@ projection centre where the projection is undefined.
 from __future__ import annotations
 
 import numpy as np
-from shapely import Polygon, segmentize, transform, union_all
+from shapely import (
+    Polygon,
+    buffer,
+    covers,
+    intersection,
+    prepare,
+    segmentize,
+    transform,
+    union_all,
+)
 from shapely.geometry.base import BaseGeometry
 
 from analysis import configs
 from analysis.computation import footprints, geodesy
 
 _EMPTY = Polygon()
+
+
+def _gather(parts: np.ndarray, owners: np.ndarray, shapes: np.ndarray) -> None:
+    """Put each footprint's parts back together as one shape.
+
+    Args:
+        parts: The projected single-part shapes.
+        owners: The index of the footprint each part came from.
+        shapes: The per-footprint results to fill in place.
+
+    Returns:
+        None.
+    """
+    order = np.argsort(owners, kind="stable")
+    parts, owners = parts[order], owners[order]
+    wanted = np.arange(shapes.size)
+    starts = np.searchsorted(owners, wanted, side="left")
+    ends = np.searchsorted(owners, wanted, side="right")
+    counts = ends - starts
+    shapes[counts == 1] = parts[starts[counts == 1]]
+    for index in np.nonzero(counts > 1)[0]:
+        shapes[index] = union_all(parts[starts[index] : ends[index]])
 
 
 class FeatureRegion:
@@ -51,6 +82,7 @@ class FeatureRegion:
         lons, lats = geodesy.bbox_ring(min_lat, max_lat, west_lon, east_lon)
         x, y = geodesy.laea_forward(lons, lats, self.centre_lon, self.centre_lat)
         self._shape = Polygon(np.column_stack((x, y)))
+        prepare(self._shape)
         self.area_m2 = self._shape.area
         self._tight = footprints.clip_boxes(min_lat, max_lat, west_lon, east_lon)
         self._wide = footprints.clip_boxes(
@@ -70,29 +102,58 @@ class FeatureRegion:
         """
         return self._shape
 
-    def footprint(self, geom: BaseGeometry, swath_width_m: float) -> BaseGeometry:
-        """Return the ground one observation covers inside the feature.
+    def footprint_areas(
+        self, geoms: np.ndarray, swath_widths_m: np.ndarray
+    ) -> np.ndarray:
+        """Return the ground a whole set of observations covers on the feature.
+
+        The set is projected in one pass rather than one footprint at a time,
+        because the projection is a single numpy expression over every
+        coordinate and shapely's operations take whole arrays.
 
         Args:
-            geom: The parsed footprint geometry in lon/lat degrees.
-            swath_width_m: The cross-track width to give a sounder track,
+            geoms: The parsed footprint geometries in lon/lat degrees.
+            swath_widths_m: The cross-track width to give each sounder track,
                 ignored for footprints that already enclose area.
 
         Returns:
-            The projected, clipped footprint, empty when it falls outside.
+            One projected, clipped footprint per input, empty where it falls
+            outside the feature.
         """
-        shapes, buffer_m = footprints.surface_shapes(
-            geom, self._tight, self._wide, swath_width_m
+        parts, owners, buffers = footprints.surface_parts(
+            geoms, self._tight, self._wide, swath_widths_m
         )
-        if not shapes:
-            return _EMPTY
-        projected = [
-            transform(segmentize(shape, configs.MAX_SEGMENT_DEG), self._project)
-            for shape in shapes
-        ]
-        if buffer_m > 0.0:
-            projected = [shape.buffer(buffer_m) for shape in projected]
-        return union_all(projected).intersection(self._shape)
+        shapes = np.full(len(geoms), _EMPTY, dtype=object)
+        if not parts.size:
+            return shapes
+        projected = transform(segmentize(parts, configs.MAX_SEGMENT_DEG), self._project)
+        grown = buffers > 0.0
+        if grown.any():
+            projected[grown] = buffer(
+                projected[grown],
+                buffers[grown],
+                quad_segs=configs.BUFFER_QUAD_SEGMENTS,
+            )
+        _gather(projected, owners, shapes)
+        return self._cut(shapes)
+
+    def _cut(self, shapes: np.ndarray) -> np.ndarray:
+        """Cut projected footprints back to the feature they belong to.
+
+        A footprint the feature already contains is left untouched. Intersecting
+        it would return the same ground with its coordinates re-noded, so the
+        skip is both cheaper and one rounding step more faithful.
+
+        Args:
+            shapes: The projected footprints.
+
+        Returns:
+            The footprints, each within the feature.
+        """
+        outside = ~covers(self._shape, shapes)
+        if outside.any():
+            shapes[outside] = intersection(shapes[outside], self._shape)
+        return shapes
 
     def _project(self, coords: np.ndarray) -> np.ndarray:
         """Project an array of lon/lat pairs into the feature's projection.

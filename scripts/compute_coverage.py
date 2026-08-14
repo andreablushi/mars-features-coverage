@@ -41,7 +41,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         with closing(runner.run(plan.jobs)) as events:
             progress.render(events, len(plan.jobs), "coverage", console)
 
-    for feature_dir in sorted({source.parent for source in sources}):
+    for feature_dir in sorted({job.source.parent for job in plan.jobs}):
         catalog.finalise_feature(configs.COVERAGE_ROOT, feature_dir)
     indexed = catalog.rebuild(configs.ARTIFACTS_ROOT, configs.COVERAGE_ROOT)
 

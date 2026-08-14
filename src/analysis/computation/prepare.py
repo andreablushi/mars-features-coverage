@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import numpy as np
+from shapely import from_wkt
 
 from analysis.computation import footprints, geodesy, swath
 from analysis.computation.region import FeatureRegion
@@ -34,11 +35,20 @@ def project(
         they were given, and how many missed it entirely.
     """
     widths = _track_widths(observations)
+    resolved = [
+        widths.get(observation.pdsid, (0.0, None)) for observation in observations
+    ]
+    shapes = region.footprint_areas(
+        from_wkt(
+            np.asarray([observation.wkt for observation in observations], dtype=object)
+        ),
+        np.asarray([width for width, _ in resolved], dtype=float),
+    )
     projected = []
     missed = 0
-    for observation in observations:
-        width_m, source = widths.get(observation.pdsid, (0.0, None))
-        shape = region.footprint(footprints.parse(observation.wkt), width_m)
+    for observation, (width_m, source), shape in zip(
+        observations, resolved, shapes, strict=True
+    ):
         if shape.is_empty:
             missed += 1
             continue
