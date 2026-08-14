@@ -12,12 +12,16 @@ from download.models.product import ProductRecord
 from download.selection.fields import retain_fields
 
 
-def _base_params(feature: Feature, instrument_set: InstrumentSet) -> dict[str, str]:
+def _base_params(
+    feature: Feature, instrument_set: InstrumentSet, loc: str
+) -> dict[str, str]:
     """Build the shared product query parameters for a feature and set.
 
     Args:
         feature: The feature whose name sets the query bounding box.
         instrument_set: The instrument host, instrument, and product type.
+        loc: Which products the box returns, "f" for every footprint that
+            overlaps it and "o" for only those falling entirely inside.
 
     Returns:
         The parameter dictionary without a results selector.
@@ -29,29 +33,38 @@ def _base_params(feature: Feature, instrument_set: InstrumentSet) -> dict[str, s
         "iid": instrument_set.iid,
         "pt": instrument_set.pt,
         "featurename": feature.name,
-        "loc": configs.DEFAULT_LOC,
+        "loc": loc,
     }
 
 
-def count(client: ODEClient, feature: Feature, instrument_set: InstrumentSet) -> int:
+def count(
+    client: ODEClient,
+    feature: Feature,
+    instrument_set: InstrumentSet,
+    loc: str = configs.DEFAULT_LOC,
+) -> int:
     """Return how many products match a feature and instrument set.
 
     Args:
         client: The ODE client to query with.
         feature: The feature whose name sets the query bounding box.
         instrument_set: The instrument host, instrument, and product type.
+        loc: Which products the box returns.
 
     Returns:
         The product count.
     """
-    params = _base_params(feature, instrument_set)
+    params = _base_params(feature, instrument_set, loc)
     params["results"] = "c"
     results = client.query(params)
     return int(results.get("Count", 0))
 
 
 def fetch_products(
-    client: ODEClient, feature: Feature, instrument_set: InstrumentSet
+    client: ODEClient,
+    feature: Feature,
+    instrument_set: InstrumentSet,
+    loc: str = configs.DEFAULT_LOC,
 ) -> list[ProductRecord]:
     """Fetch all product metadata for a feature and instrument set.
 
@@ -70,11 +83,12 @@ def fetch_products(
         client: The ODE client to query with.
         feature: The feature whose name sets the query bounding box.
         instrument_set: The instrument host, instrument, and product type.
+        loc: Which products the box returns, recorded with each one.
 
     Returns:
         One deduplicated record per product.
     """
-    total = count(client, feature, instrument_set)
+    total = count(client, feature, instrument_set, loc)
     if total == 0:
         return []
     provenance = {
@@ -84,14 +98,14 @@ def fetch_products(
         "feature_max_lat": feature.max_lat,
         "feature_west_lon": feature.west_lon,
         "feature_east_lon": feature.east_lon,
-        "loc_mode": configs.DEFAULT_LOC,
+        "loc_mode": loc,
         "retrieved_at": datetime.now(timezone.utc).isoformat(),
     }
     records: list[ProductRecord] = []
     seen: set[str] = set()
     offset = 0
     while len(seen) < total:
-        params = _base_params(feature, instrument_set)
+        params = _base_params(feature, instrument_set, loc)
         params.update(
             {
                 "results": "opm",

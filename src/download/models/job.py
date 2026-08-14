@@ -46,6 +46,15 @@ class JobOutcome:
     error: Exception | None = None
 
     @property
+    def label(self) -> str:
+        """Return a short human readable name for the job that was run.
+
+        Returns:
+            The label of the underlying job.
+        """
+        return self.job.label
+
+    @property
     def failed(self) -> bool:
         """Return whether the job raised an error.
 

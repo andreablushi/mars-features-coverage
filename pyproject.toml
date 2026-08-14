@@ -9,7 +9,11 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "httpx>=0.28.1",
+    "numpy>=2.5.2",
+    "pyarrow>=25.0.1",
+    "pyyaml>=6.0.3",
     "rich>=14.0.0",
+    "shapely>=2.1.2",
 ]
 
 [build-system]
@@ -17,11 +21,16 @@ requires = ["uv_build>=0.10.2,<0.11.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = "download"
+module-name = ["common", "download", "analysis", "visualization"]
 
 [dependency-groups]
 dev = [
     "ruff>=0.16.2",
+]
+notebook = [
+    "ipywidgets>=8.1.5",
+    "jupyterlab>=4.3.0",
+    "matplotlib>=3.10.0",
 ]
 
 [tool.ruff]

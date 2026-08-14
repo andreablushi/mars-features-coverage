@@ -6,12 +6,13 @@ import time
 from collections.abc import Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from common.files import write_jsonl
+from common.models.progress import ProgressEvent
 from download import configs
 from download.api import products
 from download.api.client import ODEClient
 from download.models.job import Job, JobOutcome
-from download.models.progress import ProgressEvent, RunSummary
-from download.storage.writer import write_jsonl
+from download.models.progress import RunSummary
 
 
 class DownloadRunner:
@@ -23,19 +24,25 @@ class DownloadRunner:
     """
 
     def __init__(
-        self, client: ODEClient, *, workers: int = configs.DEFAULT_WORKERS
+        self,
+        client: ODEClient,
+        *,
+        workers: int = configs.DEFAULT_WORKERS,
+        loc: str = configs.DEFAULT_LOC,
     ) -> None:
         """Create a runner.
 
         Args:
             client: The shared ODE client.
-            workers: Requested worker count, clamped to the safe maximum.
+            workers: How many downloads to run at once.
+            loc: Which products a feature box returns, passed to every query.
 
         Returns:
             None.
         """
         self._client = client
-        self._workers = max(1, min(workers, configs.MAX_WORKERS))
+        self._loc = loc
+        self._workers = workers
         self._summary = RunSummary(ran=0, failed=0, elapsed=0.0)
 
     @property
@@ -49,7 +56,7 @@ class DownloadRunner:
 
     @property
     def workers(self) -> int:
-        """Return the effective worker count after clamping.
+        """Return the worker count this runner uses.
 
         Returns:
             The number of concurrent workers used.
@@ -98,7 +105,7 @@ class DownloadRunner:
         """
         try:
             records = products.fetch_products(
-                self._client, job.feature, job.instrument_set
+                self._client, job.feature, job.instrument_set, self._loc
             )
             write_jsonl(job.output_path, records)
             return JobOutcome(job=job)
