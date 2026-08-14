@@ -1,15 +1,4 @@
-"""How much new ground each observation covers, accumulated tile by tile.
-
-A tile's union is rebuilt from scratch every UNION_CHUNK observations, never
-grown one footprint at a time: each overlay inherits the last one's rounding and
-adds its own, so a running union runs away, reaching 402,563 vertices on one
-CRISM tile where the same ground needs 1,885.
-
-Only whole footprints are ever unioned, never the residuals and never a filtered
-subset, both of which leave gaps a later footprint rediscovers and counts twice.
-Within a chunk each footprint is cut back against what is already covered, and
-the area of what survives is its own new ground.
-"""
+"""How much new ground each observation covers, accumulated tile by tile."""
 
 from __future__ import annotations
 
@@ -18,14 +7,36 @@ from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 from shapely import area, covers, difference, prepare, to_wkb, union_all
+from shapely.errors import GEOSException
 from shapely.geometry.base import BaseGeometry
 
 from analysis import configs
-from analysis.computation.region import FeatureRegion
-from analysis.computation.tiles import TileGrid
+from analysis.coverage.tiles import TileGrid
+from analysis.geometry.region import FeatureRegion
 
 
-def accumulate(region: FeatureRegion, shapes: Sequence[BaseGeometry]) -> np.ndarray:
+def _robust(operation, *shapes):
+    """Run an overlay, retrying on a fine grid when exact arithmetic fails.
+
+    GEOS nodes overlays in floating point and occasionally cannot resolve a
+    near-degenerate crossing, raising rather than returning a wrong answer.
+    Snapping to SNAP_GRID_M resolves it, and at a micron on ground measured in
+    kilometres the shift is far below anything the footprints themselves claim.
+
+    Args:
+        operation: The shapely overlay to run.
+        shapes: Its operands.
+
+    Returns:
+        The overlay's result.
+    """
+    try:
+        return operation(*shapes)
+    except GEOSException:
+        return operation(*shapes, grid_size=configs.SNAP_GRID_M)
+
+
+def new_ground(region: FeatureRegion, shapes: Sequence[BaseGeometry]) -> np.ndarray:
     """Measure the new ground every observation covers.
 
     Args:
@@ -37,18 +48,18 @@ def accumulate(region: FeatureRegion, shapes: Sequence[BaseGeometry]) -> np.ndar
         before it had reached, indexed as the observations were given.
     """
     fresh = np.zeros(len(shapes), dtype=float)
-    first = _first_occurrences(shapes)
+    first = _distinct_footprints(shapes)
     grid = TileGrid(region, [shapes[index] for index in first])
     counted = np.zeros(first.size, dtype=float)
     with ThreadPoolExecutor(max_workers=configs.UNION_THREADS) as pool:
-        for share in pool.map(lambda tile: _fill_tile(grid, *tile), grid):
+        for share in pool.map(lambda tile: _tile_contributions(grid, *tile), grid):
             for index, added in share:
                 counted[index] += added
     fresh[first] = counted
     return fresh
 
 
-def _first_occurrences(shapes: Sequence[BaseGeometry]) -> np.ndarray:
+def _distinct_footprints(shapes: Sequence[BaseGeometry]) -> np.ndarray:
     """Return where each distinct footprint is first seen.
 
     ODE publishes one record per data product rather than per observation, so
@@ -72,7 +83,7 @@ def _first_occurrences(shapes: Sequence[BaseGeometry]) -> np.ndarray:
     return np.asarray(first, dtype=int)
 
 
-def _fill_tile(
+def _tile_contributions(
     grid: TileGrid,
     rectangle: BaseGeometry,
     cap: float,
@@ -102,16 +113,16 @@ def _fill_tile(
         indices, pieces = grid.clip(chunk, rectangle)
         if not indices.size:
             continue
-        _measure(indices, pieces, covered, share)
+        _record_first_cover(indices, pieces, covered, share)
         arrived.extend(pieces)
-        covered = union_all(arrived)
+        covered = _robust(union_all, arrived)
         prepare(covered)
         if covered.area >= limit:
             break
     return share
 
 
-def _measure(
+def _record_first_cover(
     indices: np.ndarray,
     pieces: np.ndarray,
     covered: BaseGeometry | None,
@@ -137,12 +148,12 @@ def _measure(
     for index, piece in zip(indices, pieces, strict=True):
         if covered is not None and covers(covered, piece):
             continue
-        residual = piece if covered is None else difference(piece, covered)
+        residual = piece if covered is None else _robust(difference, piece, covered)
         if residual.is_empty:
             continue
         if within is not None:
-            residual = difference(residual, within)
+            residual = _robust(difference, residual, within)
             if residual.is_empty:
                 continue
         share.append((int(index), area(residual)))
-        within = residual if within is None else union_all([within, residual])
+        within = residual if within is None else _robust(union_all, [within, residual])

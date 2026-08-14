@@ -1,16 +1,4 @@
-"""Accumulating one instrument set's coverage of one feature through time.
-
-The set's observations are laid over a tile grid and accumulated in
-chronological order, so each is measured against everything before it. A single
-pass yields both the spike at an observation's own timestamp and the cumulative
-curve behind it, without binning anything. Binning stays a plotting choice.
-
-The union is also the expensive half of the work, since every insert is real
-vector geometry, so it can be left out. What survives without it is each
-observation's own footprint area and the set's shape in time; what is lost is
-anything cumulative, and those columns are written empty rather than zero so a
-run that skipped the union cannot be mistaken for one that found no overlap.
-"""
+"""Accumulating one instrument set's coverage of one feature through time."""
 
 from __future__ import annotations
 
@@ -18,15 +6,15 @@ from collections.abc import Sequence
 
 import numpy as np
 
-from analysis.computation import union
-from analysis.computation.region import FeatureRegion
-from analysis.models.feature import FeatureBox
-from analysis.models.projected import ProjectedObservation
-from analysis.models.results import Event, Summary
+from analysis.coverage import union
+from analysis.geometry.region import FeatureRegion
+from models.feature import Feature
+from models.observation import ProjectedObservation
+from models.results import Event, Summary
 
 
-def compute(
-    box: FeatureBox,
+def measure_set(
+    feature: Feature,
     region: FeatureRegion,
     observations: Sequence[ProjectedObservation],
     *,
@@ -35,7 +23,7 @@ def compute(
     """Measure how one instrument set covers one feature over time.
 
     Args:
-        box: The feature the coverage is measured against.
+        feature: The feature the coverage is measured against.
         region: That feature projected into equal-area metres.
         observations: The set's observations in chronological order.
         cumulative_union: Whether to accumulate the running union. When False
@@ -44,15 +32,17 @@ def compute(
     Returns:
         One event row per observation and the summary row for the set.
     """
-    fresh, cumulative = _accumulate(region, observations, cumulative_union)
+    fresh, cumulative = _running_totals(region, observations, cumulative_union)
     events = [
-        _event(box, observation, region, fresh, cumulative, position)
+        _observation_row(feature, observation, region, fresh, cumulative, position)
         for position, observation in enumerate(observations)
     ]
-    return events, _summary(box, observations[0].set_key, region, cumulative, events)
+    return events, _set_summary_row(
+        feature, observations[0].set_key, region, cumulative, events
+    )
 
 
-def _accumulate(
+def _running_totals(
     region: FeatureRegion,
     observations: Sequence[ProjectedObservation],
     cumulative_union: bool,
@@ -70,14 +60,14 @@ def _accumulate(
     """
     if not cumulative_union:
         return None, None
-    fresh = union.accumulate(
+    fresh = union.new_ground(
         region, [observation.shape for observation in observations]
     )
     return fresh, np.cumsum(fresh)
 
 
-def _event(
-    box: FeatureBox,
+def _observation_row(
+    feature: Feature,
     observation: ProjectedObservation,
     region: FeatureRegion,
     fresh: np.ndarray | None,
@@ -87,7 +77,7 @@ def _event(
     """Record what one observation contributed.
 
     Args:
-        box: The feature being covered.
+        feature: The feature being covered.
         observation: The observation being recorded.
         region: The projected feature, for the share of it covered.
         fresh: The new ground every observation covered, or None when no union
@@ -99,8 +89,8 @@ def _event(
         The event row.
     """
     return Event(
-        feature_class=box.feature_class,
-        feature_name=box.name,
+        feature_class=feature.feature_class,
+        feature_name=feature.name,
         ihid=observation.ihid,
         iid=observation.iid,
         pt=observation.pt,
@@ -118,8 +108,8 @@ def _event(
     )
 
 
-def _summary(
-    box: FeatureBox,
+def _set_summary_row(
+    feature: Feature,
     key: tuple[str, str, str],
     region: FeatureRegion,
     cumulative: np.ndarray | None,
@@ -128,7 +118,7 @@ def _summary(
     """Build the one row describing a finished instrument set.
 
     Args:
-        box: The feature the coverage was measured against.
+        feature: The feature the coverage was measured against.
         key: The instrument host, instrument, and product type.
         region: That feature projected into equal-area metres.
         cumulative: The running total behind every observation, or None when no
@@ -142,8 +132,8 @@ def _summary(
     covered_m2 = None if cumulative is None else float(cumulative[-1])
     first, last = events[0].t_start, events[-1].t_start
     return Summary(
-        feature_class=box.feature_class,
-        feature_name=box.name,
+        feature_class=feature.feature_class,
+        feature_name=feature.name,
         ihid=key[0],
         iid=key[1],
         pt=key[2],

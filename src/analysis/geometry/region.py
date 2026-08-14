@@ -1,14 +1,4 @@
-"""The feature a coverage measurement is made against, and the union over it.
-
-Everything is measured in a Lambert azimuthal equal-area projection centred on
-the feature, so a projected area is a true ground area and shapes near the
-centre keep their form, which is what lets a buffered SHARAD track hold its
-real width instead of being stretched by latitude.
-
-Footprints are cut to the feature in lon/lat before being projected, which
-keeps a footprint far wider than its feature away from the antipode of the
-projection centre where the projection is undefined.
-"""
+"""The feature a coverage measurement is made against, and the union over it."""
 
 from __future__ import annotations
 
@@ -26,12 +16,15 @@ from shapely import (
 from shapely.geometry.base import BaseGeometry
 
 from analysis import configs
-from analysis.computation import footprints, geodesy
+from analysis.geometry import footprints
+from analysis.utils import geodesy
 
 _EMPTY = Polygon()
 
 
-def _gather(parts: np.ndarray, owners: np.ndarray, shapes: np.ndarray) -> None:
+def _merge_owned_parts(
+    parts: np.ndarray, owners: np.ndarray, shapes: np.ndarray
+) -> None:
     """Put each footprint's parts back together as one shape.
 
     Args:
@@ -120,7 +113,7 @@ class FeatureRegion:
             One projected, clipped footprint per input, empty where it falls
             outside the feature.
         """
-        parts, owners, buffers = footprints.surface_parts(
+        parts, owners, buffers = footprints.clipped_surface_parts(
             geoms, self._tight, self._wide, swath_widths_m
         )
         shapes = np.full(len(geoms), _EMPTY, dtype=object)
@@ -134,10 +127,10 @@ class FeatureRegion:
                 buffers[grown],
                 quad_segs=configs.BUFFER_QUAD_SEGMENTS,
             )
-        _gather(projected, owners, shapes)
-        return self._cut(shapes)
+        _merge_owned_parts(projected, owners, shapes)
+        return self._clip_to_feature(shapes)
 
-    def _cut(self, shapes: np.ndarray) -> np.ndarray:
+    def _clip_to_feature(self, shapes: np.ndarray) -> np.ndarray:
         """Cut projected footprints back to the feature they belong to.
 
         A footprint the feature already contains is left untouched. Intersecting

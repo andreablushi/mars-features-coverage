@@ -1,14 +1,4 @@
-"""Footprint geometry: parsing ODE WKT and cutting it down to a feature box.
-
-ODE publishes a footprint as an area, a line, or a collection mixing both. A
-collection carrying any polygon is an imaging footprint whose stray line parts
-are noise slivers, so the polygons win. A footprint made only of lines is a
-sounder ground track, which becomes an area by being buffered to its swath.
-
-Footprints are cut to the feature box in lon/lat before being projected, which
-keeps a footprint far wider than its feature away from the antipode of the
-projection centre where the projection is undefined.
-"""
+"""Footprint geometry: parsing ODE WKT and cutting it down to a feature box."""
 
 from __future__ import annotations
 
@@ -18,7 +8,7 @@ import numpy as np
 from shapely import box, from_wkt, get_parts, get_type_id, intersection, is_empty
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
-from analysis.computation import geodesy
+from analysis.utils import geodesy
 
 _LINESTRING = 1
 _POLYGON = 3
@@ -93,7 +83,7 @@ def clip_boxes(
     )
 
 
-def surface_parts(
+def clipped_surface_parts(
     geoms: np.ndarray,
     tight_region: BaseGeometry,
     wide_region: BaseGeometry,
@@ -111,7 +101,7 @@ def surface_parts(
         The clipped single-part shapes, the index of the footprint each came
         from, and the buffer radius in metres to draw it with.
     """
-    parts, owners = _explode(geoms)
+    parts, owners = _single_parts(geoms)
     kinds = get_type_id(parts)
     areal = np.zeros(len(geoms), dtype=bool)
     areal[owners[kinds == _POLYGON]] = True
@@ -125,7 +115,7 @@ def surface_parts(
     return clipped[alive], owners, buffers
 
 
-def _explode(geoms: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def _single_parts(geoms: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Expand geometries into their non-empty single-part pieces.
 
     Args:

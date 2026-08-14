@@ -1,9 +1,4 @@
-"""Turning stored observations into projected ground on their feature.
-
-This is the half of the computation that depends only on the footprint and the
-feature it is measured against, never on the other observations. It produces
-the same answer on every run, which is what makes it worth caching.
-"""
+"""Turning stored observations into projected ground on their feature."""
 
 from __future__ import annotations
 
@@ -12,10 +7,10 @@ from collections.abc import Sequence
 import numpy as np
 from shapely import from_wkt
 
-from analysis.computation import footprints, geodesy, swath
-from analysis.computation.region import FeatureRegion
-from analysis.models.observation import Observation
-from analysis.models.projected import ProjectedObservation
+from analysis.geometry import footprints
+from analysis.geometry.region import FeatureRegion
+from analysis.utils import geodesy, swath
+from models.observation import Observation, ProjectedObservation
 
 
 def project(

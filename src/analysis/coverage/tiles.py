@@ -1,13 +1,4 @@
-"""A grid of tiles laid over one feature, so a union stays local to a tile.
-
-A single accumulated union grows with everything ever added to it, so every
-later footprint pays for ground nowhere near itself. Tiling means a footprint
-only meets the observations sharing its ground. The tiles are disjoint and cover
-the feature, so summing their areas is exact: only the bookkeeping is
-partitioned, never the geometry.
-
-This module owns the grid alone. The accumulation inside a tile is in union.py.
-"""
+"""A grid of tiles laid over one feature, so a union stays local to a tile."""
 
 from __future__ import annotations
 
@@ -19,7 +10,7 @@ from shapely import STRtree, area, bounds, box, intersection, is_empty
 from shapely.geometry.base import BaseGeometry
 
 from analysis import configs
-from analysis.computation.region import FeatureRegion
+from analysis.geometry.region import FeatureRegion
 
 
 class TileGrid:
@@ -50,7 +41,7 @@ class TileGrid:
         """
         min_x, min_y, max_x, max_y = region.shape.bounds
         if tiles is None:
-            tiles = _tile_count(max_x - min_x, max_y - min_y, shapes)
+            tiles = _tiles_per_axis(max_x - min_x, max_y - min_y, shapes)
         step_x, step_y = (max_x - min_x) / tiles, (max_y - min_y) / tiles
         self._shapes = np.asarray(shapes, dtype=object)
         self._rectangles = np.asarray(
@@ -106,7 +97,7 @@ class TileGrid:
         return reaching[kept], pieces[kept]
 
 
-def _tile_count(width: float, height: float, shapes: Sequence[BaseGeometry]) -> int:
+def _tiles_per_axis(width: float, height: float, shapes: Sequence[BaseGeometry]) -> int:
     """Choose how many tiles a feature needs along each axis.
 
     A tile much smaller than a footprint is the expensive mistake: the footprint

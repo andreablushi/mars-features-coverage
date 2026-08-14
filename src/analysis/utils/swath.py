@@ -1,15 +1,4 @@
-"""Cross-track swath width for SHARAD, derived per observation.
-
-ODE models a SHARAD product as a bare line across the surface and publishes no
-width for it, so an areal coverage needs one from somewhere. Rather than
-assume a constant, each track supplies its own: its ground length divided by
-its duration is the ground-track speed, a circular orbit turns that speed into
-a spacecraft altitude, and the altitude gives the first Fresnel zone, which is
-the pulse-limited cross-track footprint of a nadir sounder.
-
-The only constants involved are published physical facts, the SHARAD centre
-frequency and Mars' mass and radius, rather than a fitted swath value.
-"""
+"""Cross-track swath width for SHARAD, derived per observation."""
 
 from __future__ import annotations
 

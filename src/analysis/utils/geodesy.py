@@ -1,12 +1,4 @@
-"""Spherical geometry on Mars: longitudes, projection, areas, and lengths.
-
-Every area in the pipeline is measured in a Lambert azimuthal equal-area
-projection centred on the feature being measured. That projection preserves
-area exactly, so coverage fractions are exact, and it stays close to conformal
-near its centre, so a buffered SHARAD track keeps its true width instead of
-being stretched by the latitude distortion a cylindrical projection would
-introduce at the poles.
-"""
+"""Spherical geometry on Mars: longitudes, projection, areas, and lengths."""
 
 from __future__ import annotations
 
