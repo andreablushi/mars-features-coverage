@@ -6,8 +6,8 @@ are noise slivers, so the polygons win. A footprint made only of lines is a
 sounder ground track, which becomes an area by being buffered to its swath.
 
 Footprints are cut to the feature box in lon/lat before being projected, which
-keeps whole-planet basemaps away from the antipode of the projection centre
-where the projection is undefined.
+keeps a footprint far wider than its feature away from the antipode of the
+projection centre where the projection is undefined.
 """
 
 from __future__ import annotations

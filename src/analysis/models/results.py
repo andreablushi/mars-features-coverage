@@ -25,7 +25,6 @@ class Event:
         cum_frac: The same as a share of the feature.
         width_km: The swath width used, or None when the footprint had area.
         width_source: Where the swath width came from, or None.
-        gridded: Whether the observation is a whole-planet basemap.
     """
 
     feature_class: str
@@ -42,7 +41,6 @@ class Event:
     cum_frac: float
     width_km: float | None
     width_source: str | None
-    gridded: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,7 +60,6 @@ class Summary:
         t_first: When the earliest of them started.
         t_last: When the latest of them started.
         span_days: How long the row's observations span.
-        gridded: Whether the row describes a whole-planet basemap.
     """
 
     feature_class: str
@@ -77,4 +74,3 @@ class Summary:
     t_first: datetime
     t_last: datetime
     span_days: float
-    gridded: bool

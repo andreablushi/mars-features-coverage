@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from analysis import configs
 from analysis.computation.region import FeatureRegion
 from analysis.computation.tiles import TiledUnion
 from analysis.models.feature import FeatureBox
@@ -35,11 +34,8 @@ def compute(
         One event row per observation and the summary row for the set.
     """
     covered = TiledUnion(region)
-    gridded = observations[0].set_key in configs.GRIDDED_SETS
     events = [
-        _event(
-            box, observation, covered, covered.add(observation.shape), region, gridded
-        )
+        _event(box, observation, covered, covered.add(observation.shape), region)
         for observation in observations
     ]
     return events, _summary(box, observations[0].set_key, region, covered, events)
@@ -51,7 +47,6 @@ def _event(
     covered: TiledUnion,
     fresh_m2: float,
     region: FeatureRegion,
-    gridded: bool,
 ) -> Event:
     """Record what one observation contributed.
 
@@ -61,7 +56,6 @@ def _event(
         covered: The running union, already including this observation.
         fresh_m2: The ground this observation added to it.
         region: The projected feature, for the share of it covered.
-        gridded: Whether the set is a whole-planet basemap.
 
     Returns:
         The event row.
@@ -81,7 +75,6 @@ def _event(
         cum_frac=covered.area_m2 / region.area_m2,
         width_km=observation.width_km,
         width_source=observation.width_source,
-        gridded=gridded,
     )
 
 
@@ -119,5 +112,4 @@ def _summary(
         t_first=first,
         t_last=last,
         span_days=(last - first).total_seconds() / 86400.0,
-        gridded=events[0].gridded,
     )

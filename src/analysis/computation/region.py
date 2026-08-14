@@ -6,8 +6,8 @@ centre keep their form, which is what lets a buffered SHARAD track hold its
 real width instead of being stretched by latitude.
 
 Footprints are cut to the feature in lon/lat before being projected, which
-keeps whole-planet basemaps away from the antipode of the projection centre
-where the projection is undefined.
+keeps a footprint far wider than its feature away from the antipode of the
+projection centre where the projection is undefined.
 """
 
 from __future__ import annotations

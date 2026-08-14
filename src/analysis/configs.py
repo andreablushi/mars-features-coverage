@@ -46,7 +46,4 @@ GEOMETRY_DIR = "geometry"
 GEOMETRY_ROOT = ARTIFACTS_ROOT / GEOMETRY_DIR
 SUMMARY_NAME = "summary.parquet"
 
-# Whole-planet basemaps cover everything, so they are tagged and excluded
-GRIDDED_SETS = frozenset({("MGS", "MOLA", "MEGDR")})
-
 DEFAULT_WORKERS = 8
