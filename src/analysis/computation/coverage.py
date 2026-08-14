@@ -20,7 +20,6 @@ import numpy as np
 
 from analysis.computation import union
 from analysis.computation.region import FeatureRegion
-from analysis.computation.tiles import TileGrid
 from analysis.models.feature import FeatureBox
 from analysis.models.projected import ProjectedObservation
 from analysis.models.results import Event, Summary
@@ -71,8 +70,9 @@ def _accumulate(
     """
     if not cumulative_union:
         return None, None
-    grid = TileGrid(region, [observation.shape for observation in observations])
-    fresh = union.accumulate(grid, len(observations))
+    fresh = union.accumulate(
+        region, [observation.shape for observation in observations]
+    )
     return fresh, np.cumsum(fresh)
 
 

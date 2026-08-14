@@ -13,34 +13,63 @@ the area of what survives is its own new ground.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
-from shapely import area, covers, difference, prepare, union_all
+from shapely import area, covers, difference, prepare, to_wkb, union_all
 from shapely.geometry.base import BaseGeometry
 
 from analysis import configs
+from analysis.computation.region import FeatureRegion
 from analysis.computation.tiles import TileGrid
 
 
-def accumulate(grid: TileGrid, count: int) -> np.ndarray:
+def accumulate(region: FeatureRegion, shapes: Sequence[BaseGeometry]) -> np.ndarray:
     """Measure the new ground every observation covers.
 
     Args:
-        grid: The tile grid holding the projected footprints.
-        count: How many observations the grid was built over.
+        region: The projected feature the footprints are cut to.
+        shapes: The projected footprints, in chronological order.
 
     Returns:
         The ground in square metres each observation covered that nothing
         before it had reached, indexed as the observations were given.
     """
-    fresh = np.zeros(count, dtype=float)
+    fresh = np.zeros(len(shapes), dtype=float)
+    first = _first_occurrences(shapes)
+    grid = TileGrid(region, [shapes[index] for index in first])
+    counted = np.zeros(first.size, dtype=float)
     with ThreadPoolExecutor(max_workers=configs.UNION_THREADS) as pool:
-        shares = pool.map(lambda tile: _fill_tile(grid, *tile), grid)
-        for share in shares:
+        for share in pool.map(lambda tile: _fill_tile(grid, *tile), grid):
             for index, added in share:
-                fresh[index] += added
+                counted[index] += added
+    fresh[first] = counted
     return fresh
+
+
+def _first_occurrences(shapes: Sequence[BaseGeometry]) -> np.ndarray:
+    """Return where each distinct footprint is first seen.
+
+    ODE publishes one record per data product rather than per observation, so
+    a CRISM acquisition arrives three times over with the same footprint. A
+    repeat of a footprint already seen covers no ground the first did not, and
+    that holds exactly rather than to within rounding, so the repeats are left
+    out of the union entirely and keep their zero.
+
+    Args:
+        shapes: The projected footprints, in chronological order.
+
+    Returns:
+        The ascending indices of the footprints worth accumulating.
+    """
+    seen: set[bytes] = set()
+    first = []
+    for index, blob in enumerate(to_wkb(np.asarray(shapes, dtype=object))):
+        if blob not in seen:
+            seen.add(blob)
+            first.append(index)
+    return np.asarray(first, dtype=int)
 
 
 def _fill_tile(
