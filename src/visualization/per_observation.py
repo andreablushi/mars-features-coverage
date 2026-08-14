@@ -7,6 +7,10 @@ from collections.abc import Sequence
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
 import numpy as np
+<<<<<<< Updated upstream:src/visualization/per_observation.py
+=======
+from models.results import SetCoverage
+>>>>>>> Stashed changes:src/visualization/plots/per_observation.py
 
 from analysis.models.coverage import SetCoverage
 from visualization import configs, panels

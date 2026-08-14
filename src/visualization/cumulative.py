@@ -6,6 +6,10 @@ from collections.abc import Sequence
 
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
+<<<<<<< Updated upstream:src/visualization/cumulative.py
+=======
+from models.results import SetCoverage
+>>>>>>> Stashed changes:src/visualization/plots/cumulative.py
 
 from analysis.models.coverage import SetCoverage
 from visualization import configs, panels
