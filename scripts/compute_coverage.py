@@ -11,6 +11,7 @@ from rich.console import Console
 from analysis import configs, planner
 from analysis.cli import console as view
 from analysis.cli.args import build_parser
+from analysis.cli.settings import resolve
 from analysis.loader import catalog, discovery
 from analysis.runner import CoverageRunner
 from common.cli import progress
@@ -26,11 +27,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         A process exit code, non zero when any instrument set failed.
     """
     args = build_parser().parse_args(argv)
+    settings = resolve(args)
     console = Console()
 
     sources = discovery.find_sets()
-    plan = planner.build_plan(sources, force=args.force)
-    runner = CoverageRunner(workers=args.workers)
+    plan = planner.build_plan(sources, force=settings.force)
+    runner = CoverageRunner(
+        workers=settings.workers, cumulative_union=settings.cumulative_union
+    )
     view.describe_plan(plan, runner.workers, console)
 
     if plan.jobs:

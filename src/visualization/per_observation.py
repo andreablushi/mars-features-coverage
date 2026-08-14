@@ -9,10 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from analysis.models.coverage import SetCoverage
-from visualization import panels
-
-_PANEL_HEIGHT = 2.5
-_FIGURE_WIDTH = 11
+from visualization import configs, panels
 
 
 def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
@@ -31,7 +28,7 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     figure, axes = plt.subplots(
         len(coverage),
         1,
-        figsize=(_FIGURE_WIDTH, _PANEL_HEIGHT * len(coverage)),
+        figsize=(configs.FIGURE_WIDTH, configs.PANEL_HEIGHT * len(coverage)),
         sharex=True,
         sharey=True,
     )

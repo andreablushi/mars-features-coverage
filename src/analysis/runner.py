@@ -28,7 +28,9 @@ from analysis.models.schemas import EVENTS, SUMMARY
 from common.models.progress import ProgressEvent
 
 
-def run_job(job: CoverageJob) -> JobOutcome:
+def run_job(
+    job: CoverageJob, cumulative_union: bool = configs.DEFAULT_CUMULATIVE_UNION
+) -> JobOutcome:
     """Compute and write coverage for one feature and instrument set.
 
     The events are written before the summary, so a summary on disk means the
@@ -36,6 +38,7 @@ def run_job(job: CoverageJob) -> JobOutcome:
 
     Args:
         job: The instrument set to compute.
+        cumulative_union: Whether to accumulate the running union.
 
     Returns:
         The outcome, carrying the error when the job failed.
@@ -47,7 +50,9 @@ def run_job(job: CoverageJob) -> JobOutcome:
         box, region, projected, discarded = prepared
         if not projected:
             return JobOutcome(job=job, discarded=discarded)
-        events, summary = coverage.compute(box, region, projected)
+        events, summary = coverage.compute(
+            box, region, projected, cumulative_union=cumulative_union
+        )
         writer.write(events, EVENTS, job.events_path)
         writer.write([summary], SUMMARY, job.summary_path)
         return JobOutcome(job=job, events=len(events), discarded=discarded)
@@ -106,23 +111,30 @@ class CoverageRunner:
     rendering to the caller.
     """
 
-    def __init__(self, *, workers: int = configs.DEFAULT_WORKERS) -> None:
+    def __init__(
+        self,
+        *,
+        workers: int = configs.DEFAULT_WORKERS,
+        cumulative_union: bool = configs.DEFAULT_CUMULATIVE_UNION,
+    ) -> None:
         """Create a runner.
 
         Args:
-            workers: Requested worker count, at least one.
+            workers: How many sets to compute at once.
+            cumulative_union: Whether each job accumulates the running union.
 
         Returns:
             None.
         """
-        self._workers = max(1, workers)
+        self._workers = workers
+        self._cumulative_union = cumulative_union
         self._summary = RunSummary(
             computed=0, empty=0, failed=0, events=0, discarded=0, elapsed=0.0
         )
 
     @property
     def workers(self) -> int:
-        """Return the effective worker count.
+        """Return the worker count this runner uses.
 
         Returns:
             The number of concurrent workers used.
@@ -151,7 +163,9 @@ class CoverageRunner:
         computed = empty = failed = events = discarded = 0
         pool = ProcessPoolExecutor(max_workers=self._workers)
         try:
-            futures = [pool.submit(run_job, job) for job in jobs]
+            futures = [
+                pool.submit(run_job, job, self._cumulative_union) for job in jobs
+            ]
             for completed, future in enumerate(as_completed(futures), start=1):
                 outcome = future.result()
                 discarded += outcome.discarded

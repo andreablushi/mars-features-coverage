@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from analysis import configs
+
 
 @dataclass(frozen=True)
 class CoverageJob:
@@ -32,8 +34,8 @@ class CoverageJob:
         Returns:
             The path to the summary parquet file beside the events.
         """
-        stem = self.events_path.name[: -len(".events.parquet")]
-        return self.events_path.with_name(stem + ".summary.parquet")
+        stem = self.events_path.name[: -len(configs.EVENTS_SUFFIX)]
+        return self.events_path.with_name(stem + configs.SET_SUMMARY_SUFFIX)
 
     @property
     def label(self) -> str:

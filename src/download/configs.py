@@ -6,7 +6,7 @@ the stage, so it can be imported anywhere without creating a cycle.
 
 from __future__ import annotations
 
-from common.files import REPO_ROOT
+from common.configs import REPO_ROOT
 
 ODE_BASE_URL = "https://oderest.rsl.wustl.edu/live2/"
 ODE_META_DB = "mars"
@@ -21,11 +21,15 @@ PAGE_SIZE = 5000
 PAGE_ORDER = "oba"
 
 # "f" keeps every product whose footprint intersects the feature box, even
-# partly; "o" would keep only products falling entirely inside it
+# partly; "o" keeps only those fully inside, "b" compares bounding boxes,
+# and "i" keeps only products containing the whole feature
 DEFAULT_LOC = "f"
+LOC_MODES = ("b", "f", "o", "i")
+
+# The section of config.yaml this stage reads
+CONFIG_SECTION = "download"
 
 DEFAULT_WORKERS = 4
-MAX_WORKERS = 6
 
 DATA_ROOT = REPO_ROOT / "data"
 METADATA_ROOT = DATA_ROOT / "metadata"

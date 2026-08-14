@@ -25,12 +25,9 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import PercentFormatter
 
 from analysis.models.coverage import SetCoverage
+from visualization import configs
 
 Colour = tuple[float, float, float]
-
-_GREY = "#8a8a8a"
-
-NOTHING_TO_SHOW = "Confirm a feature with local data above to fill this in."
 
 
 def colours(coverage: Sequence[SetCoverage]) -> dict[str, Colour]:
@@ -86,7 +83,7 @@ def rendered(figure: Figure) -> widgets.Image:
     )
 
 
-def unavailable(message: str = NOTHING_TO_SHOW) -> widgets.HTML:
+def unavailable(message: str = configs.NOTHING_TO_SHOW) -> widgets.HTML:
     """Build the grey panel shown when there is nothing to draw.
 
     Args:
@@ -99,7 +96,7 @@ def unavailable(message: str = NOTHING_TO_SHOW) -> widgets.HTML:
         f"""<div style="
             background: repeating-linear-gradient(45deg,
                 #ebebeb, #ebebeb 10px, #e0e0e0 10px, #e0e0e0 20px);
-            border: 1px solid #c4c4c4; border-radius: 6px; color: {_GREY};
+            border: 1px solid #c4c4c4; border-radius: 6px; color: {configs.GREY};
             font-family: sans-serif; padding: 28px; text-align: center;">
           <div style="font-size: 15px; font-weight: 600;">No local data</div>
           <div style="font-size: 13px; margin-top: 6px;">{escape(message)}</div>

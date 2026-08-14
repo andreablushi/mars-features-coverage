@@ -17,9 +17,6 @@ from analysis.models.coverage import SetCoverage
 from analysis.models.results import Event, Summary
 from analysis.models.schemas import EVENTS, SUMMARY
 
-_EVENTS_SUFFIX = ".events.parquet"
-_SUMMARY_SUFFIX = ".summary.parquet"
-
 
 def computed_features(root: Path = configs.COVERAGE_ROOT) -> set[tuple[str, str]]:
     """Return every feature that has coverage computed locally.
@@ -33,7 +30,7 @@ def computed_features(root: Path = configs.COVERAGE_ROOT) -> set[tuple[str, str]
     """
     return {
         (path.parent.parent.name, path.parent.name)
-        for path in root.glob(f"*/*/*{_EVENTS_SUFFIX}")
+        for path in root.glob(f"*/*/*{configs.EVENTS_SUFFIX}")
     }
 
 
@@ -48,13 +45,17 @@ def load_feature(
         root: The coverage artifacts root directory.
 
     Returns:
-        One entry per finished instrument set, widest coverage first.
+        One entry per finished instrument set, widest coverage first. A run
+        that kept no union measured no coverage to rank by, so those sets fall
+        back to the busiest first.
     """
     directory = layout.feature_artifacts_dir(root, feature_class, name)
-    loaded = [_load_set(path) for path in sorted(directory.glob(f"*{_EVENTS_SUFFIX}"))]
+    loaded = [
+        _load_set(path) for path in sorted(directory.glob(f"*{configs.EVENTS_SUFFIX}"))
+    ]
     return sorted(
         (entry for entry in loaded if entry),
-        key=lambda entry: -entry.summary.covered_frac,
+        key=lambda entry: (-(entry.summary.covered_frac or 0.0), -entry.summary.n_obs),
     )
 
 
@@ -69,7 +70,7 @@ def _load_set(events_path: Path) -> SetCoverage | None:
         set whose computation never finished.
     """
     summary_path = events_path.with_name(
-        events_path.name.replace(_EVENTS_SUFFIX, _SUMMARY_SUFFIX)
+        events_path.name.replace(configs.EVENTS_SUFFIX, configs.SET_SUMMARY_SUFFIX)
     )
     if not summary_path.exists():
         return None

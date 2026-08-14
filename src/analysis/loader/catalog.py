@@ -18,8 +18,6 @@ from analysis.loader import layout
 from analysis.models.schemas import SUMMARY
 from common.files import atomic_path
 
-_SET_SUMMARY_SUFFIX = ".summary.parquet"
-
 
 def finalise_feature(coverage_root: Path, feature_dir: Path) -> int:
     """Gather one feature's instrument set summaries into a single file.
@@ -32,7 +30,7 @@ def finalise_feature(coverage_root: Path, feature_dir: Path) -> int:
         The number of summary rows written, or zero when nothing is finished.
     """
     destination = layout.feature_summary_path(coverage_root, feature_dir)
-    paths = sorted(destination.parent.glob(f"*{_SET_SUMMARY_SUFFIX}"))
+    paths = sorted(destination.parent.glob(f"*{configs.SET_SUMMARY_SUFFIX}"))
     if not paths:
         return 0
     return _concatenate(paths, destination)

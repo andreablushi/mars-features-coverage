@@ -9,12 +9,12 @@ from contextlib import closing
 from rich.console import Console
 
 from common.cli import progress
-from download import configs, planner
+from download import planner
 from download.api import catalog
 from download.api.client import ODEClient
 from download.cli import console as view
 from download.cli.args import build_parser
-from download.models.instrument import InstrumentSet
+from download.cli.settings import resolve
 from download.runner import DownloadRunner
 
 
@@ -28,17 +28,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         A process exit code, non zero when any job failed.
     """
     args = build_parser().parse_args(argv)
+    settings = resolve(args)
     console = Console()
-    instrument_sets = [
-        InstrumentSet(*triple) for triple in configs.DEFAULT_INSTRUMENT_SETS
-    ]
 
     with ODEClient() as client:
         features = catalog.load_features(client, refresh=args.refresh_catalog)
         plan = planner.build_plan(
-            features, instrument_sets, names=args.feature_name, force=args.force
+            features,
+            settings.instrument_sets,
+            names=args.feature_name,
+            force=settings.force,
         )
-        runner = DownloadRunner(client, workers=args.workers)
+        runner = DownloadRunner(client, workers=settings.workers, loc=settings.loc)
         view.describe_plan(plan, runner.workers, console)
         if not plan.jobs:
             console.print("nothing to do")

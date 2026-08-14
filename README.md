@@ -24,18 +24,41 @@ wiring and drives the `download` package under `src/`.
 
 ### Quick start
 
-Run the small sample first. It downloads 3 features across 2 instrument sets in
-a few seconds and touches nothing else:
+Start with one feature. It downloads every configured instrument set for that
+feature and touches nothing else:
 
 ```bash
-uv run python scripts/download_metadata.py --test
+uv run python scripts/download_metadata.py --feature-name Jezero
 ```
 
-Add `--dry-run` to any command to print the plan without querying:
+Leaving `--feature-name` off downloads the whole catalog.
+
+### Configuration
+
+`config.yaml` at the repository root holds the standing choices:
+
+```yaml
+download:
+  instruments:
+    - MRO/CTX/EDR
+    - MRO/HIRISE/RDRV11
+    - MRO/CRISM/MTRDR
+    - MRO/CRISM/TRDR
+    - MRO/SHARAD/RDR
+  loc: f          # f: any footprint overlapping the box, o: only those inside
+  force: false
+  workers: 4
+```
+
+Every key has a matching flag, and the flag wins for that one run:
 
 ```bash
-uv run python scripts/download_metadata.py --test --dry-run
+uv run python scripts/download_metadata.py --instrument-set MRO/SHARAD/RDR --workers 2 --force
 ```
+
+Drop a key to fall back to the default in `src/download/configs.py`, or delete
+the file to run on defaults entirely. A file that is present but holds an
+unusable value stops the run rather than falling back quietly.
 
 A live progress bar shows how many jobs have finished, with failures printed
 above it as they happen:
@@ -45,37 +68,30 @@ above it as they happen:
 done in 15.5s: 25 jobs, 4,332 rows, 4 empty, 0 failed
 ```
 
-Use `--quiet` to suppress the bar and print only the final summary.
-
 ### Options
 
 | Flag | Meaning |
 |---|---|
-| `--feature-class CLASS [CLASS ...]` | Feature classes to download (default: all classes). |
-| `--feature-name NAME [NAME ...]` | Specific feature names (overrides `--feature-class`). |
-| `--instrument IHID/IID/PT [...]` | Instrument set triples (default: the built-in set). |
-| `--loc {b,f,o,i}` | ODE containment mode (default: `o`, see below). |
-| `--workers N` | Concurrent workers, clamped to 6 (default: 4). |
-| `--min-obs-time UTC` / `--max-obs-time UTC` | Restrict by observation time, e.g. `2012-04-03`. |
-| `--out DIR` | Metadata output root (default: `data/metadata`). |
-| `--cache DIR` | Catalog cache directory (default: `data/_catalog`). |
-| `--test` | Small sample: 3 features by 2 instrument sets. |
-| `--dry-run` | Print the plan without querying. |
+| `--feature-name NAME [NAME ...]` | Specific feature names (default: every feature in the catalog). |
+| `--instrument-set IHID/IID/PT [...]` | Instrument set triples. |
+| `--loc {b,f,o,i}` | ODE containment mode, see below. |
+| `--workers N` | Concurrent downloads to run at once. |
 | `--force` | Re-download instead of skipping existing files. |
 | `--refresh-catalog` | Re-fetch the feature and instrument catalogs. |
-| `--quiet` | Suppress the progress bar, print only the final summary. |
 
-Feature and instrument names are case insensitive. An instrument set is written
-as `IHID/IID/PT`, for example `MRO/CTX/EDR`.
+`--instrument-set`, `--loc`, `--workers` and `--force` fall back to
+`config.yaml` when they are not passed. An instrument set is written as
+`IHID/IID/PT`, for example `MRO/CTX/EDR`.
 
 ### Worked example
 
-Download CTX observations contained in every chasma:
+Download CTX observations of one crater, four at a time:
 
 ```bash
 uv run python scripts/download_metadata.py \
-    --feature-class chasma \
-    --instrument MRO/CTX/EDR
+    --feature-name Jezero \
+    --instrument-set MRO/CTX/EDR \
+    --workers 4
 ```
 
 Re-running the same command downloads nothing new: any output file that already
@@ -85,15 +101,17 @@ exists is skipped, so runs are resumable. Use `--force` to overwrite.
 
 ODE stores a lat/lon **bounding box** per feature, not a true outline, so
 "cropped to the feature" means "inside the feature's bounding box". The `--loc`
-mode chooses how a product footprint must relate to that box. The default `o`
-keeps only products that fall **entirely inside** the feature. For Gale crater
-with MRO CTX EDR:
+mode chooses how a product footprint must relate to that box. The default `f`
+keeps every product whose footprint **overlaps** the feature at all, because an
+observation that only partly reaches into a feature still covers the part it
+reaches, and the coverage stage crops it to the box. For Gale crater with MRO
+CTX EDR:
 
 | `--loc` | Meaning | Products |
 |---|---|---|
 | `b` | box intersects the product box | 423 |
-| `f` | intersects the product footprint (ODE default) | 398 |
-| `o` | **product is fully inside the feature** (our default) | 88 |
+| `f` | **intersects the product footprint** (our default) | 398 |
+| `o` | product is fully inside the feature | 88 |
 | `i` | product contains the whole feature | 0 |
 
 ### On-disk layout
@@ -142,8 +160,22 @@ uv run python scripts/compute_coverage.py
 ```
 
 Finished instrument sets are skipped, so an interrupted run resumes where it
-stopped. Pass `--force` to recompute regardless, and `--workers N` to change the
-process count.
+stopped. Its own section of `config.yaml` holds the standing choices, and each
+key has a matching flag that wins for one run:
+
+```yaml
+coverage:
+  cumulative_union: true
+  force: false
+  workers: 8
+```
+
+The union of covered ground is the expensive half of the work, so it can be left
+out with `--no-cumulative-union`. Each observation's own area is still measured
+and one row per observation is still written, but every cumulative column is
+left empty, which means no coverage fraction and no cumulative plot. Pass
+`--force` to recompute finished sets and `--workers N` to change the process
+count.
 
 Results land in `data/artifacts/coverage/<class>/<feature>/`, one
 `<set>.events.parquet` with a row per observation and one `<set>.summary.parquet`

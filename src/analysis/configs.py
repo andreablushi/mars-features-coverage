@@ -6,7 +6,7 @@ the stage, so it can be imported anywhere without creating a cycle.
 
 from __future__ import annotations
 
-from common.files import REPO_ROOT
+from common.configs import REPO_ROOT
 
 SPEED_OF_LIGHT = 299_792_458.0
 
@@ -45,5 +45,13 @@ COVERAGE_ROOT = ARTIFACTS_ROOT / COVERAGE_DIR
 GEOMETRY_DIR = "geometry"
 GEOMETRY_ROOT = ARTIFACTS_ROOT / GEOMETRY_DIR
 SUMMARY_NAME = "summary.parquet"
+EVENTS_SUFFIX = ".events.parquet"
+SET_SUMMARY_SUFFIX = ".summary.parquet"
+
+# The section of config.yaml this stage reads
+CONFIG_SECTION = "coverage"
+
+# The running union is the expensive half of the work, so it can be skipped
+DEFAULT_CUMULATIVE_UNION = True
 
 DEFAULT_WORKERS = 8

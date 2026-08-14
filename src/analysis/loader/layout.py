@@ -55,7 +55,7 @@ def events_path(root: Path, source: Path) -> Path:
     Returns:
         The path to the events parquet file.
     """
-    return _feature_dir(root, source.parent) / f"{source.stem}.events.parquet"
+    return _feature_dir(root, source.parent) / f"{source.stem}{configs.EVENTS_SUFFIX}"
 
 
 def set_summary_path(root: Path, source: Path) -> Path:
@@ -71,7 +71,9 @@ def set_summary_path(root: Path, source: Path) -> Path:
     Returns:
         The path to the summary parquet file.
     """
-    return _feature_dir(root, source.parent) / f"{source.stem}.summary.parquet"
+    return (
+        _feature_dir(root, source.parent) / f"{source.stem}{configs.SET_SUMMARY_SUFFIX}"
+    )
 
 
 def geometry_path(root: Path, source: Path) -> Path:

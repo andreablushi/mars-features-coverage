@@ -1,16 +1,10 @@
-"""Where files live, what they are called, and how they are written.
+"""What files are called, and how they are written.
 
-Four rules that both stages depend on and that nothing else in the project is
-allowed to restate: the repository root every data path hangs off, the slug the
-two data trees are keyed by, the temp-file-and-rename that keeps an interrupted
-run from leaving a half-written file behind, and the JSONL both stages store
-their records in.
-
-Both stages keep their data inside the repository, and a script run from the
-root used to be the only thing that resolved a relative data path correctly. A
-notebook opens with its own directory as the working directory, so the roots
-hang off `REPO_ROOT` instead and mean the same place wherever they are resolved
-from.
+Three rules that both stages depend on and that nothing else in the project is
+allowed to restate: the slug the two data trees are keyed by, the
+temp-file-and-rename that keeps an interrupted run from leaving a half-written
+file behind, and the JSONL both stages store their records in. Where the files
+live is in `common.configs`.
 """
 
 from __future__ import annotations
@@ -23,8 +17,6 @@ from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
 
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 

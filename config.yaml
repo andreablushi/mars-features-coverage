@@ -1,0 +1,31 @@
+download:
+  # The instrument sets to download for every feature, as IHID/IID/PT.
+  # Each one must publish both a footprint and an acquisition time, which is
+  # what the coverage stage needs to place an observation on a time axis.
+  instruments:
+    - MRO/CTX/EDR
+    - MRO/HIRISE/RDRV11
+    - MRO/CRISM/MTRDR
+    - MRO/CRISM/TRDR
+    - MRO/SHARAD/RDR
+
+  # Which products ODE returns for a feature's bounding box.
+  #   f  every product whose footprint overlaps the box, even partly
+  #   o  only products falling entirely inside it
+  loc: f
+
+  # Re-download instead of skipping instrument sets already on disk.
+  force: false
+
+  # Concurrent downloads to run at once.
+  workers: 4
+
+coverage:
+  # Accumulate the running union of covered ground, which is the expensive
+  cumulative_union: true
+
+  # Recompute instead of skipping instrument sets already computed.
+  force: false
+
+  # Concurrent worker processes.
+  workers: 8

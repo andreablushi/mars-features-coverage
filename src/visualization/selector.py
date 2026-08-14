@@ -29,13 +29,9 @@ from analysis.loader import artifacts
 from analysis.models.coverage import SetCoverage
 from common.files import slugify
 from download.storage import cache
-from visualization import panels
+from visualization import configs, panels
 
 Render = Callable[[Sequence[SetCoverage]], widgets.Widget]
-
-_DEFAULT_CLASS = "Crater"
-_NO_DATA_SUFFIX = "  (no data)"
-_DROPDOWN_WIDTH = "340px"
 
 
 class FeatureSelector:
@@ -62,11 +58,13 @@ class FeatureSelector:
         self._class = widgets.Dropdown(
             options=sorted(self._names),
             description="Type:",
-            value=_DEFAULT_CLASS if _DEFAULT_CLASS in self._names else None,
-            layout=widgets.Layout(width=_DROPDOWN_WIDTH),
+            value=configs.DEFAULT_CLASS
+            if configs.DEFAULT_CLASS in self._names
+            else None,
+            layout=widgets.Layout(width=configs.DROPDOWN_WIDTH),
         )
         self._name = widgets.Dropdown(
-            description="Name:", layout=widgets.Layout(width=_DROPDOWN_WIDTH)
+            description="Name:", layout=widgets.Layout(width=configs.DROPDOWN_WIDTH)
         )
         self._confirm = widgets.Button(
             description="Confirm", button_style="primary", icon="check"
@@ -144,7 +142,9 @@ class FeatureSelector:
         feature_class = self._class.value
         self._name.options = [
             (
-                name if self._has_data(feature_class, name) else name + _NO_DATA_SUFFIX,
+                name
+                if self._has_data(feature_class, name)
+                else name + configs.NO_DATA_SUFFIX,
                 name,
             )
             for name in self._names[feature_class]

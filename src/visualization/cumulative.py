@@ -8,10 +8,7 @@ import ipywidgets as widgets
 import matplotlib.pyplot as plt
 
 from analysis.models.coverage import SetCoverage
-from visualization import panels
-
-_FIGURE_SIZE = (13, 5)
-_WIDTH_RATIOS = [3, 1]
+from visualization import configs, panels
 
 
 def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
@@ -25,9 +22,15 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     """
     if not coverage:
         return panels.unavailable()
+    coverage = [entry for entry in coverage if entry.summary.covered_frac is not None]
+    if not coverage:
+        return panels.unavailable(configs.NO_UNION)
     colours = panels.colours(coverage)
     figure, (curve, bars) = plt.subplots(
-        1, 2, figsize=_FIGURE_SIZE, gridspec_kw={"width_ratios": _WIDTH_RATIOS}
+        1,
+        2,
+        figsize=configs.CUMULATIVE_FIGURE_SIZE,
+        gridspec_kw={"width_ratios": configs.CUMULATIVE_WIDTH_RATIOS},
     )
     _curves(curve, coverage, colours)
     curve.set_title(
