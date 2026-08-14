@@ -1,3 +1,13 @@
+pipeline:
+  # Keep a set's downloaded metadata once its coverage is computed. Turning
+  # this off discards the JSONL as soon as the set's summary is on disk, which
+  # makes the artifacts final: nothing can be recomputed without downloading
+  # again, and re-analysis needs a fresh download.
+  keep_metadata: true
+
+  # Measure what is already on disk without downloading anything first.
+  coverage_only: false
+
 download:
   # The instrument sets to download for every feature, as IHID/IID/PT.
   # Each one must publish both a footprint and an acquisition time, which is
