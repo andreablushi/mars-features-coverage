@@ -73,8 +73,8 @@ def _prepare(
 
     Returns:
         The feature box, its projected region, the projected observations, and
-        how many stored records were discarded, or None when the set holds no
-        records at all.
+        how many stored records were discarded for carrying nothing usable or
+        for missing the feature, or None when the set holds no records at all.
     """
     cached = geometry.load(job.geometry_path, job.source)
     if cached is not None:
@@ -85,10 +85,10 @@ def _prepare(
         return None
     box, observations, discarded = loaded
     region = _region(box)
-    projected = prepare.project(region, observations)
+    projected, missed = prepare.project(region, observations)
     if projected:
         geometry.save(job.geometry_path, box, projected)
-    return box, region, projected, discarded
+    return box, region, projected, discarded + missed
 
 
 def _region(box: FeatureBox) -> FeatureRegion:

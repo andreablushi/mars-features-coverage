@@ -1,16 +1,24 @@
 """Parquet schemas for the coverage artifacts.
 
-Both schemas are declared rather than inferred. A feature whose observations
+Every schema is declared rather than inferred. A feature whose observations
 happen to carry no swath width would otherwise write a column typed differently
 from its neighbours, and the per-feature files could no longer be read back as
 one dataset.
+
+The geometry schema also carries the version of the rule its footprints were
+projected under, so a cache built by an older rule is rebuilt rather than read
+back as though it still agreed with the code.
 """
 
 from __future__ import annotations
 
 import pyarrow as pa
 
+from analysis import configs
+
 _TIMESTAMP = pa.timestamp("us", tz="UTC")
+
+GEOMETRY_VERSION_KEY = b"geometry_version"
 
 EVENTS = pa.schema(
     [
@@ -65,5 +73,6 @@ GEOMETRY = pa.schema(
         ("width_km", pa.float64()),
         ("width_source", pa.string()),
         ("wkb", pa.binary()),
-    ]
+    ],
+    metadata={GEOMETRY_VERSION_KEY: configs.GEOMETRY_VERSION},
 )

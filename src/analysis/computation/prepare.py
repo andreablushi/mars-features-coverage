@@ -19,20 +19,29 @@ from analysis.models.projected import ProjectedObservation
 
 def project(
     region: FeatureRegion, observations: Sequence[Observation]
-) -> list[ProjectedObservation]:
+) -> tuple[list[ProjectedObservation], int]:
     """Project every observation's footprint onto its feature.
+
+    An observation whose footprint misses the feature entirely is dropped, since
+    a zero reads as a measurement of no ground rather than the absence of one.
 
     Args:
         region: The projected feature the footprints are cut to.
         observations: The observations to project.
 
     Returns:
-        One projected observation per input, in the same order.
+        The projected observations that landed on the feature, in the order
+        they were given, and how many missed it entirely.
     """
     widths = _track_widths(observations)
     projected = []
+    missed = 0
     for observation in observations:
         width_m, source = widths.get(observation.pdsid, (0.0, None))
+        shape = region.footprint(footprints.parse(observation.wkt), width_m)
+        if shape.is_empty:
+            missed += 1
+            continue
         projected.append(
             ProjectedObservation(
                 pdsid=observation.pdsid,
@@ -41,12 +50,12 @@ def project(
                 pt=observation.pt,
                 start=observation.start,
                 stop=observation.stop,
-                shape=region.footprint(footprints.parse(observation.wkt), width_m),
+                shape=shape,
                 width_km=width_m / 1000.0 if source else None,
                 width_source=source,
             )
         )
-    return projected
+    return projected, missed
 
 
 def _track_widths(

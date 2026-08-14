@@ -34,6 +34,15 @@ LAEA_MIN_DENOMINATOR = 1e-12
 # whole accumulated one; tiles are disjoint so summing their areas is exact
 UNION_TILES = 16
 
+# How many observations a tile folds in before its union is rebuilt in one
+# batch; a sequential pairwise union shreds its own boundary into slivers
+UNION_CHUNK = 64
+
+# A tile covered to within this share of what it could hold is treated as
+# full, because an exact comparison between two separately computed areas
+# almost never holds and leaves a finished tile grinding on
+SATURATION_TOLERANCE = 1e-12
+
 # Straight lon/lat edges curve once projected, so resample below this step
 MAX_SEGMENT_DEG = 0.25
 
@@ -44,9 +53,17 @@ COVERAGE_DIR = "coverage"
 COVERAGE_ROOT = ARTIFACTS_ROOT / COVERAGE_DIR
 GEOMETRY_DIR = "geometry"
 GEOMETRY_ROOT = ARTIFACTS_ROOT / GEOMETRY_DIR
+
+# Stamped into every cached projection. Bump it whenever the projection, the
+# segment step or the swath model changes, so a cache built by the old rule is
+# rebuilt instead of silently reused.
+GEOMETRY_VERSION = b"1"
 SUMMARY_NAME = "summary.parquet"
 EVENTS_SUFFIX = ".events.parquet"
 SET_SUMMARY_SUFFIX = ".summary.parquet"
+
+# How many sets left without an artifact are named before the rest are counted
+MISSING_SHOWN = 5
 
 # The section of config.yaml this stage reads
 CONFIG_SECTION = "coverage"

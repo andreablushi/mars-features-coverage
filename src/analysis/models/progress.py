@@ -14,7 +14,8 @@ class RunSummary:
         empty: Instrument sets that ran but had nothing left to measure.
         failed: Instrument sets that raised an error.
         events: Observation rows written across every set.
-        discarded: Stored records that carried no footprint or no start time.
+        discarded: Stored records that carried no footprint, no start time, or
+            no overlap with the feature.
         elapsed: Total run duration in seconds.
     """
 

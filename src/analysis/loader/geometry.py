@@ -5,8 +5,10 @@ to its feature gives the same answer every time. Only the accumulation that
 follows depends on anything else, so the projected result is written once as
 well-known binary and read back on later runs.
 
-The cache is keyed by the source file's modification time. A re-downloaded
-instrument set invalidates its own cache and nothing else.
+The cache is keyed by the source file's modification time and by the version of
+the projection rule that built it. A re-downloaded instrument set invalidates its
+own cache and nothing else; a changed projection, segment step or swath model
+invalidates every cache at once, by way of GEOMETRY_VERSION.
 """
 
 from __future__ import annotations
@@ -17,10 +19,11 @@ from pathlib import Path
 import pyarrow.parquet as pq
 from shapely import from_wkb, to_wkb
 
+from analysis import configs
 from analysis.loader import writer
 from analysis.models.feature import FeatureBox
 from analysis.models.projected import ProjectedObservation
-from analysis.models.schemas import GEOMETRY
+from analysis.models.schemas import GEOMETRY, GEOMETRY_VERSION_KEY
 
 
 def load(
@@ -37,6 +40,9 @@ def load(
         is missing or older than the metadata it came from.
     """
     if not path.exists() or path.stat().st_mtime < source.stat().st_mtime:
+        return None
+    stored = pq.read_schema(path).metadata or {}
+    if stored.get(GEOMETRY_VERSION_KEY) != configs.GEOMETRY_VERSION:
         return None
     rows = pq.read_table(path, schema=GEOMETRY).to_pylist()
     if not rows:

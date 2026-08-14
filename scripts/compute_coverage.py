@@ -45,7 +45,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         catalog.finalise_feature(configs.COVERAGE_ROOT, feature_dir)
     indexed = catalog.rebuild(configs.ARTIFACTS_ROOT, configs.COVERAGE_ROOT)
 
-    view.print_summary(runner.summary, indexed, console)
+    missing = planner.unfinished(sources, configs.COVERAGE_ROOT)
+    view.print_summary(runner.summary, indexed, missing, console)
     return 1 if runner.summary.failed else 0
 
 

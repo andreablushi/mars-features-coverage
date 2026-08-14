@@ -20,9 +20,8 @@ def build_plan(
     """Build the jobs still needed for a run.
 
     An instrument set whose summary already exists is left out unless force is
-    set, so an interrupted run resumes where it stopped. That summary is
-    written after the events and the union, and every output is written
-    atomically, so its presence means the set finished rather than started.
+    set, so an interrupted run resumes where it stopped. The jobs that remain
+    are ordered largest first, so the pool starts the long ones early.
 
     Args:
         sources: The instrument set metadata files discovered on disk.
@@ -35,8 +34,8 @@ def build_plan(
     """
     jobs: list[CoverageJob] = []
     skipped_existing = 0
-    for source in sources:
-        if layout.set_summary_path(coverage_root, source).exists() and not force:
+    for source in _largest_first(sources):
+        if _is_finished(source, coverage_root) and not force:
             skipped_existing += 1
             continue
         jobs.append(
@@ -52,3 +51,55 @@ def build_plan(
         set_count=len(sources),
         skipped_existing=skipped_existing,
     )
+
+
+def unfinished(
+    sources: Sequence[Path], coverage_root: Path = configs.COVERAGE_ROOT
+) -> tuple[Path, ...]:
+    """Return the instrument sets that still have no coverage artifact.
+
+    An interrupted run leaves nothing behind saying so, so the gaps are read
+    back off disk. A set whose records are all unusable is in here too.
+
+    Args:
+        sources: The instrument set metadata files discovered on disk.
+        coverage_root: The coverage artifacts root directory.
+
+    Returns:
+        The metadata files with no summary beside them, in discovery order.
+    """
+    return tuple(
+        source for source in sources if not _is_finished(source, coverage_root)
+    )
+
+
+def _is_finished(source: Path, coverage_root: Path) -> bool:
+    """Report whether one instrument set has already been computed in full.
+
+    The summary is written after the events and the union, and every output is
+    written atomically, so its presence means the set finished rather than
+    started.
+
+    Args:
+        source: The instrument set metadata file.
+        coverage_root: The coverage artifacts root directory.
+
+    Returns:
+        True when the set's summary is already on disk.
+    """
+    return layout.set_summary_path(coverage_root, source).exists()
+
+
+def _largest_first(sources: Sequence[Path]) -> list[Path]:
+    """Order instrument sets so the biggest are handed out first.
+
+    The sets differ in size by orders of magnitude, and in discovery order the
+    pool can pick the largest up last and grind on it with every worker idle.
+
+    Args:
+        sources: The instrument set metadata files discovered on disk.
+
+    Returns:
+        The same files, largest first.
+    """
+    return sorted(sources, key=lambda source: -source.stat().st_size)
