@@ -7,7 +7,7 @@ from collections.abc import Iterable
 from rich.console import Console
 from rich.progress import BarColumn, MofNCompleteColumn, Progress
 
-from common.models.progress import ProgressEvent
+from models.progress import ProgressEvent
 
 
 def render(

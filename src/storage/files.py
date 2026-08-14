@@ -1,11 +1,4 @@
-"""What files are called, and how they are written.
-
-Three rules that both stages depend on and that nothing else in the project is
-allowed to restate: the slug the two data trees are keyed by, the
-temp-file-and-rename that keeps an interrupted run from leaving a half-written
-file behind, and the JSONL both stages store their records in. Where the files
-live is in `common.configs`.
-"""
+"""What files are called, and how they are written."""
 
 from __future__ import annotations
 

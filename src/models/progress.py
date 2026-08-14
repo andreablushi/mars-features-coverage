@@ -1,8 +1,4 @@
-"""Progress reporting shared by both pipelines.
-
-A runner produces these and never renders them, so the caller decides whether
-they become a progress bar, a log line, or nothing at all.
-"""
+"""Progress reporting shared by both pipelines."""
 
 from __future__ import annotations
 
@@ -49,3 +45,39 @@ class ProgressEvent:
 
     completed: int
     outcome: Outcome
+
+
+@dataclass(frozen=True, slots=True)
+class DownloadSummary:
+    """Totals for a finished download run.
+
+    Attributes:
+        ran: Jobs executed successfully.
+        failed: Jobs that raised an error.
+        elapsed: Total run duration in seconds.
+    """
+
+    ran: int
+    failed: int
+    elapsed: float
+
+
+@dataclass(frozen=True, slots=True)
+class CoverageSummary:
+    """Totals for a finished coverage run.
+
+    Attributes:
+        computed: Instrument sets that produced rows.
+        empty: Instrument sets that ran but had nothing left to measure.
+        failed: Instrument sets that raised an error.
+        events: Observation rows written across every set.
+        discarded: Records carrying no footprint, no start time, or no overlap.
+        elapsed: Total run duration in seconds.
+    """
+
+    computed: int
+    empty: int
+    failed: int
+    events: int
+    discarded: int
+    elapsed: float
