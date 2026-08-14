@@ -6,7 +6,7 @@ import time
 from collections.abc import Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from common.jsonl import write_jsonl
+from common.files import write_jsonl
 from common.models.progress import ProgressEvent
 from download import configs
 from download.api import products

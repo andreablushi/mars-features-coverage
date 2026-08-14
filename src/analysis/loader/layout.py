@@ -12,6 +12,24 @@ from __future__ import annotations
 from pathlib import Path
 
 from analysis import configs
+from common.files import slugify
+
+
+def feature_artifacts_dir(root: Path, feature_class: str, name: str) -> Path:
+    """Return where one feature's artifacts live, from its catalogue names.
+
+    Reading starts from a name rather than from a metadata path, so this is the
+    one place that turns a name back into the slugs the tree is keyed by.
+
+    Args:
+        root: The artifacts subtree the path is built under.
+        feature_class: The feature class, such as Crater.
+        name: The feature name as ODE spells it.
+
+    Returns:
+        The feature's directory under that root, which need not exist.
+    """
+    return root / slugify(feature_class) / slugify(name)
 
 
 def _feature_dir(root: Path, feature_dir: Path) -> Path:

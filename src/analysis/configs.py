@@ -1,12 +1,12 @@
 """Central configuration for the coverage analysis stage.
 
 This module holds every tunable constant and imports nothing from the rest of
-the package, so it can be imported anywhere without creating a cycle.
+the stage, so it can be imported anywhere without creating a cycle.
 """
 
 from __future__ import annotations
 
-from pathlib import Path
+from common.files import REPO_ROOT
 
 SPEED_OF_LIGHT = 299_792_458.0
 
@@ -37,7 +37,7 @@ UNION_TILES = 16
 # Straight lon/lat edges curve once projected, so resample below this step
 MAX_SEGMENT_DEG = 0.25
 
-DATA_ROOT = Path("data")
+DATA_ROOT = REPO_ROOT / "data"
 METADATA_ROOT = DATA_ROOT / "metadata"
 ARTIFACTS_ROOT = DATA_ROOT / "artifacts"
 COVERAGE_DIR = "coverage"

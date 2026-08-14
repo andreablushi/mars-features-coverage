@@ -5,12 +5,13 @@ from __future__ import annotations
 from dataclasses import asdict
 from pathlib import Path
 
-from common.jsonl import read_jsonl, write_jsonl
+from common.files import write_jsonl
 from download import configs
 from download.api.client import ODEClient, as_items
 from download.models.feature import Feature
 from download.models.product import InstrumentSetInfo
 from download.selection.dedupe import dedupe
+from download.storage import cache
 
 
 def fetch_features(client: ODEClient) -> list[Feature]:
@@ -86,9 +87,9 @@ def load_features(
     Returns:
         The list of features.
     """
-    path = cache_dir / configs.FEATURES_CACHE_NAME
+    path = cache.features_path(cache_dir)
     if path.exists() and not refresh:
-        return [Feature(**row) for row in read_jsonl(path)]
+        return cache.read_features(cache_dir)
     features = fetch_features(client)
     write_jsonl(path, [asdict(feature) for feature in features])
     return features
@@ -107,9 +108,9 @@ def load_instrument_sets(
     Returns:
         One entry per unique instrument set.
     """
-    path = cache_dir / configs.INSTRUMENT_SETS_CACHE_NAME
+    path = cache.instrument_sets_path(cache_dir)
     if path.exists() and not refresh:
-        return [InstrumentSetInfo(**row) for row in read_jsonl(path)]
+        return cache.read_instrument_sets(cache_dir)
     rows = fetch_instrument_sets(client)
     write_jsonl(path, [asdict(row) for row in rows])
     return rows

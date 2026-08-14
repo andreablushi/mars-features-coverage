@@ -183,7 +183,8 @@ src/download/
     catalog.py        feature and instrument catalogs, cached
     products.py       count and paged metadata fetch
   storage/
-    layout.py         slugs and output paths
+    layout.py         output paths, keyed by the shared slug rule
+    cache.py          reads the cached catalogues back without a client
     writer.py         atomic JSONL write
   planner.py          selects features, builds the job plan
   runner.py           parallel execution, yields ProgressEvent

@@ -16,7 +16,7 @@ import pyarrow.parquet as pq
 from analysis import configs
 from analysis.loader import layout
 from analysis.models.schemas import SUMMARY
-from common.atomic import atomic_path
+from common.files import atomic_path
 
 _SET_SUMMARY_SUFFIX = ".summary.parquet"
 

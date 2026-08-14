@@ -8,7 +8,7 @@ from typing import Any
 
 from analysis.models.feature import FeatureBox
 from analysis.models.observation import Observation
-from common.jsonl import read_jsonl
+from common.files import read_jsonl
 
 
 def load_set(path: Path) -> tuple[FeatureBox, list[Observation], int] | None:

@@ -1,12 +1,12 @@
 """Central configuration for the download pipeline.
 
 This module holds every tunable constant and imports nothing from the rest of
-the package, so it can be imported anywhere without creating a cycle.
+the stage, so it can be imported anywhere without creating a cycle.
 """
 
 from __future__ import annotations
 
-from pathlib import Path
+from common.files import REPO_ROOT
 
 ODE_BASE_URL = "https://oderest.rsl.wustl.edu/live2/"
 ODE_META_DB = "mars"
@@ -27,7 +27,7 @@ DEFAULT_LOC = "f"
 DEFAULT_WORKERS = 4
 MAX_WORKERS = 6
 
-DATA_ROOT = Path("data")
+DATA_ROOT = REPO_ROOT / "data"
 METADATA_ROOT = DATA_ROOT / "metadata"
 CATALOG_ROOT = DATA_ROOT / "_catalog"
 FEATURES_CACHE_NAME = "features.jsonl"

@@ -10,7 +10,7 @@ from typing import Any
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from common.atomic import atomic_path
+from common.files import atomic_path
 
 
 def write(rows: Sequence[Any], schema: pa.Schema, path: Path) -> None:
