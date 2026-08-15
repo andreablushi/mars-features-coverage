@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
-from shapely import area, covers, difference, prepare, to_wkb, union_all
+from shapely import area, covers, prepare, to_wkb, union_all
 from shapely.errors import GEOSException
 from shapely.geometry.base import BaseGeometry
 
@@ -130,9 +130,17 @@ def _record_first_cover(
 ) -> None:
     """Record what each footprint in one chunk newly covers.
 
-    A well imaged feature is mostly re-observation, so asking the prepared union
-    whether it already holds a footprint is an indexed lookup where cutting the
-    footprint against it is a full overlay.
+    What a footprint adds is read as the area its own union grows by, rather
+    than as the area of the leftover cut off it. Both say the same thing in
+    exact arithmetic, but a leftover is a shape that touches what produced it
+    along its whole boundary, which is the case GEOS nodes worst: unioning one
+    back in silently dropped most of a multipart leftover, and cutting against
+    one raised outright on the larger features. A union of two footprints as
+    they were published meets neither.
+
+    A well imaged feature is mostly re-observation, so asking the prepared
+    union whether it already holds a footprint is an indexed lookup where
+    merging it in is a full overlay.
 
     Args:
         indices: The observation index of every piece, in order.
@@ -144,16 +152,18 @@ def _record_first_cover(
     Returns:
         None.
     """
-    within: BaseGeometry | None = None
+    running = covered
     for index, piece in zip(indices, pieces, strict=True):
-        if covered is not None and covers(covered, piece):
+        if running is None:
+            share.append((int(index), area(piece)))
+            running = piece
+            prepare(running)
             continue
-        residual = piece if covered is None else _robust(difference, piece, covered)
-        if residual.is_empty:
+        if covers(running, piece):
             continue
-        if within is not None:
-            residual = _robust(difference, residual, within)
-            if residual.is_empty:
-                continue
-        share.append((int(index), area(residual)))
-        within = residual if within is None else _robust(union_all, [within, residual])
+        merged = _robust(union_all, [running, piece])
+        added = merged.area - running.area
+        if added > 0.0:
+            share.append((int(index), added))
+        running = merged
+        prepare(running)
