@@ -1,59 +1,45 @@
 pipeline:
-  # Keep a set's downloaded metadata once its coverage is computed. Turning
-  # this off discards the JSONL as soon as the set's summary is on disk, which
-  # makes the artifacts final: nothing can be recomputed without downloading
-  # again, and re-analysis needs a fresh download.
+  # Keep each set's metadata once its coverage is computed. Off makes the
+  # artifacts final: nothing recomputes without downloading again.
   keep_metadata: true
 
-  # Measure what is already on disk without downloading anything first.
+  # Measure what is already on disk, downloading nothing.
   coverage_only: false
 
 download:
-  # The instrument sets to download for every feature, as IHID/IID/PT, with an
-  # optional ODE product id pattern after a colon to narrow a product type to
-  # one observing mode. Each set must publish both a footprint and an
-  # acquisition time, which is what the coverage stage needs to place an
-  # observation on a time axis; the run refuses a set ODE flags otherwise.
-  #
-  # CRISM files three unrelated things under TRDR: 18 m targeted images, the
-  # 200 m multispectral survey, and off-nadir gimbal scans. Only the survey
-  # is a coverage campaign, so only it is asked for. It is the same data the
-  # MRDR4 and VRDR mosaics are built from, but as dated observations: those
-  # two carry no acquisition time at all and cannot be placed on a time axis.
+  # IHID/IID/PT, optionally followed by a colon and an ODE product id pattern
+  # to narrow a product type to one observing mode. A set must publish both a
+  # footprint and an acquisition time, and the run refuses one that does not.
   instruments:
     - MRO/CTX/EDR
     - MRO/HIRISE/RDRV11
     - MRO/CRISM/MTRDR
-    - MRO/CRISM/TRDR:[mh]sp*
+    - MRO/CRISM/TRDR:[mh]sp*   # the multispectral survey, not the whole type
     - MRO/SHARAD/USRDRV2
 
-  # Half the width of the box put around a feature the catalogue records by
-  # centre alone, in degrees of latitude. Only craters and landing sites are
-  # sized this way: a classical albedo name covers thousands of kilometres of
-  # diffuse ground and has no edge any radius could stand in for.
+  # Half-width of the box put around a feature catalogued by centre alone,
+  # in degrees of latitude. Only craters and landing sites are sized this way.
   point_radius_deg: 0.25
 
-  # Which products ODE returns for a feature's bounding box.
+  # Which products a feature's box returns.
   #   b  the product's own box overlaps it
   #   f  the product's footprint overlaps it, even partly
   #   o  the product falls entirely inside it
   #   i  the product contains the whole feature
   loc: f
 
-  # Re-download instead of skipping instrument sets already on disk.
+  # Re-download instead of skipping sets already on disk.
   force: false
 
-  # Concurrent downloads to run at once.
+  # Concurrent downloads.
   workers: 4
 
 coverage:
-  # Accumulate the running union of covered ground, which is the expensive
-  # half of the work. Off still measures what each observation covered on
-  # its own, but leaves every cumulative column empty, so there is no
-  # coverage fraction and no cumulative plot.
+  # Accumulate the running union, which is the expensive half. Off leaves the
+  # cumulative columns empty, so no coverage fraction and no cumulative plot.
   cumulative_union: true
 
-  # Recompute instead of skipping instrument sets already computed.
+  # Recompute instead of skipping sets already computed.
   force: false
 
   # Concurrent worker processes.
