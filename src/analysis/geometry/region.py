@@ -170,8 +170,8 @@ class FeatureRegion:
                 buffers[grown],
                 quad_segs=configs.BUFFER_QUAD_SEGMENTS,
             )
-        _merge_owned_parts(projected, owners, shapes)
-        return self._clip_to_feature(_repaired(shapes))
+        _merge_owned_parts(_repaired(projected), owners, shapes)
+        return self._clip_to_feature(shapes)
 
     def _clip_to_feature(self, shapes: np.ndarray) -> np.ndarray:
         """Cut projected footprints back to the feature they belong to.
