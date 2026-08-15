@@ -6,8 +6,8 @@ from collections.abc import Sequence
 
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
-from models.coverage import SetCoverage
 
+from models.results import SetCoverage
 from visualization import configs, panels
 
 
