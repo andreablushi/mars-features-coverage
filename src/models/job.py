@@ -146,14 +146,15 @@ class DownloadPlan:
         jobs: Jobs that still need downloading.
         feature_count: Usable features selected.
         instrument_set_count: Instrument sets selected.
-        degenerate_features: Features skipped for having a zero area box.
+        sizeless_features: Names of the features the catalogue gives no extent
+            that could be recovered, which were left unqueried.
         skipped_existing: Outputs left in place because they already exist.
     """
 
     jobs: tuple[DownloadJob, ...]
     feature_count: int
     instrument_set_count: int
-    degenerate_features: int
+    sizeless_features: tuple[str, ...]
     skipped_existing: int
 
 

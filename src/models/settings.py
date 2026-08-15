@@ -15,12 +15,15 @@ class DownloadSettings:
         instrument_sets: The instrument sets to download for every feature.
         loc: Which products ODE returns for a feature box, "f" for every
             footprint that overlaps it and "o" for only those fully inside.
+        point_radius_deg: Half the width of the box put around a feature the
+            catalogue records by centre alone, in degrees of latitude.
         force: Whether to re-download instead of skipping finished files.
         workers: How many downloads to run at once.
     """
 
     instrument_sets: tuple[InstrumentSet, ...]
     loc: str
+    point_radius_deg: float
     force: bool
     workers: int
 

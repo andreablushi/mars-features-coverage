@@ -23,10 +23,13 @@ def describe_download(plan: DownloadPlan, workers: int, console: Console) -> Non
     Returns:
         None.
     """
-    if plan.degenerate_features:
+    if plan.sizeless_features:
+        shown = ", ".join(plan.sizeless_features[: configs.MISSING_SHOWN])
+        rest = len(plan.sizeless_features) - configs.MISSING_SHOWN
         console.print(
-            f"[yellow]skipping {plan.degenerate_features} degenerate features "
-            "(zero-area bbox)[/yellow]"
+            f"[yellow]{len(plan.sizeless_features)} features carry no extent in "
+            f"the catalogue and were not queried: {shown}"
+            f"{f', and {rest} more' if rest > 0 else ''}[/yellow]"
         )
     console.print(
         f"download: {plan.feature_count} features x {plan.instrument_set_count} sets, "

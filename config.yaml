@@ -9,15 +9,29 @@ pipeline:
   coverage_only: false
 
 download:
-  # The instrument sets to download for every feature, as IHID/IID/PT.
-  # Each one must publish both a footprint and an acquisition time, which is
-  # what the coverage stage needs to place an observation on a time axis.
+  # The instrument sets to download for every feature, as IHID/IID/PT, with an
+  # optional ODE product id pattern after a colon to narrow a product type to
+  # one observing mode. Each set must publish both a footprint and an
+  # acquisition time, which is what the coverage stage needs to place an
+  # observation on a time axis; the run refuses a set ODE flags otherwise.
+  #
+  # CRISM files three unrelated things under TRDR: 18 m targeted images, the
+  # 200 m multispectral survey, and off-nadir gimbal scans. Only the survey
+  # is a coverage campaign, so only it is asked for. It is the same data the
+  # MRDR4 and VRDR mosaics are built from, but as dated observations: those
+  # two carry no acquisition time at all and cannot be placed on a time axis.
   instruments:
     - MRO/CTX/EDR
     - MRO/HIRISE/RDRV11
     - MRO/CRISM/MTRDR
-    - MRO/CRISM/MRDR4
+    - MRO/CRISM/TRDR:[mh]sp*
     - MRO/SHARAD/USRDRV2
+
+  # Half the width of the box put around a feature the catalogue records by
+  # centre alone, in degrees of latitude. Only craters and landing sites are
+  # sized this way: a classical albedo name covers thousands of kilometres of
+  # diffuse ground and has no edge any radius could stand in for.
+  point_radius_deg: 0.25
 
   # Which products ODE returns for a feature's bounding box.
   #   b  the product's own box overlaps it

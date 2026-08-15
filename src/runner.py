@@ -25,6 +25,7 @@ from cli.console import describe_coverage, describe_download
 from download import planner as download_planner
 from download.api import catalog as ode_catalog
 from download.api.client import ODEClient
+from download.selection.instruments import verify_sets
 from download.tasks import run_job as download_set
 from models.job import CoverageOutcome, DownloadOutcome
 from models.progress import CoverageSummary, DownloadSummary, Outcome, ProgressEvent
@@ -136,10 +137,15 @@ def download_and_compute(
     fetched: list[DownloadOutcome] = []
     with ODEClient() as client:
         features = ode_catalog.load_features(client, refresh=args.refresh_catalog)
+        verify_sets(
+            download.instrument_sets,
+            ode_catalog.load_instrument_sets(client, refresh=args.refresh_catalog),
+        )
         plan = download_planner.build_plan(
             features,
             download.instrument_sets,
             names=args.feature_name,
+            point_radius_deg=download.point_radius_deg,
             force=download.force,
         )
         describe_download(plan, download.workers, console)

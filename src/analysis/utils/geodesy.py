@@ -26,16 +26,18 @@ def longitude_span(west_lon: float, east_lon: float) -> float:
 
     A box whose east longitude is the smaller number wraps the antimeridian,
     so the span is measured the long way round rather than as a difference.
+    Equal longitudes mean a feature that runs through all of them, which is how
+    the catalogue writes a ring around a pole, so they span the full circle.
 
     Args:
         west_lon: The westernmost longitude in degrees.
         east_lon: The easternmost longitude in degrees.
 
     Returns:
-        The eastward span in degrees, from 0 to 360.
+        The eastward span in degrees, above zero and up to 360.
     """
     raw = east_lon - west_lon
-    if raw >= 360.0:
+    if raw >= 360.0 or raw == 0.0:
         return 360.0
     if raw > 0.0:
         return raw

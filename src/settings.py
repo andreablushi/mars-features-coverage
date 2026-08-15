@@ -93,6 +93,10 @@ def _boolean(value: Any, name: str) -> bool:
 def _instrument_set(key: Any) -> InstrumentSet:
     """Build one instrument set from an IHID/IID/PT triple.
 
+    A product type holding several observing modes at once can be narrowed to
+    one of them by following the triple with a colon and an ODE product id
+    pattern, as in MRO/CRISM/TRDR:[mh]sp*.
+
     Args:
         key: The triple, as a string or as the three parts.
 
@@ -102,10 +106,35 @@ def _instrument_set(key: Any) -> InstrumentSet:
     Raises:
         ValueError: When the triple does not carry exactly three parts.
     """
-    parts = key.split("/") if isinstance(key, str) else list(key)
-    if len(parts) != 3 or not all(str(part).strip() for part in parts):
-        raise ValueError(f"instrument set should be IHID/IID/PT, found {key!r}")
-    return InstrumentSet(*(str(part).strip() for part in parts))
+    raw = key if isinstance(key, str) else "/".join(str(part) for part in key)
+    triple, _, pattern = raw.partition(":")
+    parts = triple.split("/")
+    if len(parts) != 3 or not all(part.strip() for part in parts):
+        raise ValueError(
+            f"instrument set should be IHID/IID/PT or IHID/IID/PT:PATTERN, "
+            f"found {key!r}"
+        )
+    return InstrumentSet(
+        *(part.strip() for part in parts), product_id=pattern.strip() or None
+    )
+
+
+def _positive_float(value: Any, name: str) -> float:
+    """Check that a setting is a distance a box can be grown by.
+
+    Args:
+        value: The settled value.
+        name: What to call it if it has to be rejected.
+
+    Returns:
+        The value as a float.
+
+    Raises:
+        ValueError: When it is not a positive number.
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+        raise ValueError(f"{name} should be a positive number, found {value!r}")
+    return float(value)
 
 
 def download(
@@ -143,6 +172,13 @@ def download(
     return DownloadSettings(
         instrument_sets=tuple(_instrument_set(key) for key in keys),
         loc=loc,
+        point_radius_deg=_positive_float(
+            _first(
+                config.get("point_radius_deg"),
+                download_configs.DEFAULT_POINT_RADIUS_DEG,
+            ),
+            "point_radius_deg",
+        ),
         force=_boolean(_first(args.force, config.get("force"), False), "force"),
         workers=_positive_int(
             _first(
