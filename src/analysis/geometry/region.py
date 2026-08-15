@@ -48,18 +48,33 @@ def _merge_owned_parts(
         shapes[index] = union_all(parts[starts[index] : ends[index]])
 
 
+def _mend(geometry):
+    """Rebuild a shape the projection left crossing itself.
+
+    A ring drawn in lon/lat can stop being a ring once projected. A footprint
+    tracing ground thin enough folds over into a bow tie, and any ring running
+    along a pole arrives with every one of its polar vertices on the same
+    point, since a whole parallel at 90 degrees is one place on the ground.
+
+    Neither is rare enough to ignore and no snapping grid settles either, the
+    input being genuinely invalid, while a single invalid shape poisons every
+    overlay it reaches and takes a whole instrument set down with it. Mending
+    splits the fold into the lobes it was drawn as, which is also what recovers
+    the ground, a crossed ring's area being the difference of its lobes rather
+    than their sum. It is asked for polygons back, so nothing collapses to a
+    line the union would then have to carry.
+
+    Args:
+        geometry: One shape, or an array of them.
+
+    Returns:
+        The same shape or array, valid.
+    """
+    return make_valid(geometry, method="structure", keep_collapsed=False)
+
+
 def _repaired(shapes: np.ndarray) -> np.ndarray:
-    """Mend any footprint that the projection left crossing itself.
-
-    A published footprint is a ring in lon/lat, and a handful of them trace
-    ground so thin that projecting and re-noding the ring folds it over into a
-    bow tie. That is one footprint in thousands, but an invalid shape poisons
-    every overlay it reaches, so a single one takes a whole instrument set down
-    with it and no snapping grid will settle it: the input really is invalid.
-
-    Mending splits the fold into the lobes it was drawn as, which is also what
-    recovers the ground, since a crossed ring's area is the difference of its
-    lobes rather than their sum.
+    """Mend every footprint the projection left invalid.
 
     Args:
         shapes: The projected footprints, mended in place.
@@ -69,7 +84,7 @@ def _repaired(shapes: np.ndarray) -> np.ndarray:
     """
     broken = ~is_valid(shapes)
     if broken.any():
-        shapes[broken] = make_valid(shapes[broken])
+        shapes[broken] = _mend(shapes[broken])
     return shapes
 
 
@@ -101,7 +116,8 @@ class FeatureRegion:
         )
         lons, lats = geodesy.bbox_ring(min_lat, max_lat, west_lon, east_lon)
         x, y = geodesy.laea_forward(lons, lats, self.centre_lon, self.centre_lat)
-        self._shape = Polygon(np.column_stack((x, y)))
+        shape = Polygon(np.column_stack((x, y)))
+        self._shape = shape if is_valid(shape) else _mend(shape)
         prepare(self._shape)
         self.area_m2 = self._shape.area
         self._tight = footprints.clip_boxes(min_lat, max_lat, west_lon, east_lon)

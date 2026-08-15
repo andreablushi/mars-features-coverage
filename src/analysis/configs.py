@@ -58,7 +58,7 @@ BUFFER_QUAD_SEGMENTS = 16
 # Stamped into every cached projection. Bump it whenever the projection, the
 # segment step or the swath model changes, so a cache built by the old rule is
 # rebuilt instead of silently reused.
-GEOMETRY_VERSION = b"2"
+GEOMETRY_VERSION = b"3"
 
 
 # The section of config.yaml this stage reads
