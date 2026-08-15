@@ -86,10 +86,14 @@ class SetCoverage:
     Attributes:
         events: The set's observations in chronological order.
         summary: The single row describing the set as a whole.
+        pending: Whether the set has records downloaded but never measured,
+            which is why it carries no observations here. False for a set that
+            was measured, and for one that genuinely saw nothing.
     """
 
     events: list[Event]
     summary: Summary
+    pending: bool = False
 
     @property
     def label(self) -> str:
@@ -99,3 +103,16 @@ class SetCoverage:
             The instrument and product type, such as "CTX EDR".
         """
         return f"{self.summary.iid} {self.summary.pt}"
+
+    @property
+    def observed(self) -> bool:
+        """Report whether the set holds any observation of this feature.
+
+        A set the dataset carries elsewhere but that reached nothing here is
+        kept rather than left out, so a figure says the instrument covered
+        none of the feature instead of saying nothing about the instrument.
+
+        Returns:
+            True when the set has at least one observation.
+        """
+        return bool(self.events)

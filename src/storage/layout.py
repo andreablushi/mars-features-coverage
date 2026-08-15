@@ -122,6 +122,32 @@ def catalog_summary_path(root: Path = configs.ARTIFACTS_ROOT) -> Path:
     return root / configs.SUMMARY_NAME
 
 
+def has_metadata(
+    feature_dir: Path, instrument_set: InstrumentSet, root: Path = configs.METADATA_ROOT
+) -> bool:
+    """Report whether one feature holds downloaded records for an instrument set.
+
+    A set with records on disk but no artifact beside them was never computed,
+    which is a different thing from a set that observed nothing, and the two
+    are indistinguishable from the artifacts alone. The name is matched by
+    prefix, so a set narrowed to one observing mode answers for its type.
+
+    Args:
+        feature_dir: The feature's artifacts directory, named by the same slugs
+            the metadata tree uses.
+        instrument_set: The instrument set to look for.
+        root: The metadata root directory.
+
+    Returns:
+        True when a non-empty metadata file for that set exists.
+    """
+    directory = root / feature_dir.parent.name / feature_dir.name
+    return any(
+        path.stat().st_size > 0
+        for path in directory.glob(f"{instrument_set.slug}*.jsonl")
+    )
+
+
 def find_sets(root: Path = configs.METADATA_ROOT) -> list[Path]:
     """Find every stored instrument set holding observations.
 

@@ -70,6 +70,17 @@ def _panel(axis, entry: SetCoverage, colour, area_km2: float) -> None:
     axis.scatter(
         times, shares, s=12, alpha=0.65, color=colour, edgecolors="none", zorder=3
     )
+    if not entry.observed:
+        axis.text(
+            0.5,
+            0.5,
+            configs.PENDING_NOTE if entry.pending else configs.UNOBSERVED_NOTE,
+            transform=axis.transAxes,
+            ha="center",
+            va="center",
+            fontsize=9,
+            color=configs.GREY,
+        )
     axis.set_ylabel(entry.label, rotation=0, ha="right", va="center", fontsize=9)
     axis.set_ylim(-0.05, 1.05)
     panels.tidy(axis, percent="y", grid="y")

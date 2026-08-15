@@ -15,6 +15,15 @@ DEFAULT_CLASS = "Crater"
 NO_DATA_SUFFIX = "  (no data)"
 DROPDOWN_WIDTH = "340px"
 
+# How an instrument set with nothing to draw is drawn anyway. Kept on the
+# figure rather than left off it, so a missing line reads as an instrument that
+# covered nothing rather than as an instrument nobody asked for. A set holding
+# records that were never measured says so instead, since claiming it saw
+# nothing would be the same mistake in the other direction
+UNOBSERVED_NOTE = "no observations"
+PENDING_NOTE = "downloaded, not yet measured"
+UNOBSERVED_LINESTYLE = (0, (1, 3))
+
 # One stacked panel per instrument set, so the height is per panel
 FIGURE_WIDTH = 11
 PANEL_HEIGHT = 2.5

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime
 
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
@@ -52,37 +53,54 @@ def _curves(axis, coverage: Sequence[SetCoverage], colours: dict) -> None:
     Returns:
         None.
     """
+    last = max(entry.summary.t_last for entry in coverage)
     for entry in coverage:
-        times, fractions = _curve(entry)
+        times, fractions = _curve(entry, last)
         axis.plot(
             times,
             fractions,
             linewidth=1.8,
+            linestyle="-" if entry.observed else configs.UNOBSERVED_LINESTYLE,
             color=colours[entry.label],
-            label=f"{entry.label}  ({entry.summary.covered_frac:.1%})",
+            label=(
+                f"{entry.label}  ({entry.summary.covered_frac:.1%})"
+                if entry.observed
+                else f"{entry.label}{panels.note(entry)}"
+            ),
         )
     axis.set_xlabel("Observation start time")
     axis.set_ylabel("Share of the feature covered so far")
     axis.set_ylim(0, 1.05)
+    axis.set_xlim(right=last)
     panels.tidy(axis, percent="y", grid="both")
     axis.legend(fontsize=9, loc="upper left", frameon=False)
 
 
-def _curve(entry: SetCoverage) -> tuple[list, list[float]]:
+def _curve(entry: SetCoverage, last: datetime) -> tuple[list, list[float]]:
     """Return one instrument set's running coverage, rooted at zero.
 
     The set covered nothing before its first observation, so the curve starts
-    there rather than at whatever that first observation happened to reach.
+    there rather than at whatever that first observation happened to reach. It
+    is carried on to the last observation drawn on the panel rather than
+    stopping at its own, because coverage already reached is not lost when an
+    instrument stops looking: a curve ending mid-axis reads as a set that fell
+    back to nothing, when it only has nothing further to add.
 
     Args:
         entry: The instrument set being drawn.
+        last: When the latest observation on the panel was taken.
 
     Returns:
         The times and the share covered by then, in chronological order.
     """
+    if not entry.observed:
+        return [entry.summary.t_first, last], [0.0, 0.0]
     first = entry.events[0].t_start
     times = [first] + [event.t_start for event in entry.events]
     fractions = [0.0] + [event.cum_frac for event in entry.events]
+    if times[-1] < last:
+        times.append(last)
+        fractions.append(fractions[-1])
     return times, fractions
 
 
