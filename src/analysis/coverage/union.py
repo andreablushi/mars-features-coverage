@@ -142,6 +142,13 @@ def _record_first_cover(
     union whether it already holds a footprint is an indexed lookup where
     merging it in is a full overlay.
 
+    That question is answered on the boundary though, and a footprint lying
+    along the union's edge is reported as not covered while adding no ground
+    at all. Merging one in welds its vertices into the edge it sits on, and a
+    tile reached by hundreds of them grew past a million vertices while its
+    area never moved, each union re-noding everything before it. So a merge
+    that buys no ground is discarded and the union left as it was.
+
     Args:
         indices: The observation index of every piece, in order.
         pieces: The footprints clipped to the tile, in the same order.
@@ -163,7 +170,8 @@ def _record_first_cover(
             continue
         merged = _robust(union_all, [running, piece])
         added = merged.area - running.area
-        if added > 0.0:
-            share.append((int(index), added))
+        if added <= running.area * configs.SATURATION_TOLERANCE:
+            continue
+        share.append((int(index), added))
         running = merged
         prepare(running)
