@@ -8,6 +8,8 @@ from shapely import (
     buffer,
     covers,
     intersection,
+    is_valid,
+    make_valid,
     prepare,
     segmentize,
     transform,
@@ -44,6 +46,31 @@ def _merge_owned_parts(
     shapes[counts == 1] = parts[starts[counts == 1]]
     for index in np.nonzero(counts > 1)[0]:
         shapes[index] = union_all(parts[starts[index] : ends[index]])
+
+
+def _repaired(shapes: np.ndarray) -> np.ndarray:
+    """Mend any footprint that the projection left crossing itself.
+
+    A published footprint is a ring in lon/lat, and a handful of them trace
+    ground so thin that projecting and re-noding the ring folds it over into a
+    bow tie. That is one footprint in thousands, but an invalid shape poisons
+    every overlay it reaches, so a single one takes a whole instrument set down
+    with it and no snapping grid will settle it: the input really is invalid.
+
+    Mending splits the fold into the lobes it was drawn as, which is also what
+    recovers the ground, since a crossed ring's area is the difference of its
+    lobes rather than their sum.
+
+    Args:
+        shapes: The projected footprints, mended in place.
+
+    Returns:
+        The same array, with every footprint valid.
+    """
+    broken = ~is_valid(shapes)
+    if broken.any():
+        shapes[broken] = make_valid(shapes[broken])
+    return shapes
 
 
 class FeatureRegion:
@@ -128,7 +155,7 @@ class FeatureRegion:
                 quad_segs=configs.BUFFER_QUAD_SEGMENTS,
             )
         _merge_owned_parts(projected, owners, shapes)
-        return self._clip_to_feature(shapes)
+        return self._clip_to_feature(_repaired(shapes))
 
     def _clip_to_feature(self, shapes: np.ndarray) -> np.ndarray:
         """Cut projected footprints back to the feature they belong to.
