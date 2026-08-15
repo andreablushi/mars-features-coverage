@@ -7,7 +7,8 @@ GREY = "#8a8a8a"
 NOTHING_TO_SHOW = "Confirm a feature with local data above to fill this in."
 NO_UNION = (
     "This feature was computed without the cumulative union, so there is no "
-    "running coverage to draw. Recompute it with --cumulative-union."
+    "running coverage to draw. Set coverage.cumulative_union in config.yaml "
+    "and recompute it."
 )
 
 # The feature class the picker opens on

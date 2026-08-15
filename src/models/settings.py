@@ -13,6 +13,8 @@ class DownloadSettings:
 
     Attributes:
         instrument_sets: The instrument sets to download for every feature.
+        feature_names: The features to restrict the run to, or None for the
+            whole catalogue.
         loc: Which products ODE returns for a feature box, "f" for every
             footprint that overlaps it and "o" for only those fully inside.
         point_radius_deg: Half the width of the box put around a feature the
@@ -22,6 +24,7 @@ class DownloadSettings:
     """
 
     instrument_sets: tuple[InstrumentSet, ...]
+    feature_names: tuple[str, ...] | None
     loc: str
     point_radius_deg: float
     force: bool
@@ -55,7 +58,10 @@ class PipelineSettings:
             nothing can be recomputed without downloading again.
         coverage_only: Whether to skip downloading and only measure what is
             already on disk.
+        refresh_catalog: Whether to re-fetch the ODE catalogues rather than
+            reading the cached copies.
     """
 
     keep_metadata: bool
     coverage_only: bool
+    refresh_catalog: bool

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import time
-from argparse import Namespace
 from collections.abc import Callable, Iterator, Sequence
 from concurrent.futures import (
     Executor,
@@ -29,7 +28,7 @@ from download.selection.instruments import verify_sets
 from download.tasks import run_job as download_set
 from models.job import CoverageOutcome, DownloadOutcome
 from models.progress import CoverageSummary, DownloadSummary, Outcome, ProgressEvent
-from models.settings import CoverageSettings, DownloadSettings
+from models.settings import CoverageSettings, DownloadSettings, PipelineSettings
 from storage import catalog, layout
 
 Job = TypeVar("Job")
@@ -116,17 +115,17 @@ def _drain(started: Sequence[Future[CoverageOutcome]]) -> Iterator[ProgressEvent
 
 
 def download_and_compute(
-    args: Namespace,
     download: DownloadSettings,
     coverage: CoverageSettings,
+    pipeline: PipelineSettings,
     console: Console,
 ) -> tuple[DownloadSummary, list[CoverageOutcome]]:
     """Download every selected set, measuring each one as it arrives.
 
     Args:
-        args: The parsed command line arguments.
         download: The settled download choices.
         coverage: The settled coverage choices.
+        pipeline: The settled choices for the run as a whole.
         console: The console to render on.
 
     Returns:
@@ -136,15 +135,16 @@ def download_and_compute(
     futures: list[Future[CoverageOutcome]] = []
     fetched: list[DownloadOutcome] = []
     with ODEClient() as client:
-        features = ode_catalog.load_features(client, refresh=args.refresh_catalog)
+        refresh = pipeline.refresh_catalog
+        features = ode_catalog.load_features(client, refresh=refresh)
         verify_sets(
             download.instrument_sets,
-            ode_catalog.load_instrument_sets(client, refresh=args.refresh_catalog),
+            ode_catalog.load_instrument_sets(client, refresh=refresh),
         )
         plan = download_planner.build_plan(
             features,
             download.instrument_sets,
-            names=args.feature_name,
+            names=download.feature_names,
             point_radius_deg=download.point_radius_deg,
             force=download.force,
         )

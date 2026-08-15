@@ -6,6 +6,9 @@ pipeline:
   # Measure what is already on disk, downloading nothing.
   coverage_only: false
 
+  # Re-fetch the ODE feature and instrument catalogues instead of the cache.
+  refresh_catalog: false
+
 download:
   # IHID/IID/PT, optionally followed by a colon and an ODE product id pattern
   # to narrow a product type to one observing mode. A set must publish both a
@@ -16,6 +19,11 @@ download:
     - MRO/CRISM/MTRDR
     - MRO/CRISM/TRDR:[mh]sp*   # the multispectral survey, not the whole type
     - MRO/SHARAD/USRDRV2
+
+  # Restrict the run to named features. Comment out for the whole catalogue.
+  # features:
+  #   - Gale
+  #   - Jezero
 
   # Half-width of the box put around a feature catalogued by centre alone,
   # in degrees of latitude. Only craters and landing sites are sized this way.

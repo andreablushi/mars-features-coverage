@@ -31,5 +31,8 @@ DEFAULT_KEEP_METADATA = True
 # Measure what is already on disk without downloading anything first
 DEFAULT_COVERAGE_ONLY = False
 
+# Read the cached ODE catalogues rather than fetching them again
+DEFAULT_REFRESH_CATALOG = False
+
 # How many sets left without an artifact are named before the rest are counted
 MISSING_SHOWN = 5

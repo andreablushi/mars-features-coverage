@@ -1,8 +1,8 @@
-"""Reading config.yaml and ranking it against the command line flags."""
+"""Reading config.yaml, which is the only place a run is configured from."""
 
 from __future__ import annotations
 
-import argparse
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -45,13 +45,32 @@ def _first(*candidates: Any) -> Any:
     """Return the first candidate that was actually given.
 
     Args:
-        candidates: The sources in priority order, the flag first and the
+        candidates: The sources in priority order, the file first and the
             built-in default last.
 
     Returns:
         The first one that is not None.
     """
     return next(value for value in candidates if value is not None)
+
+
+def _names(value: Any) -> tuple[str, ...] | None:
+    """Read the optional list of feature names a run is restricted to.
+
+    Args:
+        value: The configured value, absent for the whole catalogue.
+
+    Returns:
+        The names, or None when every feature is wanted.
+
+    Raises:
+        ValueError: When the value is not a list of names.
+    """
+    if value is None:
+        return None
+    if isinstance(value, str) or not isinstance(value, Sequence):
+        raise ValueError(f"features should be a list of names, found {value!r}")
+    return tuple(str(name).strip() for name in value if str(name).strip())
 
 
 def _positive_int(value: Any, name: str) -> int:
@@ -128,17 +147,14 @@ def _positive_float(value: Any, name: str) -> float:
     return float(value)
 
 
-def download(
-    args: argparse.Namespace, path: Path = configs.CONFIG_PATH
-) -> DownloadSettings:
+def download(path: Path = configs.CONFIG_PATH) -> DownloadSettings:
     """Settle what the download stage should do.
 
-    There is no built-in list of instrument sets, so the config file or the
-    command line has to name them; a run that asks for nothing is a mistake
-    rather than a run of some default selection.
+    There is no built-in list of instrument sets, so the config file has to
+    name them; a run that asks for nothing is a mistake rather than a run of
+    some default selection.
 
     Args:
-        args: The parsed command line arguments.
         path: The config file, which need not exist.
 
     Returns:
@@ -146,22 +162,23 @@ def download(
 
     Raises:
         ValueError: When the config file holds a key it cannot honour, or no
-            instrument set was named anywhere.
+            instrument set was named.
     """
     config = _section(download_configs.CONFIG_SECTION, path)
-    keys = _first(args.instrument_set, config.get("instruments"), [])
+    keys = config.get("instruments") or []
     if not keys:
         raise ValueError(
             "no instrument sets requested: name them under `download.instruments` "
-            f"in {path.name} or pass --instrument-set"
+            f"in {path.name}"
         )
-    loc = str(_first(args.loc, config.get("loc"), download_configs.DEFAULT_LOC))
+    loc = str(_first(config.get("loc"), download_configs.DEFAULT_LOC))
     if loc not in download_configs.LOC_MODES:
         raise ValueError(
             f"loc should be one of {download_configs.LOC_MODES}, found {loc!r}"
         )
     return DownloadSettings(
         instrument_sets=tuple(_instrument_set(key) for key in keys),
+        feature_names=_names(config.get("features")),
         loc=loc,
         point_radius_deg=_positive_float(
             _first(
@@ -170,25 +187,18 @@ def download(
             ),
             "point_radius_deg",
         ),
-        force=_boolean(_first(args.force, config.get("force"), False), "force"),
+        force=_boolean(_first(config.get("force"), False), "force"),
         workers=_positive_int(
-            _first(
-                args.download_workers,
-                config.get("workers"),
-                download_configs.DEFAULT_WORKERS,
-            ),
+            _first(config.get("workers"), download_configs.DEFAULT_WORKERS),
             "workers",
         ),
     )
 
 
-def coverage(
-    args: argparse.Namespace, path: Path = configs.CONFIG_PATH
-) -> CoverageSettings:
+def coverage(path: Path = configs.CONFIG_PATH) -> CoverageSettings:
     """Settle what the coverage stage should do.
 
     Args:
-        args: The parsed command line arguments.
         path: The config file, which need not exist.
 
     Returns:
@@ -201,31 +211,23 @@ def coverage(
     return CoverageSettings(
         cumulative_union=_boolean(
             _first(
-                args.cumulative_union,
                 config.get("cumulative_union"),
                 analysis_configs.DEFAULT_CUMULATIVE_UNION,
             ),
             "cumulative_union",
         ),
-        force=_boolean(_first(args.force, config.get("force"), False), "force"),
+        force=_boolean(_first(config.get("force"), False), "force"),
         workers=_positive_int(
-            _first(
-                args.coverage_workers,
-                config.get("workers"),
-                analysis_configs.DEFAULT_WORKERS,
-            ),
+            _first(config.get("workers"), analysis_configs.DEFAULT_WORKERS),
             "workers",
         ),
     )
 
 
-def pipeline(
-    args: argparse.Namespace, path: Path = configs.CONFIG_PATH
-) -> PipelineSettings:
+def pipeline(path: Path = configs.CONFIG_PATH) -> PipelineSettings:
     """Settle what the run as a whole should do.
 
     Args:
-        args: The parsed command line arguments.
         path: The config file, which need not exist.
 
     Returns:
@@ -237,19 +239,15 @@ def pipeline(
     config = _section(configs.CONFIG_SECTION, path)
     return PipelineSettings(
         keep_metadata=_boolean(
-            _first(
-                args.keep_metadata,
-                config.get("keep_metadata"),
-                configs.DEFAULT_KEEP_METADATA,
-            ),
+            _first(config.get("keep_metadata"), configs.DEFAULT_KEEP_METADATA),
             "keep_metadata",
         ),
         coverage_only=_boolean(
-            _first(
-                args.coverage_only,
-                config.get("coverage_only"),
-                configs.DEFAULT_COVERAGE_ONLY,
-            ),
+            _first(config.get("coverage_only"), configs.DEFAULT_COVERAGE_ONLY),
             "coverage_only",
+        ),
+        refresh_catalog=_boolean(
+            _first(config.get("refresh_catalog"), configs.DEFAULT_REFRESH_CATALOG),
+            "refresh_catalog",
         ),
     )

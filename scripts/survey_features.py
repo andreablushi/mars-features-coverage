@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Sequence
 
 from rich.console import Console
 
@@ -12,23 +11,22 @@ import runner
 import settings
 from analysis import planner as coverage_planner
 from cli import progress
-from cli.args import build_parser
 from cli.console import print_summary
 from storage import layout
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+def main() -> int:
     """Download ODE metadata for geological features and measure their coverage.
 
-    Args:
-        argv: Optional argument list, defaulting to sys.argv.
+    Every choice a run makes is read from the config file, so the same file
+    describes what was run and what to run again. There is nothing to pass
+    here, and nothing a flag could quietly change between two runs.
 
     Returns:
         A process exit code, non zero when either half had a failure.
     """
-    args = build_parser().parse_args(argv)
-    choices = settings.pipeline(args)
-    coverage = settings.coverage(args)
+    choices = settings.pipeline()
+    coverage = settings.coverage()
     console = Console()
     started_at = time.monotonic()
 
@@ -36,7 +34,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         downloaded, outcomes = None, runner.compute_only(coverage, console)
     else:
         downloaded, outcomes = runner.download_and_compute(
-            args, settings.download(args), coverage, console
+            settings.download(), coverage, choices, console
         )
 
     if not choices.keep_metadata:

@@ -15,17 +15,20 @@ git config core.hooksPath .githooks        # once per clone, blocks unlinted pus
 ## Running the pipeline
 
 ```bash
-uv run python scripts/survey_features.py                 # download, measuring as it lands
-uv run python scripts/survey_features.py --coverage-only # measure what is already on disk
+uv run python scripts/survey_features.py
 ```
 
-One entry point runs both halves: each instrument set's coverage is computed as
-soon as its metadata arrives, so the download waits on the network while the
+One entry point runs both halves, and takes no arguments: every choice comes
+from `config.yaml`, so the same file describes what was run and what to run
+again. Set `pipeline.coverage_only` to measure what is already on disk without
+downloading. Each instrument set's coverage is computed as soon as its metadata
+arrives, so the download waits on the network while the
 measurement uses the cores. Download writes one JSONL file per feature and
 instrument set, coverage turns those into parquet: a row per observation saying
 what it covered and what it newly added, and a row per set saying how much of
 the feature it reached and over what span. Neither half redoes finished work, so
-an interrupted run resumes where it stopped and `--force` recomputes anyway.
+an interrupted run resumes where it stopped and the `force` keys recompute
+anyway.
 
 Coverage is measured against the feature's bounding box, in an equal-area
 projection centred on it, as an exact union rather than a sampled grid.
@@ -41,10 +44,11 @@ an empty result.
 
 ## Configuration
 
-`config.yaml` holds the standing choices for the run, one section each, every
-parameter documented in place. A flag passed on the command line overrides it
-for one run; delete a key for its built-in default, delete the file for all of
-them. `--help` lists the flags.
+`config.yaml` holds every choice a run makes, one section each, each parameter
+documented in place. Delete a key for its built-in default, delete the file for
+all of them. Nothing is passed on the command line, so a run cannot differ from
+what the file records. `download.features` restricts a run to named features
+and is commented out by default, which surveys the whole catalogue.
 
 Instrument sets are written `IHID/IID/PT`, optionally followed by a colon and an
 ODE product id pattern to narrow one product type to a single observing mode, as
@@ -71,9 +75,9 @@ scripts/              the entry point
 notebooks/            interactive reads of the artifacts
 src/
   configs.py          paths, and what the run as a whole does
-  settings.py         config.yaml ranked against the command line
+  settings.py         reads config.yaml and checks what it holds
   runner.py           the pooled runner and the two halves it drives
-  cli/                the argument parser, the progress bar, and everything printed
+  cli/                the progress bar and everything printed
   models/             what the stages pass around: features, jobs, results
   storage/            paths, slugs, atomic writes, JSONL, parquet, schemas
   download/           ODE metadata download: api, selection
