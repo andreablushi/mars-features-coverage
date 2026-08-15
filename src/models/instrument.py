@@ -31,6 +31,42 @@ class InstrumentSet:
     pt: str
     product_id: str | None = None
 
+    @classmethod
+    def from_key(cls, key: str) -> InstrumentSet:
+        """Build a set from its canonical identifier.
+
+        Args:
+            key: An IHID/IID/PT triple, optionally followed by a colon and a
+                product id pattern.
+
+        Returns:
+            The instrument set.
+
+        Raises:
+            ValueError: When the triple does not carry exactly three parts.
+        """
+        triple, _, pattern = key.partition(":")
+        parts = triple.split("/")
+        if len(parts) != 3 or not all(part.strip() for part in parts):
+            raise ValueError(
+                f"instrument set should be IHID/IID/PT or IHID/IID/PT:PATTERN, "
+                f"found {key!r}"
+            )
+        return cls(
+            *(part.strip() for part in parts), product_id=pattern.strip() or None
+        )
+
+    @property
+    def label(self) -> str:
+        """Return the short readable name for this set.
+
+        Returns:
+            The instrument and product type, with the pattern appended when the
+            set is only part of that type, such as "CRISM TRDR [mh]sp*".
+        """
+        name = f"{self.iid} {self.pt}"
+        return f"{name} {self.product_id}" if self.product_id else name
+
     @property
     def key(self) -> str:
         """Return the canonical IHID/IID/PT identifier.

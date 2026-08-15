@@ -70,25 +70,45 @@ def computed_features(root: Path = configs.COVERAGE_ROOT) -> set[tuple[str, str]
     }
 
 
-def catalogued_sets(
-    root: Path = configs.ARTIFACTS_ROOT,
-) -> list[tuple[str, str, str]]:
+def _summary_table(path: Path) -> pa.Table:
+    """Read a summary file, refusing one written before the current schema.
+
+    Artifacts older than the set identifier were also measured before the
+    union was corrected, so their coverage figures are wrong as well as their
+    schema. Saying which is far more use than the column-not-found the reader
+    would otherwise raise.
+
+    Args:
+        path: The summary parquet file.
+
+    Returns:
+        The table, under the current schema.
+
+    Raises:
+        ValueError: When the file predates the current schema.
+    """
+    if "set_key" not in pq.read_schema(path).names:
+        raise ValueError(
+            f"{path} was written by an older pipeline and its coverage figures "
+            "are superseded; recompute it before reading."
+        )
+    return pq.read_table(path, schema=SUMMARY)
+
+
+def catalogued_sets(root: Path = configs.ARTIFACTS_ROOT) -> list[str]:
     """Return every instrument set the computed artifacts hold anywhere.
 
     Args:
         root: The artifacts root directory holding the catalogue index.
 
     Returns:
-        The instrument host, instrument, and product type of each set, in the
-        order the index first mentions it, and empty when there is no index.
+        The identifier of each set, in the order the index first mentions it,
+        and empty when there is no index.
     """
     path = layout.catalog_summary_path(root)
     if not path.exists():
         return []
-    table = pq.read_table(path, columns=["ihid", "iid", "pt"])
-    return list(
-        dict.fromkeys(zip(*(table.column(c).to_pylist() for c in table.schema.names)))
-    )
+    return list(dict.fromkeys(_summary_table(path).column("set_key").to_pylist()))
 
 
 def load_feature(
@@ -130,9 +150,7 @@ def load_feature(
 
 
 def _unobserved(
-    measured: Sequence[SetCoverage],
-    catalogued: Sequence[tuple[str, str, str]],
-    directory: Path,
+    measured: Sequence[SetCoverage], catalogued: Sequence[str], directory: Path
 ) -> list[SetCoverage]:
     """Build an empty entry for every set with no measurement of this feature.
 
@@ -152,9 +170,7 @@ def _unobserved(
     """
     if not measured:
         return []
-    known = {
-        (entry.summary.ihid, entry.summary.iid, entry.summary.pt) for entry in measured
-    }
+    known = {entry.summary.set_key for entry in measured}
     reference = replace(
         measured[0].summary,
         covered_km2=0.0,
@@ -164,14 +180,20 @@ def _unobserved(
         t_last=max(entry.summary.t_last for entry in measured),
         span_days=0.0,
     )
+    missing = [InstrumentSet.from_key(key) for key in catalogued if key not in known]
     return [
         SetCoverage(
             events=[],
-            summary=replace(reference, ihid=ihid, iid=iid, pt=pt),
-            pending=layout.has_metadata(directory, InstrumentSet(ihid, iid, pt)),
+            summary=replace(
+                reference,
+                set_key=absent.key,
+                ihid=absent.ihid,
+                iid=absent.iid,
+                pt=absent.pt,
+            ),
+            pending=layout.has_metadata(directory, absent),
         )
-        for ihid, iid, pt in catalogued
-        if (ihid, iid, pt) not in known
+        for absent in missing
     ]
 
 
@@ -190,7 +212,7 @@ def _load_set(events_path: Path) -> SetCoverage | None:
     )
     if not summary_path.exists():
         return None
-    summary = pq.read_table(summary_path, schema=SUMMARY).to_pylist()
+    summary = _summary_table(summary_path).to_pylist()
     events = pq.read_table(events_path, schema=EVENTS).to_pylist()
     return SetCoverage(
         events=[Event(**row) for row in events], summary=Summary(**summary[0])

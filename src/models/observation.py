@@ -7,6 +7,29 @@ from datetime import datetime
 
 from shapely.geometry.base import BaseGeometry
 
+from models.feature import Feature
+
+
+@dataclass(frozen=True, slots=True)
+class LoadedSet[T]:
+    """One instrument set's observations, and what they belong to.
+
+    The set is named by the key the run asked ODE for rather than by the
+    product type its records carry, because a run can narrow one product type
+    to a single observing mode and the records cannot tell which one was meant.
+
+    Attributes:
+        feature: The feature box the records were downloaded for.
+        set_key: The instrument set identifier the records were asked for by.
+        observations: The set's observations, in chronological order.
+        discarded: How many records could not be used.
+    """
+
+    feature: Feature
+    set_key: str
+    observations: list[T]
+    discarded: int = 0
+
 
 @dataclass(frozen=True, slots=True)
 class Observation:

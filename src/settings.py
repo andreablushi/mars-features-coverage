@@ -107,16 +107,7 @@ def _instrument_set(key: Any) -> InstrumentSet:
         ValueError: When the triple does not carry exactly three parts.
     """
     raw = key if isinstance(key, str) else "/".join(str(part) for part in key)
-    triple, _, pattern = raw.partition(":")
-    parts = triple.split("/")
-    if len(parts) != 3 or not all(part.strip() for part in parts):
-        raise ValueError(
-            f"instrument set should be IHID/IID/PT or IHID/IID/PT:PATTERN, "
-            f"found {key!r}"
-        )
-    return InstrumentSet(
-        *(part.strip() for part in parts), product_id=pattern.strip() or None
-    )
+    return InstrumentSet.from_key(raw)
 
 
 def _positive_float(value: Any, name: str) -> float:

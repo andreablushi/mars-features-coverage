@@ -9,36 +9,36 @@ import numpy as np
 from analysis.coverage import union
 from analysis.geometry.region import FeatureRegion
 from models.feature import Feature
-from models.observation import ProjectedObservation
+from models.observation import LoadedSet, ProjectedObservation
 from models.results import Event, Summary
 
 
 def measure_set(
-    feature: Feature,
+    loaded: LoadedSet[ProjectedObservation],
     region: FeatureRegion,
-    observations: Sequence[ProjectedObservation],
     *,
     cumulative_union: bool = True,
 ) -> tuple[list[Event], Summary]:
     """Measure how one instrument set covers one feature over time.
 
     Args:
-        feature: The feature the coverage is measured against.
+        loaded: The set's projected observations in chronological order, with
+            the feature and the set identifier they belong to.
         region: That feature projected into equal-area metres.
-        observations: The set's observations in chronological order.
         cumulative_union: Whether to accumulate the running union. When False
             every cumulative column is left empty.
 
     Returns:
         One event row per observation and the summary row for the set.
     """
+    feature, observations = loaded.feature, loaded.observations
     fresh, cumulative = _running_totals(region, observations, cumulative_union)
     events = [
         _observation_row(feature, observation, region, fresh, cumulative, position)
         for position, observation in enumerate(observations)
     ]
     return events, _set_summary_row(
-        feature, observations[0].set_key, region, cumulative, events
+        feature, loaded.set_key, observations[0].set_key, region, cumulative, events
     )
 
 
@@ -110,6 +110,7 @@ def _observation_row(
 
 def _set_summary_row(
     feature: Feature,
+    set_key: str,
     key: tuple[str, str, str],
     region: FeatureRegion,
     cumulative: np.ndarray | None,
@@ -119,6 +120,7 @@ def _set_summary_row(
 
     Args:
         feature: The feature the coverage was measured against.
+        set_key: The instrument set identifier the records were asked for by.
         key: The instrument host, instrument, and product type.
         region: That feature projected into equal-area metres.
         cumulative: The running total behind every observation, or None when no
@@ -134,6 +136,7 @@ def _set_summary_row(
     return Summary(
         feature_class=feature.feature_class,
         feature_name=feature.name,
+        set_key=set_key,
         ihid=key[0],
         iid=key[1],
         pt=key[2],

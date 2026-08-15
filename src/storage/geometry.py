@@ -11,12 +11,12 @@ from shapely import from_wkb, to_wkb
 
 from analysis import configs
 from models.feature import Feature
-from models.observation import ProjectedObservation
+from models.observation import LoadedSet, ProjectedObservation
 from storage import parquet
 from storage.schemas import GEOMETRY, GEOMETRY_VERSION_KEY
 
 
-def load(path: Path, source: Path) -> tuple[Feature, list[ProjectedObservation]] | None:
+def load(path: Path, source: Path) -> LoadedSet[ProjectedObservation] | None:
     """Read projected footprints back from the cache.
 
     Args:
@@ -24,8 +24,9 @@ def load(path: Path, source: Path) -> tuple[Feature, list[ProjectedObservation]]
         source: The metadata file the cache was built from.
 
     Returns:
-        The feature box and its projected observations, or None when the cache
-        is missing or older than the metadata it came from.
+        The set as cached, reporting no discards because only a set that
+        yielded something is ever cached, or None when the cache is missing or
+        older than the metadata it came from.
     """
     if not path.exists() or path.stat().st_mtime < source.stat().st_mtime:
         return None
@@ -45,7 +46,7 @@ def load(path: Path, source: Path) -> tuple[Feature, list[ProjectedObservation]]
         east_lon=columns["east_lon"][0],
     )
     shapes = from_wkb(np.asarray(columns["wkb"], dtype=object))
-    return box, [
+    observations = [
         ProjectedObservation(
             pdsid=pdsid,
             ihid=ihid,
@@ -70,16 +71,23 @@ def load(path: Path, source: Path) -> tuple[Feature, list[ProjectedObservation]]
             strict=True,
         )
     ]
+    return LoadedSet(
+        feature=box, set_key=columns["set_key"][0], observations=observations
+    )
 
 
 def save(
-    path: Path, box: Feature, observations: Sequence[ProjectedObservation]
+    path: Path,
+    box: Feature,
+    set_key: str,
+    observations: Sequence[ProjectedObservation],
 ) -> None:
     """Write projected footprints to the cache.
 
     Args:
         path: The geometry cache file.
         box: The feature the footprints were projected onto.
+        set_key: The instrument set the footprints were downloaded for.
         observations: The projected observations to store.
 
     Returns:
@@ -89,6 +97,7 @@ def save(
     columns = {
         "feature_class": [box.feature_class] * count,
         "feature_name": [box.name] * count,
+        "set_key": [set_key] * count,
         "min_lat": [box.min_lat] * count,
         "max_lat": [box.max_lat] * count,
         "west_lon": [box.west_lon] * count,
