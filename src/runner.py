@@ -12,6 +12,7 @@ from concurrent.futures import (
     as_completed,
 )
 from contextlib import closing
+from pathlib import Path
 from typing import TypeVar
 
 from rich.console import Console
@@ -26,7 +27,7 @@ from download.api import catalog as ode_catalog
 from download.api.client import ODEClient
 from download.selection.instruments import verify_sets
 from download.tasks import run_job as download_set
-from models.job import CoverageOutcome, DownloadOutcome
+from models.job import CoverageOutcome, DownloadOutcome, DownloadPlan
 from models.progress import CoverageSummary, DownloadSummary, Outcome, ProgressEvent
 from models.settings import CoverageSettings, DownloadSettings, PipelineSettings
 from storage import catalog, layout
@@ -46,7 +47,8 @@ def run(
         jobs: The work to run.
         execute: What to call for one job, returning its outcome. It must never
             raise, since a stage reports a failure as an outcome rather than by
-            stopping the run.
+            stopping the run, and it must be picklable when the pool runs on
+            processes, which rules out a lambda or a local function.
         pool: The pool to run on, owned and shut down by the caller.
 
     Yields:
@@ -114,13 +116,33 @@ def _drain(started: Sequence[Future[CoverageOutcome]]) -> Iterator[ProgressEvent
         yield ProgressEvent(completed=completed, outcome=future.result())
 
 
-def download_and_compute(
+def _pending(plan: DownloadPlan) -> list[Path]:
+    """Return the sets already on disk that this run will not download again.
+
+    A set the download is about to rewrite is measured once it lands rather
+    than now, so it is left out here and cannot be computed twice.
+
+    Args:
+        plan: The download plan, naming every file this run will write.
+
+    Returns:
+        The stored metadata files to weigh for the coverage backlog.
+    """
+    rewriting = {job.output_path for job in plan.jobs}
+    return [source for source in layout.find_sets() if source not in rewriting]
+
+
+def survey(
     download: DownloadSettings,
     coverage: CoverageSettings,
     pipeline: PipelineSettings,
     console: Console,
 ) -> tuple[DownloadSummary, list[CoverageOutcome]]:
-    """Download every selected set, measuring each one as it arrives.
+    """Download every set still missing and measure every set not yet measured.
+
+    Both gaps are filled by the same run: what is already on disk is submitted
+    before the first download lands, so a set an earlier run downloaded but
+    never measured is picked up here rather than waiting to be fetched again.
 
     Args:
         download: The settled download choices.
@@ -148,13 +170,17 @@ def download_and_compute(
             point_radius_deg=download.point_radius_deg,
             force=download.force,
         )
+        backlog = coverage_planner.build_plan(_pending(plan), force=coverage.force)
         describe_download(plan, download.workers, console)
-        if not plan.jobs:
-            return DownloadSummary(0, 0, time.monotonic() - started_at), []
+        describe_coverage(backlog, coverage.workers, console)
         with (
             ProcessPoolExecutor(max_workers=coverage.workers) as computing,
             ThreadPoolExecutor(max_workers=download.workers) as fetching,
         ):
+            futures.extend(
+                computing.submit(compute_coverage, job, coverage.cumulative_union)
+                for job in backlog.jobs
+            )
             stream = _submitting(
                 _collecting(
                     run(
@@ -179,35 +205,6 @@ def download_and_compute(
         elapsed=time.monotonic() - started_at,
     )
     return summary, [future.result() for future in futures]
-
-
-def compute_only(coverage: CoverageSettings, console: Console) -> list[CoverageOutcome]:
-    """Measure everything already on disk, downloading nothing.
-
-    Args:
-        coverage: The settled coverage choices.
-        console: The console to render on.
-
-    Returns:
-        Every finished coverage outcome.
-    """
-    plan = coverage_planner.build_plan(layout.find_sets(), force=coverage.force)
-    describe_coverage(plan, coverage.workers, console)
-    if not plan.jobs:
-        return []
-    outcomes: list[CoverageOutcome] = []
-    with ProcessPoolExecutor(max_workers=coverage.workers) as pool:
-        stream = _collecting(
-            run(
-                plan.jobs,
-                lambda job: compute_coverage(job, coverage.cumulative_union),
-                pool,
-            ),
-            outcomes,
-        )
-        with closing(stream) as events:
-            progress.render(events, len(plan.jobs), "coverage", console)
-    return outcomes
 
 
 def discard_metadata(outcomes: Sequence[CoverageOutcome]) -> int:

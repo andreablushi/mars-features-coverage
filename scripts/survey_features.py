@@ -20,7 +20,9 @@ def main() -> int:
 
     Every choice a run makes is read from the config file, so the same file
     describes what was run and what to run again. There is nothing to pass
-    here, and nothing a flag could quietly change between two runs.
+    here, and nothing a flag could quietly change between two runs. One run
+    fills both gaps: it downloads what is missing and measures what is
+    unmeasured, whichever earlier run left them behind.
 
     Returns:
         A process exit code, non zero when either half had a failure.
@@ -30,12 +32,9 @@ def main() -> int:
     console = Console()
     started_at = time.monotonic()
 
-    if choices.coverage_only:
-        downloaded, outcomes = None, runner.compute_only(coverage, console)
-    else:
-        downloaded, outcomes = runner.download_and_compute(
-            settings.download(), coverage, choices, console
-        )
+    downloaded, outcomes = runner.survey(
+        settings.download(), coverage, choices, console
+    )
 
     if not choices.keep_metadata:
         removed = runner.discard_metadata(outcomes)
@@ -50,7 +49,7 @@ def main() -> int:
         coverage_planner.unfinished(layout.find_sets()),
         console,
     )
-    return 1 if totals.failed or (downloaded and downloaded.failed) else 0
+    return 1 if totals.failed or downloaded.failed else 0
 
 
 if __name__ == "__main__":

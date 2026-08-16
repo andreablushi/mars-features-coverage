@@ -242,10 +242,6 @@ def pipeline(path: Path = configs.CONFIG_PATH) -> PipelineSettings:
             _first(config.get("keep_metadata"), configs.DEFAULT_KEEP_METADATA),
             "keep_metadata",
         ),
-        coverage_only=_boolean(
-            _first(config.get("coverage_only"), configs.DEFAULT_COVERAGE_ONLY),
-            "coverage_only",
-        ),
         refresh_catalog=_boolean(
             _first(config.get("refresh_catalog"), configs.DEFAULT_REFRESH_CATALOG),
             "refresh_catalog",

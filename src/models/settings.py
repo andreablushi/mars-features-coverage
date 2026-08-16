@@ -56,12 +56,9 @@ class PipelineSettings:
         keep_metadata: Whether to keep a set's downloaded JSONL once its
             coverage is computed. Deleting it makes the artifacts final, since
             nothing can be recomputed without downloading again.
-        coverage_only: Whether to skip downloading and only measure what is
-            already on disk.
         refresh_catalog: Whether to re-fetch the ODE catalogues rather than
             reading the cached copies.
     """
 
     keep_metadata: bool
-    coverage_only: bool
     refresh_catalog: bool

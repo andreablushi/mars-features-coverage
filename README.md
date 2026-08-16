@@ -20,15 +20,15 @@ uv run python scripts/survey_features.py
 
 One entry point runs both halves, and takes no arguments: every choice comes
 from `config.yaml`, so the same file describes what was run and what to run
-again. Set `pipeline.coverage_only` to measure what is already on disk without
-downloading. Each instrument set's coverage is computed as soon as its metadata
-arrives, so the download waits on the network while the
-measurement uses the cores. Download writes one JSONL file per feature and
-instrument set, coverage turns those into parquet: a row per observation saying
-what it covered and what it newly added, and a row per set saying how much of
-the feature it reached and over what span. Neither half redoes finished work, so
-an interrupted run resumes where it stopped and the `force` keys recompute
-anyway.
+again. A run fills both gaps at once, downloading every set still missing and
+measuring every set not yet measured, so an interrupted run closes its own gaps
+by being run again. What is already on disk is submitted before the first
+download lands, and each new set is computed as soon as its metadata arrives, so
+the download waits on the network while the measurement uses the cores. Download
+writes one JSONL file per feature and instrument set, coverage turns those into
+parquet: a row per observation saying what it covered and what it newly added,
+and a row per set saying how much of the feature it reached and over what span.
+Neither half redoes finished work, and the `force` keys recompute anyway.
 
 Coverage is measured against the feature's bounding box, in an equal-area
 projection centred on it, as an exact union rather than a sampled grid.

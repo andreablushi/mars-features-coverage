@@ -1,10 +1,9 @@
+# A run downloads every set still missing and measures every set not yet
+# measured, so the gaps an interrupted run left behind close by running again.
 pipeline:
   # Keep each set's metadata once its coverage is computed. Off makes the
   # artifacts final: nothing recomputes without downloading again.
   keep_metadata: true
-
-  # Measure what is already on disk, downloading nothing.
-  coverage_only: false
 
   # Re-fetch the ODE feature and instrument catalogues instead of the cache.
   refresh_catalog: false

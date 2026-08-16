@@ -57,7 +57,7 @@ def describe_coverage(plan: CoveragePlan, workers: int, console: Console) -> Non
 
 
 def print_summary(
-    download: DownloadSummary | None,
+    download: DownloadSummary,
     coverage: CoverageSummary,
     indexed: int,
     missing: Sequence[Path],
@@ -66,7 +66,7 @@ def print_summary(
     """Print the totals for a finished run.
 
     Args:
-        download: The download half's totals, or None when it was skipped.
+        download: The download half's totals.
         coverage: The coverage half's totals.
         indexed: Summary rows gathered into the catalogue index.
         missing: The instrument sets that still have no artifact on disk.
@@ -75,11 +75,10 @@ def print_summary(
     Returns:
         None.
     """
-    if download is not None:
-        console.print(
-            f"downloaded {download.ran} sets, {download.failed} failed, "
-            f"in {download.elapsed:.1f}s"
-        )
+    console.print(
+        f"downloaded {download.ran} sets, {download.failed} failed, "
+        f"in {download.elapsed:.1f}s"
+    )
     console.print(
         f"computed {coverage.computed} sets, {coverage.events:,} observation rows, "
         f"{coverage.failed} failed, {indexed:,} rows indexed, "

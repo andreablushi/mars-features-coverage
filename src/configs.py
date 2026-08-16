@@ -28,9 +28,6 @@ CONFIG_SECTION = "pipeline"
 # artifacts final, since nothing can be recomputed without downloading again.
 DEFAULT_KEEP_METADATA = True
 
-# Measure what is already on disk without downloading anything first
-DEFAULT_COVERAGE_ONLY = False
-
 # Read the cached ODE catalogues rather than fetching them again
 DEFAULT_REFRESH_CATALOG = False
 
