@@ -14,10 +14,6 @@ RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
 PAGE_SIZE = 5000
 PAGE_ORDER = "oba"
 
-# ODE answers a query it cannot place with a Success status and a count of -1
-# rather than an error, so anything below zero is a failure wearing a success
-NO_COUNT = -1
-
 # A feature running through every longitude is asked for in two halves,
 # because a box from a longitude back to itself has no width and ODE
 # returns the no-count for it
