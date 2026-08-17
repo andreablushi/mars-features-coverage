@@ -10,8 +10,7 @@ from rich.console import Console
 import runner
 import settings
 from analysis import planner as coverage_planner
-from cli import progress
-from cli.console import print_summary
+from console import print_interrupted, print_summary
 from models.progress import CoverageSummary, DownloadSummary
 from storage import metadata, summary
 
@@ -52,5 +51,5 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except KeyboardInterrupt:
-        progress.print_interrupted("jobs")
+        print_interrupted("jobs")
         raise SystemExit(130) from None

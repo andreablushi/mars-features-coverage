@@ -24,8 +24,8 @@ again. Every details about each option is in `config.yaml`'s comments.
 
 ## Exploratory Notebook
 Each half is `configs.py` for constants, a planner that turns discovery into
-jobs, a runner that executes them and only yields progress events, and a `cli/`
-that renders. Runners never print.
+jobs, a runner that executes them and only yields progress events, and
+`console.py` that renders. Runners never print.
 ```bash
 uv run --group notebook jupyter lab notebooks/coverage.ipynb
 ```
@@ -45,7 +45,8 @@ src/
   configs.py          paths, and what the project's files are called
   settings.py         reads config.yaml and checks what it holds
   runner.py           the pooled runner and the two halves it drives
-  cli/                the progress bar and everything printed
+  console.py          the progress bar and everything printed
+  utils.py            helpers shared across the pipeline
   models/             what the stages pass around: features, jobs, results
   storage/            paths, slugs, atomic writes, JSONL, parquet, schemas
   download/           ODE metadata download: api, selection

@@ -17,8 +17,7 @@ from rich.console import Console
 
 from analysis import planner as coverage_planner
 from analysis.tasks import run_job as compute_coverage
-from cli import progress
-from cli.console import describe_coverage, describe_download
+from console import describe_coverage, describe_download, render
 from download import planner as download_planner
 from download.api import catalog as ode_catalog
 from download.api.client import ODEClient
@@ -146,9 +145,9 @@ def run_pipeline(
                 force=settings.force,
             )
             with closing(stream) as events:
-                progress.render(events, len(plan.jobs), "download", console)
+                render(events, len(plan.jobs), "download", console)
             if futures:
-                progress.render(
+                render(
                     (
                         ProgressEvent(completed=done, outcome=future.result())
                         for done, future in enumerate(futures, start=1)
