@@ -17,7 +17,7 @@ import settings
 PROJECT_NAME = "mars-features-coverage"
 FUNCTION_NAME = "features-coverage"
 REPOSITORY = "https://github.com/andreablushi/mars-features-coverage"
-HANDLER = "scripts.dh_pipeline:measure"
+HANDLER = "scripts.dh_pipeline:save_artifacts"
 PYTHON_VERSION = "PYTHON3_13"
 SOURCE_ROOT = "/shared"
 COMPLETED = "COMPLETED"
@@ -30,15 +30,8 @@ SUMMARY_NAME = "coverage-summary"
 
 
 @handler(outputs=[ARTIFACTS_NAME, SUMMARY_NAME])
-def measure(project):
+def save_artifacts(project):
     """Run the pipeline on DigitalHub and publish everything it left on disk.
-
-    The projected footprints are dropped before anything is uploaded. They are
-    a cache the run rebuilds from the records whenever the projection rule
-    changes, and they outweigh the measurements they produced by more than ten
-    to one. The records themselves are published beside the measurements, as a
-    separate artifact rather than a named output, so that a run configured to
-    drop them still returns everything the decorator names.
 
     Args:
         project: The DigitalHub project, injected by the runtime, which the
@@ -125,11 +118,6 @@ def _parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     """Register a version of the function from a pushed commit, and run it.
-
-    The requirements are installed into an execution image rather than at
-    startup, so the image is built before the job can import anything this
-    repository depends on. The job is told where the clone puts the code, so
-    that the handler imports the pipeline the same way any other module does.
 
     Returns:
         A process exit code, non zero when the build, or a waited-for run, did

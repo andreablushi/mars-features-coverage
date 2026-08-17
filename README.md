@@ -75,7 +75,6 @@ coverage-summary     summary.parquet again, as a table dataitem
 
 ## Downloading the results
 
-
 `dhcli` makes each of the three entities available on your local machine, so
 you can run the analysis locally. Each downloads the latest version.
 
