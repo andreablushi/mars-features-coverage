@@ -7,9 +7,9 @@ import time
 
 from rich.console import Console
 
+import planner
 import runner
 import settings
-from analysis import planner as coverage_planner
 from console import print_interrupted, print_summary
 from models.progress import CoverageSummary, DownloadSummary
 from storage import metadata, summary
@@ -17,8 +17,6 @@ from storage import metadata, summary
 
 def main() -> int:
     """Download ODE metadata for geological features and measure their coverage.
-
-    Every choice a run makes is read from the config file.
 
     Returns:
         A process exit code, non zero when either half had a failure.
@@ -41,7 +39,7 @@ def main() -> int:
         downloaded,
         computed,
         summary.reindex(),
-        coverage_planner.unfinished(metadata.find_sets()),
+        planner.unfinished(metadata.find_sets()),
         console,
     )
     return 1 if computed.failed or downloaded.failed else 0

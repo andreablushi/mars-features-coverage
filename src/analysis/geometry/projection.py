@@ -10,16 +10,51 @@ from shapely import from_wkt
 from analysis.geometry import footprints
 from analysis.geometry.region import FeatureRegion
 from analysis.utils import geodesy, swath
-from models.observation import Observation, ProjectedObservation
+from models.job import Job
+from models.observation import LoadedSet, Observation, ProjectedObservation
+from storage import caching, records
+
+
+def load_projected(
+    job: Job,
+) -> tuple[LoadedSet[ProjectedObservation], FeatureRegion] | None:
+    """Load one set's projected footprints, from the cache when it is valid.
+
+    A cache hit reports no discards. Only a set that yielded something is ever
+    cached, so the sets whose discards matter are always read afresh.
+
+    Args:
+        job: The instrument set being computed.
+
+    Returns:
+        The projected set and the region it was measured against, or None when
+        the set holds no records.
+    """
+    cached = caching.load(job.geometry_path, job.source)
+    if cached is not None:
+        return cached, FeatureRegion(cached.feature)
+    loaded = records.load_set(job.source)
+    if loaded is None:
+        return None
+    region = FeatureRegion(loaded.feature)
+    projected, missed = project(region, loaded.observations)
+    if projected:
+        caching.save(job.geometry_path, loaded.feature, loaded.set_key, projected)
+    return (
+        LoadedSet(
+            feature=loaded.feature,
+            set_key=loaded.set_key,
+            observations=projected,
+            discarded=loaded.discarded + missed,
+        ),
+        region,
+    )
 
 
 def project(
     region: FeatureRegion, observations: Sequence[Observation]
 ) -> tuple[list[ProjectedObservation], int]:
     """Project every observation's footprint onto its feature.
-
-    An observation whose footprint misses the feature entirely is dropped, since
-    a zero reads as a measurement of no ground rather than the absence of one.
 
     Args:
         region: The projected feature the footprints are cut to.
@@ -92,10 +127,6 @@ def _track_widths(
 def _track_length(wkt: str) -> float:
     """Return the full ground length of a track footprint.
 
-    The whole track is measured, not the part inside the feature, because the
-    length is only used with the observation's duration to recover the ground
-    speed the spacecraft flew at.
-
     Args:
         wkt: The footprint as well-known text.
 
@@ -103,7 +134,7 @@ def _track_length(wkt: str) -> float:
         The summed length in metres.
     """
     total = 0.0
-    for part in footprints.flatten(footprints.parse(wkt)):
+    for part in footprints.flatten(from_wkt(wkt)):
         if part.geom_type != "LineString":
             continue
         coords = np.asarray(part.coords)

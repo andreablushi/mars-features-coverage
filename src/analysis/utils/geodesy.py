@@ -24,11 +24,6 @@ def normalise_longitude(lon: np.ndarray | float) -> np.ndarray:
 def longitude_span(west_lon: float, east_lon: float) -> float:
     """Return the eastward span in degrees from a west to an east longitude.
 
-    A box whose east longitude is the smaller number wraps the antimeridian,
-    so the span is measured the long way round rather than as a difference.
-    Equal longitudes mean a feature that runs through all of them, which is how
-    the catalogue writes a ring around a pole, so they span the full circle.
-
     Args:
         west_lon: The westernmost longitude in degrees.
         east_lon: The easternmost longitude in degrees.
@@ -78,12 +73,6 @@ def bbox_ring(
     min_lat: float, max_lat: float, west_lon: float, east_lon: float
 ) -> tuple[np.ndarray, np.ndarray]:
     """Return a densified closed lon/lat ring tracing a bounding box.
-
-    The edges are sampled rather than drawn corner to corner because a box
-    edge is straight in lon/lat but curved once projected, so a four point
-    ring would understate the enclosed area. Longitudes are left unwrapped so
-    the ring stays monotonic across the antimeridian; the projection consumes
-    them through trigonometric functions, which are periodic.
 
     Args:
         min_lat: The southernmost latitude in degrees.

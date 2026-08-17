@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
 
-from models.job import Job
+import configs
+from download.selection.features import select_features
+from models.feature import Feature
+from models.instrument import InstrumentSet
+from models.job import Job, Plan
+from storage import paths
 
 
-def outstanding[T](
+def _outstanding[T](
     candidates: Iterable[T],
     output_for: Callable[[T], Path],
     job_for: Callable[[T, Path], Job],
@@ -35,3 +40,106 @@ def outstanding[T](
             continue
         jobs.append(job_for(candidate, output))
     return tuple(jobs), skipped
+
+
+def download_plan(
+    features: Sequence[Feature],
+    instrument_sets: Sequence[InstrumentSet],
+    out_root: Path = configs.METADATA_ROOT,
+    *,
+    names: Sequence[str] | None = None,
+    force: bool = False,
+) -> Plan:
+    """Select features and build the download jobs still needed for a run.
+
+    Args:
+        features: The full feature catalog.
+        instrument_sets: The instrument sets to download for each feature.
+        out_root: The metadata output root directory.
+        names: Optional feature names to keep.
+        force: When True, include jobs whose output file already exists.
+
+    Returns:
+        The plan describing the selection and the jobs to run.
+    """
+    usable, sizeless = select_features(features, names=names)
+    pairs = [
+        (feature, instrument_set)
+        for feature in usable
+        for instrument_set in instrument_sets
+    ]
+    jobs, skipped = _outstanding(
+        pairs,
+        lambda pair: paths.metadata_file(out_root, *pair),
+        lambda pair, output: Job(
+            feature=pair[0], instrument_set=pair[1], output_path=output
+        ),
+        force=force,
+    )
+    return Plan(
+        jobs=jobs,
+        feature_count=len(usable),
+        set_count=len(instrument_sets),
+        skipped_existing=skipped,
+        sizeless_features=tuple(feature.name for feature in sizeless),
+    )
+
+
+def coverage_plan(
+    sources: Sequence[Path],
+    coverage_root: Path = configs.COVERAGE_ROOT,
+    geometry_root: Path = configs.GEOMETRY_ROOT,
+    *,
+    force: bool = False,
+) -> Plan:
+    """Build the coverage jobs still needed for a run.
+
+    The jobs are ordered largest first, so the pool starts the long ones early:
+    the sets differ in size by orders of magnitude, and in discovery order the
+    pool can pick the largest up last and grind on it with every worker idle.
+
+    Args:
+        sources: The instrument set metadata files discovered on disk.
+        coverage_root: The coverage artifacts root directory.
+        geometry_root: The projected geometry cache root directory.
+        force: When True, recompute sets that are already done.
+
+    Returns:
+        The plan describing the discovery and the jobs to run.
+    """
+    jobs, skipped = _outstanding(
+        sorted(sources, key=lambda path: -path.stat().st_size),
+        lambda source: paths.set_summary_path(coverage_root, source),
+        lambda source, output: Job(
+            source=source,
+            events_path=paths.events_path(coverage_root, source),
+            summary_path=output,
+            geometry_path=paths.geometry_path(geometry_root, source),
+        ),
+        force=force,
+    )
+    return Plan(
+        jobs=jobs,
+        feature_count=len({source.parent for source in sources}),
+        set_count=len(sources),
+        skipped_existing=skipped,
+    )
+
+
+def unfinished(
+    sources: Sequence[Path], coverage_root: Path = configs.COVERAGE_ROOT
+) -> tuple[Path, ...]:
+    """Return the instrument sets that still have no coverage artifact.
+
+    Args:
+        sources: The instrument set metadata files discovered on disk.
+        coverage_root: The coverage artifacts root directory.
+
+    Returns:
+        The metadata files with no summary beside them, in discovery order.
+    """
+    return tuple(
+        source
+        for source in sources
+        if not paths.set_summary_path(coverage_root, source).exists()
+    )

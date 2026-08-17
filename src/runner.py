@@ -15,10 +15,9 @@ from pathlib import Path
 
 from rich.console import Console
 
-from analysis import planner as coverage_planner
+import planner
 from analysis.measuring import run_job as compute_coverage
 from console import describe_coverage, describe_download, render
-from download import planner as download_planner
 from download.api.client import ODEClient
 from download.fetching import run_job as download_set
 from download.selection.instruments import verify_sets
@@ -74,7 +73,7 @@ def _measuring(
         if not event.outcome.failed:
             source = event.outcome.job.output_path
             if source.stat().st_size:
-                for job in coverage_planner.build_plan([source], force=force).jobs:
+                for job in planner.coverage_plan([source], force=force).jobs:
                     started.append(pool.submit(compute_coverage, job))
         yield event
 
@@ -116,13 +115,13 @@ def run_pipeline(
             settings.instrument_sets,
             catalog.load_instrument_sets(client, refresh=refresh),
         )
-        plan = download_planner.build_plan(
+        plan = planner.download_plan(
             features,
             settings.instrument_sets,
             names=settings.feature_names,
             force=settings.force,
         )
-        backlog = coverage_planner.build_plan(_pending(plan), force=settings.force)
+        backlog = planner.coverage_plan(_pending(plan), force=settings.force)
         describe_download(plan, settings.workers, console)
         describe_coverage(backlog, settings.workers, console)
         with (

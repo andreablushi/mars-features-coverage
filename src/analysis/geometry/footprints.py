@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 
 import numpy as np
-from shapely import box, from_wkt, get_parts, get_type_id, intersection, is_empty
+from shapely import box, get_parts, get_type_id, intersection, is_empty
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
 from analysis.utils import geodesy
@@ -13,18 +13,6 @@ from analysis.utils import geodesy
 _LINESTRING = 1
 _POLYGON = 3
 _FIRST_MULTIPART = 4
-
-
-def parse(wkt: str) -> BaseGeometry:
-    """Parse an ODE footprint into a geometry.
-
-    Args:
-        wkt: The well-known-text footprint, in -180 to 180 degree longitudes.
-
-    Returns:
-        The parsed geometry.
-    """
-    return from_wkt(wkt)
 
 
 def flatten(geom: BaseGeometry) -> list[BaseGeometry]:
@@ -52,10 +40,6 @@ def clip_boxes(
     margin_deg: float = 0.0,
 ) -> BaseGeometry:
     """Build the lon/lat region a footprint is cut against.
-
-    A box spanning the antimeridian becomes two rectangles, because ODE splits
-    its own footprints there and both sides must be kept. The margin widens the
-    region so a track clipped now still covers the box edge once buffered.
 
     Args:
         min_lat: The southernmost latitude in degrees.

@@ -23,17 +23,15 @@ from `config.yaml`, so the same file describes what was run and what to run
 again. Every details about each option is in `config.yaml`'s comments.
 
 ## Exploratory Notebook
-Each half is `configs.py` for constants, a planner that turns discovery into
-jobs, a runner that executes them and only yields progress events, and
-`console.py` that renders. Runners never print.
-```bash
-uv run --group notebook jupyter lab notebooks/coverage.ipynb
-```
 
 `notebooks/coverage.ipynb` reads the artifacts one feature at a time. Pick a
 feature, confirm, and the cells below fill themselves in. An instrument that
 reached none of the feature is still drawn, at zero, so a missing line always
 means something. The notebook explains the rest.
+
+```bash
+uv run --group notebook jupyter lab notebooks/coverage.ipynb
+```
 
 ## Structure
 

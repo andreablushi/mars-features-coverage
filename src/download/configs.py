@@ -22,7 +22,7 @@ LONGITUDE_HALVES = ((0.0, 180.0), (180.0, 360.0))
 # Half the width of the box put around a point feature (15Km in mars degrees)
 POINT_RADIUS_DEG = 0.25
 
-# The point features worth sizing: a landing site has no extent to lose, so the box is its definition.
+# The point features worth sizing: a landing site has no extent to lose.
 SIZED_POINT_CLASSES = frozenset({"Rovers and Landers"})
 
 # Localization modes for the products API
