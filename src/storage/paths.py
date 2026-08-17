@@ -7,7 +7,7 @@ from pathlib import Path
 import configs
 from models.feature import Feature
 from models.instrument import InstrumentSet
-from storage.files import slugify
+from utils import slugify
 
 
 def metadata_file(root: Path, feature: Feature, instrument_set: InstrumentSet) -> Path:
@@ -27,9 +27,6 @@ def metadata_file(root: Path, feature: Feature, instrument_set: InstrumentSet) -
 
 def feature_artifacts_dir(root: Path, feature_class: str, name: str) -> Path:
     """Return where one feature's artifacts live, from its catalogue names.
-
-    Reading starts from a name rather than from a metadata path, so this is the
-    one place that turns a name back into the slugs the tree is keyed by.
 
     Args:
         root: The artifacts subtree the path is built under.
@@ -71,9 +68,6 @@ def events_path(root: Path, source: Path) -> Path:
 def set_summary_path(root: Path, source: Path) -> Path:
     """Return the summary file for one instrument set.
 
-    It is written after the events, so its presence is what marks a set as
-    fully computed when a later run decides what to skip.
-
     Args:
         root: The coverage artifacts root directory.
         source: The instrument set's metadata JSONL file.
@@ -97,19 +91,6 @@ def geometry_path(root: Path, source: Path) -> Path:
     return _mirrored(root, source.parent) / f"{source.stem}.parquet"
 
 
-def feature_summary_path(root: Path, feature_dir: Path) -> Path:
-    """Return one feature's combined summary.
-
-    Args:
-        root: The coverage artifacts root directory.
-        feature_dir: The feature's metadata directory.
-
-    Returns:
-        The path to the summary parquet file.
-    """
-    return _mirrored(root, feature_dir) / configs.SUMMARY_NAME
-
-
 def catalog_summary_path(root: Path = configs.ARTIFACTS_ROOT) -> Path:
     """Return the file holding every feature's summary rows together.
 
@@ -122,17 +103,25 @@ def catalog_summary_path(root: Path = configs.ARTIFACTS_ROOT) -> Path:
     return root / configs.SUMMARY_NAME
 
 
-def find_sets(root: Path = configs.METADATA_ROOT) -> list[Path]:
-    """Find every stored instrument set holding observations.
-
-    The download stage writes a file for every query it makes, empty ones
-    included, so a resumed download can tell what it already asked for. An
-    empty file means the instrument never saw the feature.
+def features_path(cache_dir: Path = configs.CATALOG_ROOT) -> Path:
+    """Return where the cached feature catalogue lives.
 
     Args:
-        root: The metadata root directory.
+        cache_dir: Directory holding the cached catalogue files.
 
     Returns:
-        The non-empty JSONL files, sorted, one per feature and instrument set.
+        The path to the features JSONL file, which need not exist.
     """
-    return sorted(path for path in root.glob("*/*/*.jsonl") if path.stat().st_size > 0)
+    return cache_dir / configs.FEATURES_CACHE_NAME
+
+
+def instrument_sets_path(cache_dir: Path = configs.CATALOG_ROOT) -> Path:
+    """Return where the cached instrument set catalogue lives.
+
+    Args:
+        cache_dir: Directory holding the cached catalogue files.
+
+    Returns:
+        The path to the instrument sets JSONL file, which need not exist.
+    """
+    return cache_dir / configs.INSTRUMENT_SETS_CACHE_NAME

@@ -6,22 +6,17 @@ from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
-from shapely import area, covers, difference, prepare, to_wkb, union_all
+from shapely import area, covers, prepare, union_all
 from shapely.errors import GEOSException
 from shapely.geometry.base import BaseGeometry
 
 from analysis import configs
-from analysis.coverage.tiles import TileGrid
 from analysis.geometry.region import FeatureRegion
+from analysis.geometry.tiles import TileGrid
 
 
 def _robust(operation, *shapes):
     """Run an overlay, retrying on a fine grid when exact arithmetic fails.
-
-    GEOS nodes overlays in floating point and occasionally cannot resolve a
-    near-degenerate crossing, raising rather than returning a wrong answer.
-    Snapping to SNAP_GRID_M resolves it, and at a micron on ground measured in
-    kilometres the shift is far below anything the footprints themselves claim.
 
     Args:
         operation: The shapely overlay to run.
@@ -47,40 +42,13 @@ def new_ground(region: FeatureRegion, shapes: Sequence[BaseGeometry]) -> np.ndar
         The ground in square metres each observation covered that nothing
         before it had reached, indexed as the observations were given.
     """
+    grid = TileGrid(region, shapes)
     fresh = np.zeros(len(shapes), dtype=float)
-    first = _distinct_footprints(shapes)
-    grid = TileGrid(region, [shapes[index] for index in first])
-    counted = np.zeros(first.size, dtype=float)
     with ThreadPoolExecutor(max_workers=configs.UNION_THREADS) as pool:
         for share in pool.map(lambda tile: _tile_contributions(grid, *tile), grid):
             for index, added in share:
-                counted[index] += added
-    fresh[first] = counted
+                fresh[index] += added
     return fresh
-
-
-def _distinct_footprints(shapes: Sequence[BaseGeometry]) -> np.ndarray:
-    """Return where each distinct footprint is first seen.
-
-    ODE publishes one record per data product rather than per observation, so
-    a CRISM acquisition arrives three times over with the same footprint. A
-    repeat of a footprint already seen covers no ground the first did not, and
-    that holds exactly rather than to within rounding, so the repeats are left
-    out of the union entirely and keep their zero.
-
-    Args:
-        shapes: The projected footprints, in chronological order.
-
-    Returns:
-        The ascending indices of the footprints worth accumulating.
-    """
-    seen: set[bytes] = set()
-    first = []
-    for index, blob in enumerate(to_wkb(np.asarray(shapes, dtype=object))):
-        if blob not in seen:
-            seen.add(blob)
-            first.append(index)
-    return np.asarray(first, dtype=int)
 
 
 def _tile_contributions(
@@ -90,9 +58,6 @@ def _tile_contributions(
     reaching: np.ndarray,
 ) -> list[tuple[int, float]]:
     """Accumulate one tile and report what it contributes to each observation.
-
-    The share is returned rather than written, because tiles are accumulated
-    concurrently and one observation is reached by several of them.
 
     Args:
         grid: The tile grid, used to cut a chunk down to this tile.
@@ -130,10 +95,6 @@ def _record_first_cover(
 ) -> None:
     """Record what each footprint in one chunk newly covers.
 
-    A well imaged feature is mostly re-observation, so asking the prepared union
-    whether it already holds a footprint is an indexed lookup where cutting the
-    footprint against it is a full overlay.
-
     Args:
         indices: The observation index of every piece, in order.
         pieces: The footprints clipped to the tile, in the same order.
@@ -144,16 +105,19 @@ def _record_first_cover(
     Returns:
         None.
     """
-    within: BaseGeometry | None = None
+    running = covered
     for index, piece in zip(indices, pieces, strict=True):
-        if covered is not None and covers(covered, piece):
+        if running is None:
+            share.append((int(index), area(piece)))
+            running = piece
+            prepare(running)
             continue
-        residual = piece if covered is None else _robust(difference, piece, covered)
-        if residual.is_empty:
+        if covers(running, piece):
             continue
-        if within is not None:
-            residual = _robust(difference, residual, within)
-            if residual.is_empty:
-                continue
-        share.append((int(index), area(residual)))
-        within = residual if within is None else _robust(union_all, [within, residual])
+        merged = _robust(union_all, [running, piece])
+        added = merged.area - running.area
+        if added <= running.area * configs.SATURATION_TOLERANCE:
+            continue
+        share.append((int(index), added))
+        running = merged
+        prepare(running)

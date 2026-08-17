@@ -33,6 +33,7 @@ SUMMARY = pa.schema(
     [
         ("feature_class", pa.string()),
         ("feature_name", pa.string()),
+        ("set_key", pa.string()),
         ("ihid", pa.string()),
         ("iid", pa.string()),
         ("pt", pa.string()),
@@ -50,6 +51,7 @@ GEOMETRY = pa.schema(
     [
         ("feature_class", pa.string()),
         ("feature_name", pa.string()),
+        ("set_key", pa.string()),
         ("min_lat", pa.float64()),
         ("max_lat", pa.float64()),
         ("west_lon", pa.float64()),

@@ -1,46 +1,29 @@
-pipeline:
-  # Keep a set's downloaded metadata once its coverage is computed. Turning
-  # this off discards the JSONL as soon as the set's summary is on disk, which
-  # makes the artifacts final: nothing can be recomputed without downloading
-  # again, and re-analysis needs a fresh download.
-  keep_metadata: true
+# A run downloads every set still missing and measures every set not yet measured.
 
-  # Measure what is already on disk without downloading anything first.
-  coverage_only: false
+# Jobs at once in each half: download threads, then coverage processes.
+workers: 4
 
-download:
-  # The instrument sets to download for every feature, as IHID/IID/PT.
-  # Each one must publish both a footprint and an acquisition time, which is
-  # what the coverage stage needs to place an observation on a time axis.
-  instruments:
-    - MRO/CTX/EDR
-    - MRO/HIRISE/RDRV11
-    - MRO/CRISM/MTRDR
-    - MRO/CRISM/MRDR4
-    - MRO/SHARAD/USRDRV2
+# Keep each set's metadata once computed. Off makes the artifacts final.
+keep_metadata: true
 
-  # Which products ODE returns for a feature's bounding box.
-  #   b  the product's own box overlaps it
-  #   f  the product's footprint overlaps it, even partly
-  #   o  the product falls entirely inside it
-  #   i  the product contains the whole feature
-  loc: f
+# Redo finished work in both halves: download again, and measure again.
+force: false
 
-  # Re-download instead of skipping instrument sets already on disk.
-  force: false
+# Re-fetch the ODE feature and instrument catalogues instead of the cache.
+refresh_catalog: false
 
-  # Concurrent downloads to run at once.
-  workers: 4
+# IHID/IID/PT, and a colon plus an ODE product id pattern to narrow the type.
+instruments:
+  - MRO/CTX/EDR
+  - MRO/HIRISE/RDRV11
+  - MRO/CRISM/MTRDR
+  - MRO/CRISM/TRDR:[mh]sp*   # the multispectral survey, not the whole type
+  - MRO/SHARAD/USRDRV2
 
-coverage:
-  # Accumulate the running union of covered ground, which is the expensive
-  # half of the work. Off still measures what each observation covered on
-  # its own, but leaves every cumulative column empty, so there is no
-  # coverage fraction and no cumulative plot.
-  cumulative_union: true
+# Restrict the run to named features. Comment out for the whole catalogue.
+# features:
+#   - Gale
+#   - Jezero
 
-  # Recompute instead of skipping instrument sets already computed.
-  force: false
-
-  # Concurrent worker processes.
-  workers: 4
+# Which products a box returns: b box overlap, f footprint overlap, o inside, i containing.
+loc: f

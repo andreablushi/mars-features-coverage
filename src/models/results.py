@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
+from models.instrument import InstrumentSet
+
 
 @dataclass(frozen=True, slots=True)
 class Event:
@@ -52,6 +54,8 @@ class Summary:
     Attributes:
         feature_class: The feature class, such as Crater or Collis.
         feature_name: The feature name as ODE spells it.
+        set_key: The instrument set the records were asked for by, which names
+            the observing mode when a run narrowed one product type to it.
         ihid: The instrument host identifier.
         iid: The instrument identifier.
         pt: The product type.
@@ -67,6 +71,7 @@ class Summary:
 
     feature_class: str
     feature_name: str
+    set_key: str
     ihid: str
     iid: str
     pt: str
@@ -86,16 +91,41 @@ class SetCoverage:
     Attributes:
         events: The set's observations in chronological order.
         summary: The single row describing the set as a whole.
+        pending: Whether the set has records downloaded but never measured,
+            which is why it carries no observations here. False for a set that
+            was measured, and for one that genuinely saw nothing.
     """
 
     events: list[Event]
     summary: Summary
+    pending: bool = False
 
     @property
     def label(self) -> str:
         """Return the short readable name for the instrument set.
 
         Returns:
-            The instrument and product type, such as "CTX EDR".
+            The instrument and product type, such as "CTX EDR", carrying the
+            pattern when the set is only one observing mode of that type.
         """
-        return f"{self.summary.iid} {self.summary.pt}"
+        return InstrumentSet.from_key(self.summary.set_key).label
+
+    @property
+    def observed(self) -> bool:
+        """Report whether the set holds any observation of this feature.
+
+        Returns:
+            True when the set has at least one observation.
+        """
+        return bool(self.events)
+
+    @property
+    def reason(self) -> str:
+        """Return why the set holds nothing to draw.
+
+        Returns:
+            What is missing, or an empty string when the set was observed.
+        """
+        if self.observed:
+            return ""
+        return "downloaded, not yet measured" if self.pending else "no observations"

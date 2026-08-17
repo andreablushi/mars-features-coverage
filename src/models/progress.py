@@ -2,36 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Protocol
 
-
-class Outcome(Protocol):
-    """What every runner reports back about one finished unit of work."""
-
-    @property
-    def label(self) -> str:
-        """Return a short human readable name for the work.
-
-        Returns:
-            The name to show beside a failure.
-        """
-
-    @property
-    def failed(self) -> bool:
-        """Report whether the work raised an error.
-
-        Returns:
-            True when an error was recorded.
-        """
-
-    @property
-    def error(self) -> Exception | None:
-        """Return what went wrong.
-
-        Returns:
-            The error raised, or None on success.
-        """
+from models.job import Outcome
 
 
 @dataclass(frozen=True)
@@ -61,6 +35,25 @@ class DownloadSummary:
     failed: int
     elapsed: float
 
+    @classmethod
+    def from_outcomes(
+        cls, outcomes: Sequence[Outcome], elapsed: float
+    ) -> DownloadSummary:
+        """Total up what the download half of the run did.
+
+        Args:
+            outcomes: Every finished download job.
+            elapsed: How long the half took in seconds.
+
+        Returns:
+            The summary.
+        """
+        return cls(
+            ran=sum(1 for outcome in outcomes if not outcome.failed),
+            failed=sum(1 for outcome in outcomes if outcome.failed),
+            elapsed=elapsed,
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class CoverageSummary:
@@ -81,3 +74,25 @@ class CoverageSummary:
     events: int
     discarded: int
     elapsed: float
+
+    @classmethod
+    def from_outcomes(
+        cls, outcomes: Sequence[Outcome], elapsed: float
+    ) -> CoverageSummary:
+        """Total up what the coverage half of the run did.
+
+        Args:
+            outcomes: Every finished coverage job.
+            elapsed: How long the run took in seconds.
+
+        Returns:
+            The summary.
+        """
+        return cls(
+            computed=sum(1 for o in outcomes if not o.failed and not o.empty),
+            empty=sum(1 for o in outcomes if not o.failed and o.empty),
+            failed=sum(1 for o in outcomes if o.failed),
+            events=sum(o.events for o in outcomes if not o.failed),
+            discarded=sum(o.discarded for o in outcomes),
+            elapsed=elapsed,
+        )

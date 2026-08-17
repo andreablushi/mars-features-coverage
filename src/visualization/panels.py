@@ -21,9 +21,6 @@ Colour = tuple[float, float, float]
 def colours(coverage: Sequence[SetCoverage]) -> dict[str, Colour]:
     """Assign a colour to each instrument set.
 
-    The sets arrive already ranked, so a set keeps the same colour in every
-    figure drawn from the same feature.
-
     Args:
         coverage: The feature's instrument sets, in the order to colour them.
 
@@ -71,7 +68,9 @@ def rendered(figure: Figure) -> widgets.Image:
     )
 
 
-def unavailable(message: str = configs.NOTHING_TO_SHOW) -> widgets.HTML:
+def unavailable(
+    message: str = "Confirm a feature with local data above to fill this in.",
+) -> widgets.HTML:
     """Build the grey panel shown when there is nothing to draw.
 
     Args:
@@ -109,6 +108,7 @@ def overview(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     ]
     lines += [
         f"  {entry.label:16s} {entry.summary.n_obs:6,d} observations"
+        f"{f'  ({entry.reason})' if entry.reason else ''}"
         for entry in coverage
     ]
     body = escape("\n".join(lines))

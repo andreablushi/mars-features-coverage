@@ -1,7 +1,7 @@
 [project]
 name = "mars-remote-sensing-pipeline"
 version = "0.1.0"
-description = "Add your description here"
+description = "Automated pipeline to measure and visualize coverage of Mars geological features in orbital remote sensing data."
 readme = "README.md"
 authors = [
     { name = "Andrea Blushi", email = "andreablushi@gmail.com" }
@@ -21,7 +21,7 @@ requires = ["uv_build>=0.10.2,<0.11.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = ["cli", "models", "storage", "download", "analysis", "visualization"]
+module-name = ["models", "storage", "download", "analysis", "visualization"]
 
 [dependency-groups]
 dev = [
@@ -31,6 +31,10 @@ notebook = [
     "ipywidgets>=8.1.5",
     "jupyterlab>=4.3.0",
     "matplotlib>=3.10.0",
+]
+digitalhub = [
+    "digitalhub>=0.15,<0.16",
+    "digitalhub-runtime-python>=0.15,<0.16",
 ]
 
 [tool.ruff]

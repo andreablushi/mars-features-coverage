@@ -5,42 +5,14 @@ from __future__ import annotations
 import math
 
 import numpy as np
-from shapely import box, from_wkt, get_parts, get_type_id, intersection, is_empty
-from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
+from shapely import box, get_parts, get_type_id, intersection, is_empty
+from shapely.geometry.base import BaseGeometry
 
 from analysis.utils import geodesy
 
 _LINESTRING = 1
 _POLYGON = 3
 _FIRST_MULTIPART = 4
-
-
-def parse(wkt: str) -> BaseGeometry:
-    """Parse an ODE footprint into a geometry.
-
-    Args:
-        wkt: The well-known-text footprint, in -180 to 180 degree longitudes.
-
-    Returns:
-        The parsed geometry.
-    """
-    return from_wkt(wkt)
-
-
-def flatten(geom: BaseGeometry) -> list[BaseGeometry]:
-    """Expand a geometry into its non-empty single-part pieces.
-
-    Args:
-        geom: Any geometry, including nested collections.
-
-    Returns:
-        The flat list of single-part geometries.
-    """
-    if geom.is_empty:
-        return []
-    if isinstance(geom, BaseMultipartGeometry):
-        return [piece for part in geom.geoms for piece in flatten(part)]
-    return [geom]
 
 
 def clip_boxes(
@@ -52,10 +24,6 @@ def clip_boxes(
     margin_deg: float = 0.0,
 ) -> BaseGeometry:
     """Build the lon/lat region a footprint is cut against.
-
-    A box spanning the antimeridian becomes two rectangles, because ODE splits
-    its own footprints there and both sides must be kept. The margin widens the
-    region so a track clipped now still covers the box edge once buffered.
 
     Args:
         min_lat: The southernmost latitude in degrees.
@@ -101,7 +69,7 @@ def clipped_surface_parts(
         The clipped single-part shapes, the index of the footprint each came
         from, and the buffer radius in metres to draw it with.
     """
-    parts, owners = _single_parts(geoms)
+    parts, owners = single_parts(geoms)
     kinds = get_type_id(parts)
     areal = np.zeros(len(geoms), dtype=bool)
     areal[owners[kinds == _POLYGON]] = True
@@ -115,7 +83,7 @@ def clipped_surface_parts(
     return clipped[alive], owners, buffers
 
 
-def _single_parts(geoms: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def single_parts(geoms: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Expand geometries into their non-empty single-part pieces.
 
     Args:

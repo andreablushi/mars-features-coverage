@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import math
+from dataclasses import dataclass, replace
+
+# A degree of longitude shrinks towards the poles, so a box of fixed ground
+_MIN_COSINE = 0.05
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,13 +30,57 @@ class Feature:
     east_lon: float
 
     @property
-    def is_degenerate(self) -> bool:
-        """Return whether the bounding box has no positive latitude span.
-
-        ODE rejects any query whose minimum latitude is not strictly less than
-        its maximum, so these are skipped before querying.
+    def has_latitude_extent(self) -> bool:
+        """Return whether the catalogue gives the feature a latitude span.
 
         Returns:
-            True when the latitude span is zero or negative.
+            True when the maximum latitude is strictly the larger.
         """
-        return self.min_lat >= self.max_lat
+        return self.max_lat > self.min_lat
+
+    @property
+    def has_longitude_extent(self) -> bool:
+        """Return whether the catalogue bounds the feature in longitude.
+
+        Returns:
+            True when the west and east longitudes differ.
+        """
+        return self.west_lon != self.east_lon
+
+    @property
+    def is_point(self) -> bool:
+        """Return whether the catalogue gives the feature no extent at all.
+
+        Returns:
+            True when the feature has neither a latitude nor a longitude span.
+        """
+        return not self.has_latitude_extent and not self.has_longitude_extent
+
+    @property
+    def circles_a_pole(self) -> bool:
+        """Return whether the feature runs through every longitude.
+
+        Returns:
+            True when the feature has a latitude span but no longitude one.
+        """
+        return self.has_latitude_extent and not self.has_longitude_extent
+
+    def enlarged(self, radius_deg: float) -> Feature:
+        """Return this feature grown to a box of the given half-width.
+
+        Args:
+            radius_deg: Half the width of the box to give it, in degrees of latitude.
+
+        Returns:
+            A copy carrying the widened box, clamped inside the poles.
+        """
+        centre_lat = (self.min_lat + self.max_lat) / 2.0
+        stretch = max(math.cos(math.radians(centre_lat)), _MIN_COSINE)
+        lon_radius = radius_deg / stretch
+        return replace(
+            self,
+            min_lat=max(-90.0, self.min_lat - radius_deg),
+            max_lat=min(90.0, self.max_lat + radius_deg),
+            west_lon=(self.west_lon - lon_radius) % 360.0,
+            east_lon=(self.east_lon + lon_radius) % 360.0,
+        )
