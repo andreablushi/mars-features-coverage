@@ -23,40 +23,17 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     """
     if not coverage:
         return panels.unavailable()
-    coverage = [entry for entry in coverage if entry.summary.covered_frac is not None]
-    if not coverage:
-        return panels.unavailable(configs.NO_UNION)
     colours = panels.colours(coverage)
-    figure, (curve, bars) = plt.subplots(
+    figure, (running, bars) = plt.subplots(
         1,
         2,
         figsize=configs.CUMULATIVE_FIGURE_SIZE,
         gridspec_kw={"width_ratios": configs.CUMULATIVE_WIDTH_RATIOS},
     )
-    _curves(curve, coverage, colours)
-    curve.set_title(
-        f"{panels.title(coverage)}  -  cumulative coverage", fontsize=12, loc="left"
-    )
-    _totals(bars, coverage, colours)
-    figure.tight_layout()
-    return panels.rendered(figure)
-
-
-def _curves(axis, coverage: Sequence[SetCoverage], colours: dict) -> None:
-    """Draw one running coverage curve per instrument set.
-
-    Args:
-        axis: The panel to draw on.
-        coverage: The feature's instrument sets, widest coverage first.
-        colours: The colour of each set, keyed by label.
-
-    Returns:
-        None.
-    """
     last = max(entry.summary.t_last for entry in coverage)
     for entry in coverage:
-        times, fractions = _curve(entry, last)
-        axis.plot(
+        times, fractions = _points(entry, last)
+        running.plot(
             times,
             fractions,
             linewidth=1.8,
@@ -65,26 +42,25 @@ def _curves(axis, coverage: Sequence[SetCoverage], colours: dict) -> None:
             label=(
                 f"{entry.label}  ({entry.summary.covered_frac:.1%})"
                 if entry.observed
-                else f"{entry.label}{panels.note(entry)}"
+                else f"{entry.label}  ({entry.reason})"
             ),
         )
-    axis.set_xlabel("Observation start time")
-    axis.set_ylabel("Share of the feature covered so far")
-    axis.set_ylim(0, 1.05)
-    axis.set_xlim(right=last)
-    panels.tidy(axis, percent="y", grid="both")
-    axis.legend(fontsize=9, loc="upper left", frameon=False)
+    running.set_title(
+        f"{panels.title(coverage)}  -  cumulative coverage", fontsize=12, loc="left"
+    )
+    running.set_xlabel("Observation start time")
+    running.set_ylabel("Share of the feature covered so far")
+    running.set_ylim(0, 1.05)
+    running.set_xlim(right=last)
+    panels.tidy(running, percent="y", grid="both")
+    running.legend(fontsize=9, loc="upper left", frameon=False)
+    _totals(bars, coverage, colours)
+    figure.tight_layout()
+    return panels.rendered(figure)
 
 
-def _curve(entry: SetCoverage, last: datetime) -> tuple[list, list[float]]:
+def _points(entry: SetCoverage, last: datetime) -> tuple[list, list[float]]:
     """Return one instrument set's running coverage, rooted at zero.
-
-    The set covered nothing before its first observation, so the curve starts
-    there rather than at whatever that first observation happened to reach. It
-    is carried on to the last observation drawn on the panel rather than
-    stopping at its own, because coverage already reached is not lost when an
-    instrument stops looking: a curve ending mid-axis reads as a set that fell
-    back to nothing, when it only has nothing further to add.
 
     Args:
         entry: The instrument set being drawn.

@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 
 import configs
 from models.feature import Feature
 from models.instrument import InstrumentSet
+from models.job import CoverageOutcome
 from storage.files import slugify
 
 
@@ -133,6 +135,26 @@ def has_metadata(
         path.stat().st_size > 0
         for path in directory.glob(f"{instrument_set.slug}*.jsonl")
     )
+
+
+def discard_metadata(outcomes: Sequence[CoverageOutcome]) -> int:
+    """Delete the metadata of every set whose coverage is now on disk.
+
+    A set is only discarded once its summary exists, so a run that stopped part
+    way never leaves an artifact without the metadata that produced it.
+
+    Args:
+        outcomes: Every finished coverage job.
+
+    Returns:
+        How many metadata files were removed.
+    """
+    removed = 0
+    for outcome in outcomes:
+        if not outcome.failed and outcome.job.summary_path.exists():
+            outcome.job.source.unlink(missing_ok=True)
+            removed += 1
+    return removed
 
 
 def find_sets(root: Path = configs.METADATA_ROOT) -> list[Path]:

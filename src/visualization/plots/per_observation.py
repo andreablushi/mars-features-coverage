@@ -49,17 +49,11 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
 def _panel(axis, entry: SetCoverage, colour, area_km2: float) -> None:
     """Draw one instrument set's observations on its own panel.
 
-    Each point is dropped to the axis by a stem, so a single observation stays
-    visible where the points crowd together. Every panel keeps the same full
-    axis, so a point means the same height in all of them and a narrow swath
-    reads as the narrow swath it is.
-
     Args:
         axis: The panel to draw on.
         entry: The instrument set being drawn.
         colour: The colour the set is drawn in.
-        area_km2: The feature's bounding box area, which the heights are a
-            share of.
+        area_km2: The feature's bounding box area, which the heights are a share of.
 
     Returns:
         None.
@@ -74,7 +68,7 @@ def _panel(axis, entry: SetCoverage, colour, area_km2: float) -> None:
         axis.text(
             0.5,
             0.5,
-            configs.PENDING_NOTE if entry.pending else configs.UNOBSERVED_NOTE,
+            entry.reason,
             transform=axis.transAxes,
             ha="center",
             va="center",

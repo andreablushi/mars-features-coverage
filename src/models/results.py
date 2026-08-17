@@ -122,3 +122,14 @@ class SetCoverage:
             True when the set has at least one observation.
         """
         return bool(self.events)
+
+    @property
+    def reason(self) -> str:
+        """Return why the set holds nothing to draw.
+
+        Returns:
+            What is missing, or an empty string when the set was observed.
+        """
+        if self.observed:
+            return ""
+        return "downloaded, not yet measured" if self.pending else "no observations"

@@ -30,11 +30,7 @@ SIZED_POINT_CLASSES = frozenset({"Crater", "Rovers and Landers"})
 # "f" keeps every product whose footprint intersects the feature box, even
 # partly; "o" keeps only those fully inside, "b" compares bounding boxes,
 # and "i" keeps only products containing the whole feature
-DEFAULT_LOC = "f"
 LOC_MODES = ("b", "f", "o", "i")
-
-# The section of config.yaml this stage reads
-CONFIG_SECTION = "download"
 
 RETAINED_FIELDS = (
     "pdsid",

@@ -101,32 +101,6 @@ def _count(client: ODEClient, params: dict[str, str]) -> int:
     return total
 
 
-def count(
-    client: ODEClient,
-    feature: Feature,
-    instrument_set: InstrumentSet,
-    loc: str = configs.DEFAULT_LOC,
-) -> int:
-    """Return how many products match a feature and instrument set.
-
-    A feature asked for in halves is counted in halves, so the total counts a
-    product straddling the divide once per half it reaches.
-
-    Args:
-        client: The ODE client to query with.
-        feature: The feature whose box the query is built from.
-        instrument_set: The instrument host, instrument, and product type.
-        loc: Which products the box returns.
-
-    Returns:
-        The product count.
-    """
-    return sum(
-        _count(client, _base_params(box, instrument_set, loc))
-        for box in query_boxes(feature)
-    )
-
-
 def _pages(
     client: ODEClient, params: dict[str, str], total: int
 ) -> Iterator[list[Any]]:
@@ -197,7 +171,7 @@ def fetch_products(
     client: ODEClient,
     feature: Feature,
     instrument_set: InstrumentSet,
-    loc: str = configs.DEFAULT_LOC,
+    loc: str,
 ) -> list[ProductRecord]:
     """Fetch all product metadata for a feature and instrument set.
 

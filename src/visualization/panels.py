@@ -21,9 +21,6 @@ Colour = tuple[float, float, float]
 def colours(coverage: Sequence[SetCoverage]) -> dict[str, Colour]:
     """Assign a colour to each instrument set.
 
-    The sets arrive already ranked, so a set keeps the same colour in every
-    figure drawn from the same feature.
-
     Args:
         coverage: The feature's instrument sets, in the order to colour them.
 
@@ -71,7 +68,9 @@ def rendered(figure: Figure) -> widgets.Image:
     )
 
 
-def unavailable(message: str = configs.NOTHING_TO_SHOW) -> widgets.HTML:
+def unavailable(
+    message: str = "Confirm a feature with local data above to fill this in.",
+) -> widgets.HTML:
     """Build the grey panel shown when there is nothing to draw.
 
     Args:
@@ -108,27 +107,12 @@ def overview(coverage: Sequence[SetCoverage]) -> widgets.Widget:
         f"bounding box"
     ]
     lines += [
-        f"  {entry.label:16s} {entry.summary.n_obs:6,d} observations{note(entry)}"
+        f"  {entry.label:16s} {entry.summary.n_obs:6,d} observations"
+        f"{f'  ({entry.reason})' if entry.reason else ''}"
         for entry in coverage
     ]
     body = escape("\n".join(lines))
     return widgets.HTML(f"<pre style='margin: 0; line-height: 1.4'>{body}</pre>")
-
-
-def note(entry: SetCoverage) -> str:
-    """Return what to say about a set holding nothing to draw.
-
-    Args:
-        entry: The instrument set being described.
-
-    Returns:
-        The reason it is empty in brackets, or an empty string when it has
-        observations of its own.
-    """
-    if entry.observed:
-        return ""
-    reason = configs.PENDING_NOTE if entry.pending else configs.UNOBSERVED_NOTE
-    return f"  ({reason})"
 
 
 def title(coverage: Sequence[SetCoverage]) -> str:

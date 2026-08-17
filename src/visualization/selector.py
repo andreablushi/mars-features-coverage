@@ -31,7 +31,11 @@ class FeatureSelector:
         Returns:
             None.
         """
-        self._names = _names_by_class()
+        self._names: dict[str, list[str]] = {}
+        for feature in catalog.read_features():
+            self._names.setdefault(feature.feature_class, []).append(feature.name)
+        for names in self._names.values():
+            names.sort()
         self._computed = parquet.computed_features()
         self.selection: tuple[str, str] | None = None
         self.coverage: list[SetCoverage] = []
@@ -55,7 +59,7 @@ class FeatureSelector:
         self._confirm.on_click(self._confirmed)
         self._refresh_names()
 
-    def show(self) -> None:
+    def choose(self) -> None:
         """Display the picker and report what the catalogue holds.
 
         Returns:
@@ -70,9 +74,6 @@ class FeatureSelector:
     def show_panel(self, render: Render) -> None:
         """Claim an area here and fill it whenever a feature is confirmed.
 
-        Rerunning the cell claims a fresh area and drops the one it replaces,
-        which is what stops a second run from drawing the same thing twice.
-
         Args:
             render: What to draw in it, given the confirmed feature's coverage.
                 It is called with an empty sequence while nothing is confirmed,
@@ -85,18 +86,6 @@ class FeatureSelector:
         self._areas = [claimed for claimed in self._areas if claimed[1] is not render]
         self._areas.append((area, render))
         display(area)
-        self._fill(area, render)
-
-    def _fill(self, area: widgets.Box, render: Render) -> None:
-        """Redraw one claimed area from the current coverage.
-
-        Args:
-            area: The container to refill, which ends up holding one widget.
-            render: What to build for it.
-
-        Returns:
-            None.
-        """
         area.children = (render(self.coverage),)
 
     def _has_data(self, feature_class: str, name: str) -> bool:
@@ -155,18 +144,4 @@ class FeatureSelector:
             )
         self._status.children = (note,)
         for area, render in self._areas:
-            self._fill(area, render)
-
-
-def _names_by_class() -> dict[str, list[str]]:
-    """Group the catalogued feature names under their class.
-
-    Returns:
-        The sorted names of every catalogued feature, keyed by feature class.
-    """
-    grouped: dict[str, list[str]] = {}
-    for feature in catalog.read_features():
-        grouped.setdefault(feature.feature_class, []).append(feature.name)
-    for names in grouped.values():
-        names.sort()
-    return grouped
+            area.children = (render(self.coverage),)

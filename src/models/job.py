@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TypeVar
 
 from models.feature import Feature
 from models.instrument import InstrumentSet
+
+Job = TypeVar("Job")
 
 
 @dataclass(frozen=True, slots=True)

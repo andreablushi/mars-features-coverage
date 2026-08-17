@@ -33,6 +33,17 @@ def finalise_feature(feature_dir: Path) -> int:
     return _concatenate(paths, feature_dir / configs.SUMMARY_NAME)
 
 
+def reindex() -> int:
+    """Rebuild the per-feature and catalogue-wide summaries from disk.
+
+    Returns:
+        How many summary rows the catalogue index holds.
+    """
+    for feature_dir in sorted(configs.COVERAGE_ROOT.glob("*/*")):
+        finalise_feature(feature_dir)
+    return rebuild(configs.ARTIFACTS_ROOT, configs.COVERAGE_ROOT)
+
+
 def rebuild(artifacts_root: Path, coverage_root: Path) -> int:
     """Concatenate every per-feature summary into the catalogue index.
 

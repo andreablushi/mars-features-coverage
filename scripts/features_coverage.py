@@ -12,7 +12,8 @@ import settings
 from analysis import planner as coverage_planner
 from cli import progress
 from cli.console import print_summary
-from storage import layout
+from models.progress import CoverageSummary, DownloadSummary
+from storage import catalog, layout
 
 
 def main() -> int:
@@ -23,26 +24,28 @@ def main() -> int:
     Returns:
         A process exit code, non zero when either half had a failure.
     """
-    choices = settings.pipeline()
+    download, choices = settings.load()
     console = Console()
     started_at = time.monotonic()
 
-    downloaded, outcomes = runner.survey(settings.download(), choices, console)
+    fetched, outcomes = runner.run_pipeline(download, choices, console)
 
     if not choices.keep_metadata:
-        removed = runner.discard_metadata(outcomes)
+        removed = layout.discard_metadata(outcomes)
         if removed:
             console.print(f"discarded metadata for {removed} computed sets")
 
-    totals = runner.totals(outcomes, time.monotonic() - started_at)
+    elapsed = time.monotonic() - started_at
+    downloaded = DownloadSummary.of(fetched, elapsed)
+    computed = CoverageSummary.of(outcomes, elapsed)
     print_summary(
         downloaded,
-        totals,
-        runner.reindex(),
+        computed,
+        catalog.reindex(),
         coverage_planner.unfinished(layout.find_sets()),
         console,
     )
-    return 1 if totals.failed or downloaded.failed else 0
+    return 1 if computed.failed or downloaded.failed else 0
 
 
 if __name__ == "__main__":

@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
+
+from models.job import CoverageOutcome, DownloadOutcome
 
 
 class Outcome(Protocol):
@@ -61,6 +64,23 @@ class DownloadSummary:
     failed: int
     elapsed: float
 
+    @classmethod
+    def of(cls, outcomes: Sequence[DownloadOutcome], elapsed: float) -> DownloadSummary:
+        """Total up what the download half of the run did.
+
+        Args:
+            outcomes: Every finished download job.
+            elapsed: How long the half took in seconds.
+
+        Returns:
+            The summary.
+        """
+        return cls(
+            ran=sum(1 for outcome in outcomes if not outcome.failed),
+            failed=sum(1 for outcome in outcomes if outcome.failed),
+            elapsed=elapsed,
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class CoverageSummary:
@@ -81,3 +101,23 @@ class CoverageSummary:
     events: int
     discarded: int
     elapsed: float
+
+    @classmethod
+    def of(cls, outcomes: Sequence[CoverageOutcome], elapsed: float) -> CoverageSummary:
+        """Total up what the coverage half of the run did.
+
+        Args:
+            outcomes: Every finished coverage job.
+            elapsed: How long the run took in seconds.
+
+        Returns:
+            The summary.
+        """
+        return cls(
+            computed=sum(1 for o in outcomes if not o.failed and not o.empty),
+            empty=sum(1 for o in outcomes if not o.failed and o.empty),
+            failed=sum(1 for o in outcomes if o.failed),
+            events=sum(o.events for o in outcomes if not o.failed),
+            discarded=sum(o.discarded for o in outcomes),
+            elapsed=elapsed,
+        )

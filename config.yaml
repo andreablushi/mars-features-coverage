@@ -1,30 +1,29 @@
 # A run downloads every set still missing and measures every set not yet measured.
-pipeline:
-  # Jobs at once in each half: download threads, then coverage processes.
-  workers: 4
 
-  # Keep each set's metadata once computed. Off makes the artifacts final.
-  keep_metadata: true
+# Jobs at once in each half: download threads, then coverage processes.
+workers: 4
 
-  # Redo finished work in both halves: download again, and measure again.
-  force: false
+# Keep each set's metadata once computed. Off makes the artifacts final.
+keep_metadata: true
 
-  # Re-fetch the ODE feature and instrument catalogues instead of the cache.
-  refresh_catalog: false
+# Redo finished work in both halves: download again, and measure again.
+force: false
 
-download:
-  # IHID/IID/PT, and a colon plus an ODE product id pattern to narrow the type.
-  instruments:
-    - MRO/CTX/EDR
-    - MRO/HIRISE/RDRV11
-    - MRO/CRISM/MTRDR
-    - MRO/CRISM/TRDR:[mh]sp*   # the multispectral survey, not the whole type
-    - MRO/SHARAD/USRDRV2
+# Re-fetch the ODE feature and instrument catalogues instead of the cache.
+refresh_catalog: false
 
-  # Restrict the run to named features. Comment out for the whole catalogue.
-  # features:
-  #   - Gale
-  #   - Jezero
+# IHID/IID/PT, and a colon plus an ODE product id pattern to narrow the type.
+instruments:
+  - MRO/CTX/EDR
+  - MRO/HIRISE/RDRV11
+  - MRO/CRISM/MTRDR
+  - MRO/CRISM/TRDR:[mh]sp*   # the multispectral survey, not the whole type
+  - MRO/SHARAD/USRDRV2
 
-  # Which products a box returns: b box overlap, f footprint overlap, o inside, i containing.
-  loc: f
+# Restrict the run to named features. Comment out for the whole catalogue.
+# features:
+#   - Gale
+#   - Jezero
+
+# Which products a box returns: b box overlap, f footprint overlap, o inside, i containing.
+loc: f

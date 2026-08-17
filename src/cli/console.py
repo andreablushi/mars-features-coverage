@@ -7,9 +7,11 @@ from pathlib import Path
 
 from rich.console import Console
 
-import configs
 from models.job import CoveragePlan, DownloadPlan
 from models.progress import CoverageSummary, DownloadSummary
+
+# How many items are named before the rest are counted
+LISTED = 5
 
 
 def describe_download(plan: DownloadPlan, workers: int, console: Console) -> None:
@@ -24,8 +26,8 @@ def describe_download(plan: DownloadPlan, workers: int, console: Console) -> Non
         None.
     """
     if plan.sizeless_features:
-        shown = ", ".join(plan.sizeless_features[: configs.MISSING_SHOWN])
-        rest = len(plan.sizeless_features) - configs.MISSING_SHOWN
+        shown = ", ".join(plan.sizeless_features[:LISTED])
+        rest = len(plan.sizeless_features) - LISTED
         console.print(
             f"[yellow]{len(plan.sizeless_features)} features carry no extent in "
             f"the catalogue and were not queried: {shown}"
@@ -93,9 +95,7 @@ def print_summary(
     if not missing:
         return
     console.print(f"[yellow]{len(missing)} sets still have no artifact:[/yellow]")
-    for source in missing[: configs.MISSING_SHOWN]:
+    for source in missing[:LISTED]:
         console.print(f"[yellow]  {source}[/yellow]")
-    if len(missing) > configs.MISSING_SHOWN:
-        console.print(
-            f"[yellow]  and {len(missing) - configs.MISSING_SHOWN} more[/yellow]"
-        )
+    if len(missing) > LISTED:
+        console.print(f"[yellow]  and {len(missing) - LISTED} more[/yellow]")

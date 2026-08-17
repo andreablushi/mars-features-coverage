@@ -1,7 +1,7 @@
 [project]
 name = "mars-remote-sensing-pipeline"
 version = "0.1.0"
-description = "Add your description here"
+description = "Automated pipeline to measure and visualize coverage of Mars geological features in orbital remote sensing data."
 readme = "README.md"
 authors = [
     { name = "Andrea Blushi", email = "andreablushi@gmail.com" }
