@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import configs
+import planner
 from download.selection.features import select_features
 from models.feature import Feature
 from models.instrument import InstrumentSet
@@ -23,9 +24,6 @@ def build_plan(
 ) -> Plan:
     """Select features and build the jobs still needed for a run.
 
-    A job whose output file already exists is left out unless force is set, so
-    interrupted runs resume where they stopped.
-
     Args:
         features: The full feature catalog.
         instrument_sets: The instrument sets to download for each feature.
@@ -37,27 +35,23 @@ def build_plan(
         The plan describing the selection and the jobs to run.
     """
     usable, sizeless = select_features(features, names=names)
-
-    jobs: list[Job] = []
-    skipped_existing = 0
-    for feature in usable:
-        for instrument_set in instrument_sets:
-            path = paths.metadata_file(out_root, feature, instrument_set)
-            if path.exists() and not force:
-                skipped_existing += 1
-                continue
-            jobs.append(
-                Job(
-                    feature=feature,
-                    instrument_set=instrument_set,
-                    output_path=path,
-                )
-            )
-
+    pairs = [
+        (feature, instrument_set)
+        for feature in usable
+        for instrument_set in instrument_sets
+    ]
+    jobs, skipped = planner.outstanding(
+        pairs,
+        lambda pair: paths.metadata_file(out_root, *pair),
+        lambda pair, output: Job(
+            feature=pair[0], instrument_set=pair[1], output_path=output
+        ),
+        force=force,
+    )
     return Plan(
-        jobs=tuple(jobs),
+        jobs=jobs,
         feature_count=len(usable),
         set_count=len(instrument_sets),
-        skipped_existing=skipped_existing,
+        skipped_existing=skipped,
         sizeless_features=tuple(feature.name for feature in sizeless),
     )

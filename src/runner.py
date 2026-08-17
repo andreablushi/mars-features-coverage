@@ -16,17 +16,16 @@ from pathlib import Path
 from rich.console import Console
 
 from analysis import planner as coverage_planner
-from analysis.tasks import run_job as compute_coverage
+from analysis.measuring import run_job as compute_coverage
 from console import describe_coverage, describe_download, render
 from download import planner as download_planner
-from download.api import catalog as ode_catalog
 from download.api.client import ODEClient
+from download.fetching import run_job as download_set
 from download.selection.instruments import verify_sets
-from download.tasks import run_job as download_set
 from models.job import Job, Outcome, Plan
 from models.progress import ProgressEvent
 from models.settings import Settings
-from storage import metadata
+from storage import catalog, metadata
 
 
 def run_jobs(
@@ -112,10 +111,10 @@ def run_pipeline(
     fetched: list[Outcome] = []
     with ODEClient() as client:
         refresh = settings.refresh_catalog
-        features = ode_catalog.load_features(client, refresh=refresh)
+        features = catalog.load_features(client, refresh=refresh)
         verify_sets(
             settings.instrument_sets,
-            ode_catalog.load_instrument_sets(client, refresh=refresh),
+            catalog.load_instrument_sets(client, refresh=refresh),
         )
         plan = download_planner.build_plan(
             features,

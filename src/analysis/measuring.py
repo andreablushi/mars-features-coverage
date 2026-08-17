@@ -15,9 +15,6 @@ from storage.schemas import EVENTS, SUMMARY
 def run_job(job: Job) -> Outcome:
     """Compute and write coverage for one feature and instrument set.
 
-    The events are written before the summary, so a summary on disk means the
-    whole set finished and a later run can skip it.
-
     Args:
         job: The instrument set to compute.
 
@@ -43,9 +40,6 @@ def _projected_footprints(
     job: Job,
 ) -> tuple[LoadedSet[ProjectedObservation], FeatureRegion] | None:
     """Load the set's projected footprints, from the cache when it is valid.
-
-    A cache hit reports no discards. Only a set that yielded something is ever
-    cached, so the sets whose discards matter are always read afresh.
 
     Args:
         job: The instrument set being computed.

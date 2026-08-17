@@ -9,50 +9,7 @@ from typing import Any
 import httpx
 
 from download import configs
-
-
-class ODEError(RuntimeError):
-    """Raised when ODE reports an error or a query keeps failing."""
-
-
-def _as_list(value: Any) -> list[Any]:
-    """Normalise an ODE field that may be missing, a single object, or a list.
-
-    ODE returns a bare object rather than a one element list when a result set
-    has a single member.
-
-    Args:
-        value: The raw field value from a parsed response.
-
-    Returns:
-        A list, empty when the value is missing.
-    """
-    if value is None:
-        return []
-    if isinstance(value, list):
-        return value
-    return [value]
-
-
-def as_items(results: dict[str, Any], container: str, item: str) -> list[Any]:
-    """Read a result container's items, tolerating ODE's placeholder strings.
-
-    ODE replaces the container object with a message such as "No Products Found"
-    once a query runs past the end of a result set, so the container cannot be
-    assumed to be an object.
-
-    Args:
-        results: The parsed ODEResults object.
-        container: The container field name, for example "Products".
-        item: The item field name inside the container, for example "Product".
-
-    Returns:
-        The items, empty when the container is missing or is a placeholder.
-    """
-    section = results.get(container)
-    if not isinstance(section, dict):
-        return []
-    return _as_list(section.get(item))
+from models.errors import ODEError
 
 
 class ODEClient:
@@ -84,12 +41,6 @@ class ODEClient:
     def query(self, params: dict[str, str]) -> dict[str, Any]:
         """Run one ODE query and return its parsed ODEResults payload.
 
-        Output is always requested as JSON. Transport failures and retryable
-        HTTP statuses are retried with exponential backoff and jitter. ODE
-        answers 200 even for a bad request and reports the failure as Status
-        ERROR in the body, which is deterministic and is raised without
-        retrying.
-
         Args:
             params: Query parameters excluding the output format.
 
@@ -97,7 +48,8 @@ class ODEClient:
             The ODEResults object from the response body.
 
         Raises:
-            ODEError: If ODE reports an error or all attempts fail.
+            ODEError: If ODE reports an error, refuses the request, or all
+                attempts fail.
         """
         merged = {**params, "output": "JSON"}
         last_error: Exception | None = None
@@ -112,6 +64,8 @@ class ODEClient:
                 last_error = ODEError(f"HTTP {response.status_code}")
                 self._maybe_sleep(attempt)
                 continue
+            if response.status_code >= 400:
+                raise ODEError(f"ODE refused the request: HTTP {response.status_code}")
             try:
                 payload = response.json()
             except ValueError as exc:
@@ -129,7 +83,7 @@ class ODEClient:
         raise ODEError(f"query failed after {self._max_retries} retries: {last_error}")
 
     def _maybe_sleep(self, attempt: int) -> None:
-        """Sleep with exponential backoff and jitter before the next attempt.
+        """Sleep with capped exponential backoff and jitter before the next try.
 
         Args:
             attempt: The zero based attempt index that just failed.
@@ -139,7 +93,7 @@ class ODEClient:
         """
         if attempt >= self._max_retries:
             return
-        delay = self._backoff_base * (2**attempt)
+        delay = min(self._backoff_base * (2**attempt), configs.BACKOFF_MAX)
         time.sleep(delay + random.uniform(0.0, self._backoff_base))
 
     def close(self) -> None:

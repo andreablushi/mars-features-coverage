@@ -7,29 +7,25 @@ ODE_META_DB = "mars"
 ODE_TARGET = "mars"
 
 REQUEST_TIMEOUT = 30.0
-MAX_RETRIES = 5
+MAX_RETRIES = 20
 BACKOFF_BASE = 0.5
+# Ceiling on one backoff sleep, so many retries stay minutes rather than days
+BACKOFF_MAX = 30.0
 RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
 
 PAGE_SIZE = 5000
 PAGE_ORDER = "oba"
 
-# A feature running through every longitude is asked for in two halves,
-# because a box from a longitude back to itself has no width and ODE
-# returns the no-count for it
+# A feature running through every longitude is asked for in two halves.
 LONGITUDE_HALVES = ((0.0, 180.0), (180.0, 360.0))
 
-# Half the width of the box put around a point feature, in degrees of
-# latitude. About 15 km on Mars, which holds a crater or a landing site
+# Half the width of the box put around a point feature (15Km in mars degrees)
 POINT_RADIUS_DEG = 0.25
 
-# The point features worth sizing: a named position standing for something
-# with a real edge, rather than for a diffuse classical albedo region
-SIZED_POINT_CLASSES = frozenset({"Crater", "Rovers and Landers"})
+# The point features worth sizing: a landing site has no extent to lose, so the box is its definition.
+SIZED_POINT_CLASSES = frozenset({"Rovers and Landers"})
 
-# "f" keeps every product whose footprint intersects the feature box, even
-# partly; "o" keeps only those fully inside, "b" compares bounding boxes,
-# and "i" keeps only products containing the whole feature
+# Localization modes for the products API
 LOC_MODES = ("b", "f", "o", "i")
 
 RETAINED_FIELDS = (

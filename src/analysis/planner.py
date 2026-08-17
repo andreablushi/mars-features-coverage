@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import configs
+import planner
 from models.job import Job, Plan
 from storage import paths
 
@@ -34,26 +35,22 @@ def build_plan(
     Returns:
         The plan describing the discovery and the jobs to run.
     """
-    jobs: list[Job] = []
-    skipped_existing = 0
-    for source in sorted(sources, key=lambda path: -path.stat().st_size):
-        summary_path = paths.set_summary_path(coverage_root, source)
-        if summary_path.exists() and not force:
-            skipped_existing += 1
-            continue
-        jobs.append(
-            Job(
-                source=source,
-                events_path=paths.events_path(coverage_root, source),
-                summary_path=summary_path,
-                geometry_path=paths.geometry_path(geometry_root, source),
-            )
-        )
+    jobs, skipped = planner.outstanding(
+        sorted(sources, key=lambda path: -path.stat().st_size),
+        lambda source: paths.set_summary_path(coverage_root, source),
+        lambda source, output: Job(
+            source=source,
+            events_path=paths.events_path(coverage_root, source),
+            summary_path=output,
+            geometry_path=paths.geometry_path(geometry_root, source),
+        ),
+        force=force,
+    )
     return Plan(
-        jobs=tuple(jobs),
+        jobs=jobs,
         feature_count=len({source.parent for source in sources}),
         set_count=len(sources),
-        skipped_existing=skipped_existing,
+        skipped_existing=skipped,
     )
 
 

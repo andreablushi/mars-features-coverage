@@ -1,18 +1,13 @@
-"""Fetch and cache the ODE feature and instrument catalogs."""
+"""Fetch the ODE feature and instrument catalogs."""
 
 from __future__ import annotations
 
-from dataclasses import asdict
-from pathlib import Path
-
-import configs as root_configs
 from download import configs
-from download.api.client import ODEClient, as_items
+from download.api.client import ODEClient
+from download.api.response import as_items
 from download.selection.dedupe import dedupe
 from models.feature import Feature
 from models.instrument import InstrumentSetInfo
-from storage import catalog, paths
-from storage.disk import write_jsonl
 
 
 def fetch_features(client: ODEClient) -> list[Feature]:
@@ -43,9 +38,6 @@ def fetch_features(client: ODEClient) -> list[Feature]:
 def fetch_instrument_sets(client: ODEClient) -> list[InstrumentSetInfo]:
     """Fetch the Mars IIPT catalog from ODE, deduplicated on the triple.
 
-    The raw IIPT list repeats an IHID/IID/PT triple once per data set, so rows
-    are collapsed to the unique instrument host, instrument, and product type.
-
     Args:
         client: The ODE client to query with.
 
@@ -72,52 +64,4 @@ def fetch_instrument_sets(client: ODEClient) -> list[InstrumentSetInfo]:
                 number_products=int(number) if number else None,
             )
         )
-    return rows
-
-
-def load_features(
-    client: ODEClient,
-    cache_dir: Path = root_configs.CATALOG_ROOT,
-    *,
-    refresh: bool = False,
-) -> list[Feature]:
-    """Load the geological feature catalog from cache, fetching and caching on a miss.
-
-    Args:
-        client: The ODE client to query with.
-        cache_dir: Directory holding the cached catalog files.
-        refresh: When True, always re-fetch and overwrite the cache.
-
-    Returns:
-        The list of features.
-    """
-    path = paths.features_path(cache_dir)
-    if path.exists() and not refresh:
-        return catalog.read_features(cache_dir)
-    features = fetch_features(client)
-    write_jsonl(path, [asdict(feature) for feature in features])
-    return features
-
-
-def load_instrument_sets(
-    client: ODEClient,
-    cache_dir: Path = root_configs.CATALOG_ROOT,
-    *,
-    refresh: bool = False,
-) -> list[InstrumentSetInfo]:
-    """Load the instrument catalog from cache, fetching and caching on a miss.
-
-    Args:
-        client: The ODE client to query with.
-        cache_dir: Directory holding the cached catalog files.
-        refresh: When True, always re-fetch and overwrite the cache.
-
-    Returns:
-        One entry per unique instrument set.
-    """
-    path = paths.instrument_sets_path(cache_dir)
-    if path.exists() and not refresh:
-        return catalog.read_instrument_sets(cache_dir)
-    rows = fetch_instrument_sets(client)
-    write_jsonl(path, [asdict(row) for row in rows])
     return rows

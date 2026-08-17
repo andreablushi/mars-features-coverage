@@ -7,8 +7,9 @@ from datetime import datetime, timezone
 from typing import Any, TypeAlias
 
 from download import configs
-from download.api.client import ODEClient, ODEError, as_items
-from download.selection.fields import retain_fields
+from download.api.client import ODEClient
+from download.api.response import as_items
+from models.errors import ODEError
 from models.feature import Feature
 from models.instrument import InstrumentSet
 
@@ -18,13 +19,6 @@ ProductRecord: TypeAlias = dict[str, Any]
 
 def query_boxes(feature: Feature) -> tuple[Box, ...]:
     """Return the lat/lon boxes a feature has to be asked for in.
-
-    The box is given explicitly rather than by feature name so the pipeline
-    measures coverage against the same ground it queried, and so a box ODE
-    cannot handle can be reshaped here instead of failing silently there. A
-    feature running through every longitude is asked for in two halves, since
-    its west and east longitudes are equal and a box from a longitude back to
-    itself encloses nothing.
 
     Args:
         feature: The feature to query.
@@ -71,54 +65,27 @@ def _base_params(box: Box, instrument_set: InstrumentSet, loc: str) -> dict[str,
     return params
 
 
-def _count(client: ODEClient, params: dict[str, str]) -> int:
-    """Return how many products one box holds, refusing an unusable answer.
-
-    ODE reports a query it cannot place, such as one whose box has no width,
-    with a Success status and a count of -1. Read as a number that is fewer
-    products than none, which paging quietly satisfies by fetching nothing and
-    writing an empty file that every later run then skips. It is a failure, so
-    it is raised as one.
+def _pages(client: ODEClient, params: dict[str, str]) -> Iterator[list[Any]]:
+    """Count one box's products, then walk them a page at a time.
 
     Args:
         client: The ODE client to query with.
-        params: The box and instrument parameters to count.
+        params: The box and instrument parameters to page through.
 
-    Returns:
-        The product count.
+    Yields:
+        Each page's raw product items, until they run out.
 
     Raises:
         ODEError: When ODE reports no usable count.
     """
-    results = client.query({**params, "results": "c"})
-    raw = results.get("Count")
+    raw = client.query({**params, "results": "c"}).get("Count")
     try:
         total = int(raw)
     except (TypeError, ValueError):
         raise ODEError(f"ODE returned no product count, found {raw!r}") from None
     if total < 0:
         raise ODEError(f"ODE could not place the query and returned a count of {total}")
-    return total
 
-
-def _pages(
-    client: ODEClient, params: dict[str, str], total: int
-) -> Iterator[list[Any]]:
-    """Walk one box's products a page at a time.
-
-    Paging runs to the count ODE gave rather than stopping at the first page
-    that adds nothing new, because a page landing entirely on products already
-    seen is what a boundary between two pages looks like, not the end of the
-    result set.
-
-    Args:
-        client: The ODE client to query with.
-        params: The box and instrument parameters to page through.
-        total: How many products the box holds.
-
-    Yields:
-        Each page's raw product items, until they run out.
-    """
     offset = 0
     while offset < total:
         page = client.query(
@@ -140,20 +107,6 @@ def _pages(
 def _identity(item: dict[str, Any]) -> tuple[str, str]:
     """Return what makes one stored record distinct from another.
 
-    ODE publishes one record per archived file rather than per observation, so
-    a single CRISM acquisition arrives once per detector and processing level:
-    201 survey files over Gale describe 49 distinct patches of ground. A record
-    repeating both the footprint and the acquisition time of one already kept
-    covers nothing the first did not, exactly rather than to within rounding,
-    so it is dropped.
-
-    Keying on the ground rather than on the observation is what keeps the pairs
-    that only look alike: HiRISE files its red and colour products under one
-    acquisition time, and the colour strip is the narrower of the two, so
-    collapsing by time would throw away a footprint and keep whichever came
-    first. A record with no footprint has no ground to compare and falls back
-    to its own id, so the count of what could not be used stays honest.
-
     Args:
         item: One raw product object from an ODE response.
 
@@ -174,15 +127,6 @@ def fetch_products(
     loc: str,
 ) -> list[ProductRecord]:
     """Fetch all product metadata for a feature and instrument set.
-
-    Each record keeps the retained ODE fields plus provenance describing the
-    feature, its bounding box, and when the record was retrieved. Coordinates
-    are stored exactly as ODE returns them, in degrees.
-
-    ODE offset paging is only stable when a sort order is given, so a fixed
-    order is requested and records are deduplicated while paging rather than
-    through selection.dedupe, so a large feature never holds every raw page in
-    memory at once.
 
     Args:
         client: The ODE client to query with.
@@ -207,12 +151,12 @@ def fetch_products(
     records: list[ProductRecord] = []
     seen: set[tuple[str, str]] = set()
     for box in query_boxes(feature):
-        params = _base_params(box, instrument_set, loc)
-        for items in _pages(client, params, _count(client, params)):
+        for items in _pages(client, _base_params(box, instrument_set, loc)):
             for item in items:
                 identity = _identity(item)
                 if identity in seen:
                     continue
                 seen.add(identity)
-                records.append(retain_fields(item) | provenance)
+                kept = {f: item[f] for f in configs.RETAINED_FIELDS if f in item}
+                records.append(kept | provenance)
     return records

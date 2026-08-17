@@ -31,17 +31,6 @@ def verify_sets(
 ) -> None:
     """Refuse to run a set ODE says carries no footprint or no time.
 
-    Coverage needs a footprint to draw the ground and a time to place it on the
-    axis, and ODE states per product type whether it publishes either. Asked
-    for one that does not, the run would download every record and then discard
-    every record, which reads as a set that was simply never observed. It cost
-    48,909 CRISM mosaic tiles before it was noticed, so it is checked up front
-    against the catalogue rather than inferred afterwards from an empty result.
-
-    A narrowed set is checked on its product type, since a product id pattern
-    selects among the records of one type and cannot change what the type
-    publishes.
-
     Args:
         requested: The instrument sets a run was asked for.
         catalogued: The instrument set catalogue as ODE reports it.
