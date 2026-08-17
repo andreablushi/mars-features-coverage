@@ -32,6 +32,10 @@ notebook = [
     "jupyterlab>=4.3.0",
     "matplotlib>=3.10.0",
 ]
+digitalhub = [
+    "digitalhub>=0.15,<0.16",
+    "digitalhub-runtime-python>=0.15,<0.16",
+]
 
 [tool.ruff]
 line-length = 88
