@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from models.instrument import InstrumentSet
-from models.product import InstrumentSetInfo
+from models.instrument import InstrumentSet, InstrumentSetInfo
 
 
 def _fault(info: InstrumentSetInfo | None) -> str | None:

@@ -6,13 +6,13 @@ from analysis.coverage import events as coverage
 from analysis.geometry import projection
 from analysis.geometry.region import FeatureRegion
 from models.feature import Feature
-from models.job import CoverageJob, CoverageOutcome
+from models.job import Job, Outcome
 from models.observation import LoadedSet, ProjectedObservation
 from storage import caching, parquet, records
 from storage.schemas import EVENTS, SUMMARY
 
 
-def run_job(job: CoverageJob) -> CoverageOutcome:
+def run_job(job: Job) -> Outcome:
     """Compute and write coverage for one feature and instrument set.
 
     The events are written before the summary, so a summary on disk means the
@@ -27,20 +27,20 @@ def run_job(job: CoverageJob) -> CoverageOutcome:
     try:
         prepared = _projected_footprints(job)
         if prepared is None:
-            return CoverageOutcome(job=job)
+            return Outcome(job=job)
         loaded, region = prepared
         if not loaded.observations:
-            return CoverageOutcome(job=job, discarded=loaded.discarded)
+            return Outcome(job=job, discarded=loaded.discarded)
         rows, summary = coverage.measure_set(loaded, region)
         parquet.write(rows, EVENTS, job.events_path)
         parquet.write([summary], SUMMARY, job.summary_path)
-        return CoverageOutcome(job=job, events=len(rows), discarded=loaded.discarded)
+        return Outcome(job=job, events=len(rows), discarded=loaded.discarded)
     except Exception as exc:
-        return CoverageOutcome(job=job, error=exc)
+        return Outcome(job=job, error=exc)
 
 
 def _projected_footprints(
-    job: CoverageJob,
+    job: Job,
 ) -> tuple[LoadedSet[ProjectedObservation], FeatureRegion] | None:
     """Load the set's projected footprints, from the cache when it is valid.
 

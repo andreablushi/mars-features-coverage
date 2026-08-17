@@ -9,7 +9,7 @@ from IPython.display import display
 
 from models.results import SetCoverage
 from storage import catalog, summary
-from storage.paths import slugify
+from utils import slugify
 from visualization import configs, panels
 
 Render = Callable[[Sequence[SetCoverage]], widgets.Widget]

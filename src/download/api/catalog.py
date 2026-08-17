@@ -10,7 +10,7 @@ from download import configs
 from download.api.client import ODEClient, as_items
 from download.selection.dedupe import dedupe
 from models.feature import Feature
-from models.product import InstrumentSetInfo
+from models.instrument import InstrumentSetInfo
 from storage import catalog, paths
 from storage.disk import write_jsonl
 

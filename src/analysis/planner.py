@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import configs
-from models.job import CoverageJob, CoveragePlan
+from models.job import Job, Plan
 from storage import paths
 
 
@@ -16,7 +16,7 @@ def build_plan(
     geometry_root: Path = configs.GEOMETRY_ROOT,
     *,
     force: bool = False,
-) -> CoveragePlan:
+) -> Plan:
     """Build the jobs still needed for a run.
 
     An instrument set whose summary already exists is left out unless force is
@@ -34,7 +34,7 @@ def build_plan(
     Returns:
         The plan describing the discovery and the jobs to run.
     """
-    jobs: list[CoverageJob] = []
+    jobs: list[Job] = []
     skipped_existing = 0
     for source in sorted(sources, key=lambda path: -path.stat().st_size):
         summary_path = paths.set_summary_path(coverage_root, source)
@@ -42,14 +42,14 @@ def build_plan(
             skipped_existing += 1
             continue
         jobs.append(
-            CoverageJob(
+            Job(
                 source=source,
                 events_path=paths.events_path(coverage_root, source),
                 summary_path=summary_path,
                 geometry_path=paths.geometry_path(geometry_root, source),
             )
         )
-    return CoveragePlan(
+    return Plan(
         jobs=tuple(jobs),
         feature_count=len({source.parent for source in sources}),
         set_count=len(sources),

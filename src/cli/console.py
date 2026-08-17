@@ -7,14 +7,14 @@ from pathlib import Path
 
 from rich.console import Console
 
-from models.job import CoveragePlan, DownloadPlan
+from models.job import Plan
 from models.progress import CoverageSummary, DownloadSummary
 
 # How many items are named before the rest are counted
 LISTED = 5
 
 
-def describe_download(plan: DownloadPlan, workers: int, console: Console) -> None:
+def describe_download(plan: Plan, workers: int, console: Console) -> None:
     """Print the initial state of the download plan.
 
     Args:
@@ -34,13 +34,13 @@ def describe_download(plan: DownloadPlan, workers: int, console: Console) -> Non
             f"{f', and {rest} more' if rest > 0 else ''}[/yellow]"
         )
     console.print(
-        f"download: {plan.feature_count} features x {plan.instrument_set_count} sets, "
+        f"download: {plan.feature_count} features x {plan.set_count} sets, "
         f"{len(plan.jobs)} to run, {plan.skipped_existing} already downloaded, "
         f"{workers} workers"
     )
 
 
-def describe_coverage(plan: CoveragePlan, workers: int, console: Console) -> None:
+def describe_coverage(plan: Plan, workers: int, console: Console) -> None:
     """Print the initial state of the coverage plan.
 
     Args:

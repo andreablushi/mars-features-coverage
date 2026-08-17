@@ -24,9 +24,9 @@ from download.api import catalog as ode_catalog
 from download.api.client import ODEClient
 from download.selection.instruments import verify_sets
 from download.tasks import run_job as download_set
-from models.job import CoverageOutcome, DownloadOutcome, DownloadPlan, Job
-from models.progress import Outcome, ProgressEvent
-from models.settings import DownloadSettings, PipelineSettings
+from models.job import Job, Outcome, Plan
+from models.progress import ProgressEvent
+from models.settings import Settings
 from storage import metadata
 
 
@@ -54,8 +54,8 @@ def run_jobs(
 def _measuring(
     events: Iterator[ProgressEvent],
     pool: ProcessPoolExecutor,
-    fetched: list[DownloadOutcome],
-    started: list[Future[CoverageOutcome]],
+    fetched: list[Outcome],
+    started: list[Future[Outcome]],
     *,
     force: bool,
 ) -> Iterator[ProgressEvent]:
@@ -81,7 +81,7 @@ def _measuring(
         yield event
 
 
-def _pending(plan: DownloadPlan) -> list[Path]:
+def _pending(plan: Plan) -> list[Path]:
     """Return the sets already on disk that this run will not download again.
 
     A set the download is about to rewrite is measured once it lands rather
@@ -98,39 +98,38 @@ def _pending(plan: DownloadPlan) -> list[Path]:
 
 
 def run_pipeline(
-    download: DownloadSettings, pipeline: PipelineSettings, console: Console
-) -> tuple[list[DownloadOutcome], list[CoverageOutcome]]:
+    settings: Settings, console: Console
+) -> tuple[list[Outcome], list[Outcome]]:
     """Download every set still missing and measure every set not yet measured.
 
     Args:
-        download: The settled download choices.
-        pipeline: The settled choices for the run as a whole.
+        settings: The settled choices for the run.
         console: The console to render on.
 
     Returns:
         Every finished download outcome, then every finished coverage outcome.
     """
-    futures: list[Future[CoverageOutcome]] = []
-    fetched: list[DownloadOutcome] = []
+    futures: list[Future[Outcome]] = []
+    fetched: list[Outcome] = []
     with ODEClient() as client:
-        refresh = pipeline.refresh_catalog
+        refresh = settings.refresh_catalog
         features = ode_catalog.load_features(client, refresh=refresh)
         verify_sets(
-            download.instrument_sets,
+            settings.instrument_sets,
             ode_catalog.load_instrument_sets(client, refresh=refresh),
         )
         plan = download_planner.build_plan(
             features,
-            download.instrument_sets,
-            names=download.feature_names,
-            force=pipeline.force,
+            settings.instrument_sets,
+            names=settings.feature_names,
+            force=settings.force,
         )
-        backlog = coverage_planner.build_plan(_pending(plan), force=pipeline.force)
-        describe_download(plan, pipeline.workers, console)
-        describe_coverage(backlog, pipeline.workers, console)
+        backlog = coverage_planner.build_plan(_pending(plan), force=settings.force)
+        describe_download(plan, settings.workers, console)
+        describe_coverage(backlog, settings.workers, console)
         with (
-            ProcessPoolExecutor(max_workers=pipeline.workers) as computing,
-            ThreadPoolExecutor(max_workers=pipeline.workers) as fetching,
+            ProcessPoolExecutor(max_workers=settings.workers) as computing,
+            ThreadPoolExecutor(max_workers=settings.workers) as fetching,
         ):
             futures.extend(
                 computing.submit(compute_coverage, job) for job in backlog.jobs
@@ -138,13 +137,13 @@ def run_pipeline(
             stream = _measuring(
                 run_jobs(
                     plan.jobs,
-                    lambda job: download_set(job, client, download.loc),
+                    lambda job: download_set(job, client, settings.loc),
                     fetching,
                 ),
                 computing,
                 fetched,
                 futures,
-                force=pipeline.force,
+                force=settings.force,
             )
             with closing(stream) as events:
                 progress.render(events, len(plan.jobs), "download", console)

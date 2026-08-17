@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from download.api import products
 from download.api.client import ODEClient
-from models.job import DownloadJob, DownloadOutcome
+from models.job import Job, Outcome
 from storage.disk import write_jsonl
 
 
-def run_job(job: DownloadJob, client: ODEClient, loc: str) -> DownloadOutcome:
+def run_job(job: Job, client: ODEClient, loc: str) -> Outcome:
     """Download one instrument set's metadata and write it out.
 
     An output file is always written, empty included, so a later run can skip
@@ -25,6 +25,6 @@ def run_job(job: DownloadJob, client: ODEClient, loc: str) -> DownloadOutcome:
     try:
         records = products.fetch_products(client, job.feature, job.instrument_set, loc)
         write_jsonl(job.output_path, records)
-        return DownloadOutcome(job=job)
+        return Outcome(job=job)
     except Exception as exc:
-        return DownloadOutcome(job=job, error=exc)
+        return Outcome(job=job, error=exc)

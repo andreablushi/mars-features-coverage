@@ -4,16 +4,16 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, TypeAlias
 
 from download import configs
 from download.api.client import ODEClient, ODEError, as_items
 from download.selection.fields import retain_fields
 from models.feature import Feature
 from models.instrument import InstrumentSet
-from models.product import ProductRecord
 
 Box = tuple[float, float, float, float]
+ProductRecord: TypeAlias = dict[str, Any]
 
 
 def query_boxes(feature: Feature) -> tuple[Box, ...]:

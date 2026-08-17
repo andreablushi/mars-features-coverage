@@ -7,7 +7,7 @@ from pathlib import Path
 
 import configs
 from models.instrument import InstrumentSet
-from models.job import CoverageOutcome
+from models.job import Outcome
 
 
 def find_sets(root: Path = configs.METADATA_ROOT) -> list[Path]:
@@ -42,7 +42,7 @@ def has_metadata(
     )
 
 
-def discard_metadata(outcomes: Sequence[CoverageOutcome]) -> int:
+def discard_metadata(outcomes: Sequence[Outcome]) -> int:
     """Delete the metadata of every set whose coverage is now on disk.
 
     Args:

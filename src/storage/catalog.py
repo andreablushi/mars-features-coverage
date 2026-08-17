@@ -6,7 +6,7 @@ from pathlib import Path
 
 import configs
 from models.feature import Feature
-from models.product import InstrumentSetInfo
+from models.instrument import InstrumentSetInfo
 from storage.disk import read_jsonl
 from storage.paths import features_path, instrument_sets_path
 

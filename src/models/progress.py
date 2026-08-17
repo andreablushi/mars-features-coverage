@@ -4,37 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Protocol
 
-from models.job import CoverageOutcome, DownloadOutcome
-
-
-class Outcome(Protocol):
-    """What every runner reports back about one finished unit of work."""
-
-    @property
-    def label(self) -> str:
-        """Return a short human readable name for the work.
-
-        Returns:
-            The name to show beside a failure.
-        """
-
-    @property
-    def failed(self) -> bool:
-        """Report whether the work raised an error.
-
-        Returns:
-            True when an error was recorded.
-        """
-
-    @property
-    def error(self) -> Exception | None:
-        """Return what went wrong.
-
-        Returns:
-            The error raised, or None on success.
-        """
+from models.job import Outcome
 
 
 @dataclass(frozen=True)
@@ -65,7 +36,9 @@ class DownloadSummary:
     elapsed: float
 
     @classmethod
-    def of(cls, outcomes: Sequence[DownloadOutcome], elapsed: float) -> DownloadSummary:
+    def from_outcomes(
+        cls, outcomes: Sequence[Outcome], elapsed: float
+    ) -> DownloadSummary:
         """Total up what the download half of the run did.
 
         Args:
@@ -103,7 +76,9 @@ class CoverageSummary:
     elapsed: float
 
     @classmethod
-    def of(cls, outcomes: Sequence[CoverageOutcome], elapsed: float) -> CoverageSummary:
+    def from_outcomes(
+        cls, outcomes: Sequence[Outcome], elapsed: float
+    ) -> CoverageSummary:
         """Total up what the coverage half of the run did.
 
         Args:

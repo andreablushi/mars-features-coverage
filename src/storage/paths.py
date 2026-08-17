@@ -2,27 +2,12 @@
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 import configs
 from models.feature import Feature
 from models.instrument import InstrumentSet
-
-_SLUG_RE = re.compile(r"[^a-z0-9]+")
-
-
-def slugify(text: str) -> str:
-    """Convert a name into a lowercase, underscore separated slug.
-
-    Args:
-        text: The raw name, for example "Rovers and Landers".
-
-    Returns:
-        A slug such as "rovers_and_landers", or "unnamed" if empty.
-    """
-    slug = _SLUG_RE.sub("_", text.strip().lower()).strip("_")
-    return slug or "unnamed"
+from utils import slugify
 
 
 def metadata_file(root: Path, feature: Feature, instrument_set: InstrumentSet) -> Path:

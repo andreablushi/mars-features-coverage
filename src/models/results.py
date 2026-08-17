@@ -114,10 +114,6 @@ class SetCoverage:
     def observed(self) -> bool:
         """Report whether the set holds any observation of this feature.
 
-        A set the dataset carries elsewhere but that reached nothing here is
-        kept rather than left out, so a figure says the instrument covered
-        none of the feature instead of saying nothing about the instrument.
-
         Returns:
             True when the set has at least one observation.
         """

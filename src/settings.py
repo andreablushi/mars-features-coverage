@@ -11,7 +11,7 @@ import yaml
 import configs
 from download import configs as download_configs
 from models.instrument import InstrumentSet
-from models.settings import DownloadSettings, PipelineSettings
+from models.settings import Settings
 
 
 def _setting(
@@ -52,14 +52,14 @@ def _setting(
     return str(found) if kind is str else found
 
 
-def load(path: Path = configs.CONFIG_PATH) -> tuple[DownloadSettings, PipelineSettings]:
+def load(path: Path = configs.CONFIG_PATH) -> Settings:
     """Settle what a run should do, reading the config file once.
 
     Args:
         path: The config file, which has to exist and carry every setting.
 
     Returns:
-        The settled choices for the download stage, then for the run as a whole.
+        The settled choices for the run.
 
     Raises:
         ValueError: When the file does not hold a mapping of settings, or holds
@@ -73,17 +73,14 @@ def load(path: Path = configs.CONFIG_PATH) -> tuple[DownloadSettings, PipelineSe
         raise ValueError(
             f"loc should be one of {download_configs.LOC_MODES}, found {loc!r}"
         )
-    download = DownloadSettings(
+    return Settings(
         instrument_sets=tuple(
             InstrumentSet.from_key(key) for key in _setting(config, "instruments", list)
         ),
         feature_names=_setting(config, "features", list, required=False),
         loc=loc,
-    )
-    pipeline = PipelineSettings(
         keep_metadata=_setting(config, "keep_metadata", bool),
         force=_setting(config, "force", bool),
         refresh_catalog=_setting(config, "refresh_catalog", bool),
         workers=_setting(config, "workers", int),
     )
-    return download, pipeline

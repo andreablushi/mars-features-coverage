@@ -2,28 +2,20 @@
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 
-_PATTERN_PUNCTUATION = re.compile(r"[^A-Za-z0-9]+")
+from utils import slugify
 
 
 @dataclass(frozen=True)
 class InstrumentSet:
     """An ODE instrument host, instrument, and product type triple.
 
-    A product type is sometimes one archive holding several observing modes at
-    once, which a coverage measurement has no business adding together: CRISM
-    files its 18 m targeted images, its 200 m survey strips and its off-nadir
-    gimbal scans all under TRDR. The optional pattern narrows the set to the
-    mode being measured, and ODE applies it, so the rest is never downloaded.
-
     Attributes:
         ihid: Instrument host id (for example "MRO").
         iid: Instrument id (for example "CTX").
         pt: Product type (for example "EDR").
-        product_id: An ODE product id pattern the set is narrowed to, such as
-            "[mh]sp*", or None for the whole product type.
+        product_id: An ODE product id pattern the set is narrowed to.
     """
 
     ihid: str
@@ -41,19 +33,11 @@ class InstrumentSet:
 
         Returns:
             The instrument set.
-
-        Raises:
-            ValueError: When the triple does not carry exactly three parts.
         """
         triple, _, pattern = key.partition(":")
-        parts = triple.split("/")
-        if len(parts) != 3 or not all(part.strip() for part in parts):
-            raise ValueError(
-                f"instrument set should be IHID/IID/PT or IHID/IID/PT:PATTERN, "
-                f"found {key!r}"
-            )
         return cls(
-            *(part.strip() for part in parts), product_id=pattern.strip() or None
+            *(part.strip() for part in triple.split("/")),
+            product_id=pattern.strip() or None,
         )
 
     @property
@@ -86,10 +70,31 @@ class InstrumentSet:
         the whole one rather than silently overwriting it.
 
         Returns:
-            The identifiers joined by underscores, with everything a path
-            cannot carry replaced by dashes.
+            The canonical identifier as a slug.
         """
-        raw = f"{self.ihid}_{self.iid}_{self.pt}"
-        if self.product_id:
-            raw = f"{raw}_{_PATTERN_PUNCTUATION.sub('', self.product_id)}"
-        return raw.replace("/", "-").replace(" ", "-")
+        return slugify(self.key)
+
+
+@dataclass(frozen=True)
+class InstrumentSetInfo:
+    """Catalog details for one instrument set as reported by ODE.
+
+    Attributes:
+        ihid: Instrument host id.
+        iid: Instrument id.
+        pt: Product type.
+        instrument_name: Human readable instrument name.
+        product_type_name: Human readable product type name.
+        valid_footprints: Whether products carry usable footprints.
+        valid_observation_times: Whether products carry observation times.
+        number_products: Total products ODE holds, when reported.
+    """
+
+    ihid: str
+    iid: str
+    pt: str
+    instrument_name: str | None
+    product_type_name: str | None
+    valid_footprints: bool
+    valid_observation_times: bool
+    number_products: int | None

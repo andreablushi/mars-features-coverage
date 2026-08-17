@@ -24,11 +24,11 @@ def main() -> int:
     Returns:
         A process exit code, non zero when either half had a failure.
     """
-    download, choices = settings.load()
+    choices = settings.load()
     console = Console()
     started_at = time.monotonic()
 
-    fetched, outcomes = runner.run_pipeline(download, choices, console)
+    fetched, outcomes = runner.run_pipeline(choices, console)
 
     if not choices.keep_metadata:
         removed = metadata.discard_metadata(outcomes)
@@ -36,8 +36,8 @@ def main() -> int:
             console.print(f"discarded metadata for {removed} computed sets")
 
     elapsed = time.monotonic() - started_at
-    downloaded = DownloadSummary.of(fetched, elapsed)
-    computed = CoverageSummary.of(outcomes, elapsed)
+    downloaded = DownloadSummary.from_outcomes(fetched, elapsed)
+    computed = CoverageSummary.from_outcomes(outcomes, elapsed)
     print_summary(
         downloaded,
         computed,

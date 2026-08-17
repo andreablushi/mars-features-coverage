@@ -9,7 +9,7 @@ import configs
 from download.selection.features import select_features
 from models.feature import Feature
 from models.instrument import InstrumentSet
-from models.job import DownloadJob, DownloadPlan
+from models.job import Job, Plan
 from storage import paths
 
 
@@ -20,7 +20,7 @@ def build_plan(
     *,
     names: Sequence[str] | None = None,
     force: bool = False,
-) -> DownloadPlan:
+) -> Plan:
     """Select features and build the jobs still needed for a run.
 
     A job whose output file already exists is left out unless force is set, so
@@ -38,7 +38,7 @@ def build_plan(
     """
     usable, sizeless = select_features(features, names=names)
 
-    jobs: list[DownloadJob] = []
+    jobs: list[Job] = []
     skipped_existing = 0
     for feature in usable:
         for instrument_set in instrument_sets:
@@ -46,12 +46,18 @@ def build_plan(
             if path.exists() and not force:
                 skipped_existing += 1
                 continue
-            jobs.append(DownloadJob(feature, instrument_set, path))
+            jobs.append(
+                Job(
+                    feature=feature,
+                    instrument_set=instrument_set,
+                    output_path=path,
+                )
+            )
 
-    return DownloadPlan(
+    return Plan(
         jobs=tuple(jobs),
         feature_count=len(usable),
-        instrument_set_count=len(instrument_sets),
-        sizeless_features=tuple(feature.name for feature in sizeless),
+        set_count=len(instrument_sets),
         skipped_existing=skipped_existing,
+        sizeless_features=tuple(feature.name for feature in sizeless),
     )
