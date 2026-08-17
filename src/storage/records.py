@@ -7,31 +7,26 @@ from pathlib import Path
 from typing import Any
 
 from models.feature import Feature
-from models.observation import Observation
-from storage.files import read_jsonl
+from models.observation import LoadedSet, Observation
+from storage.disk import read_jsonl
 
 
-def load_set(path: Path) -> tuple[Feature, list[Observation], int] | None:
+def load_set(path: Path) -> LoadedSet[Observation] | None:
     """Read the observations stored for one feature and instrument set.
-
-    Records that cannot be placed on the map or on the time axis are counted
-    rather than dropped quietly, so a set that yields nothing is reported as
-    such instead of passing for a set that had nothing to say.
 
     Args:
         path: The JSONL file holding the set's observations.
 
     Returns:
-        The feature box taken from the stored provenance, the observations in
-        chronological order, and how many records were discarded, or None when
-        the file held no records at all.
+        The set as stored, or None when the file held no records at all.
     """
     box: Feature | None = None
+    set_key = ""
     observations: list[Observation] = []
     discarded = 0
     for item in read_jsonl(path):
         if box is None:
-            box = _box(item)
+            box, set_key = _box(item), _set_key(item)
         observation = _observation(item)
         if observation is None:
             discarded += 1
@@ -40,7 +35,25 @@ def load_set(path: Path) -> tuple[Feature, list[Observation], int] | None:
     if box is None:
         return None
     observations.sort(key=lambda observation: (observation.start, observation.pdsid))
-    return box, observations, discarded
+    return LoadedSet(
+        feature=box, set_key=set_key, observations=observations, discarded=discarded
+    )
+
+
+def _set_key(item: dict[str, Any]) -> str:
+    """Return the instrument set a record was downloaded for.
+
+    Args:
+        item: One stored observation record.
+
+    Returns:
+        The set identifier from provenance, falling back to the record's own
+        product type for metadata written before provenance carried one.
+    """
+    stored = item.get("instrument_set")
+    if stored:
+        return str(stored)
+    return f"{item['ihid']}/{item['iid']}/{item['pt']}"
 
 
 def _box(item: dict[str, Any]) -> Feature:
@@ -65,11 +78,6 @@ def _box(item: dict[str, Any]) -> Feature:
 def _observation(item: dict[str, Any]) -> Observation | None:
     """Build an observation from a stored record.
 
-    A footprint and a start time are what coverage needs: one to draw the
-    ground, one to place it in time. The stop time is not required, because it
-    only refines a track's swath width, which already falls back when it is
-    missing, and it would otherwise cost the whole observation.
-
     Args:
         item: One stored observation record.
 
@@ -93,9 +101,6 @@ def _observation(item: dict[str, Any]) -> Observation | None:
 
 def _utc(stamp: str) -> datetime:
     """Parse an ODE timestamp as UTC.
-
-    ODE writes some product types with a trailing zone and others without, so
-    a bare timestamp is read as the UTC it already is rather than as local time.
 
     Args:
         stamp: The ISO 8601 timestamp as stored.

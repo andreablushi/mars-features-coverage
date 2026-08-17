@@ -15,9 +15,6 @@ FALLBACK = "fallback"
 def orbital_altitude(track_length_m: float, duration_s: float) -> float | None:
     """Solve the spacecraft altitude implied by a ground-track speed.
 
-    A circular orbit sweeps its ground track at v = R * sqrt(GM / r**3), which
-    inverts to r = (GM * R**2 / v**2) ** (1/3).
-
     Args:
         track_length_m: The ground length of the track in metres.
         duration_s: The elapsed observation time in seconds.
@@ -52,11 +49,6 @@ def resolve_widths(
     measurements: Sequence[tuple[float, float]],
 ) -> list[tuple[float, str]]:
     """Derive a swath width for every track, filling in the ones that fail.
-
-    A track whose altitude does not solve takes the median width of the tracks
-    alongside it that did, and if none of them solved, the width at the nominal
-    altitude. Each width carries the label of where it came from so a fallback
-    can be filtered out downstream.
 
     Args:
         measurements: One (track length in metres, duration in seconds) pair

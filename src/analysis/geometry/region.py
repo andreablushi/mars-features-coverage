@@ -8,6 +8,8 @@ from shapely import (
     buffer,
     covers,
     intersection,
+    is_valid,
+    make_valid,
     prepare,
     segmentize,
     transform,
@@ -18,6 +20,7 @@ from shapely.geometry.base import BaseGeometry
 from analysis import configs
 from analysis.geometry import footprints
 from analysis.utils import geodesy
+from models.feature import Feature
 
 _EMPTY = Polygon()
 
@@ -46,6 +49,18 @@ def _merge_owned_parts(
         shapes[index] = union_all(parts[starts[index] : ends[index]])
 
 
+def _mend(geometry):
+    """Rebuild a shape the projection left crossing itself.
+
+    Args:
+        geometry: One shape, or an array of them.
+
+    Returns:
+        The same shape or array, valid.
+    """
+    return make_valid(geometry, method="structure", keep_collapsed=False)
+
+
 class FeatureRegion:
     """One feature's bounding box, projected into equal-area metres.
 
@@ -55,26 +70,24 @@ class FeatureRegion:
         area_m2: The area of the bounding box in square metres.
     """
 
-    def __init__(
-        self, min_lat: float, max_lat: float, west_lon: float, east_lon: float
-    ) -> None:
-        """Project one feature bounding box.
+    def __init__(self, feature: Feature) -> None:
+        """Project one feature's bounding box.
 
         Args:
-            min_lat: The southernmost latitude in degrees.
-            max_lat: The northernmost latitude in degrees.
-            west_lon: The westernmost longitude in degrees.
-            east_lon: The easternmost longitude in degrees.
+            feature: The feature whose box the coverage is measured against.
 
         Returns:
             None.
         """
+        min_lat, max_lat = feature.min_lat, feature.max_lat
+        west_lon, east_lon = feature.west_lon, feature.east_lon
         self.centre_lon, self.centre_lat = geodesy.bbox_centre(
             min_lat, max_lat, west_lon, east_lon
         )
         lons, lats = geodesy.bbox_ring(min_lat, max_lat, west_lon, east_lon)
         x, y = geodesy.laea_forward(lons, lats, self.centre_lon, self.centre_lat)
-        self._shape = Polygon(np.column_stack((x, y)))
+        shape = Polygon(np.column_stack((x, y)))
+        self._shape = shape if is_valid(shape) else _mend(shape)
         prepare(self._shape)
         self.area_m2 = self._shape.area
         self._tight = footprints.clip_boxes(min_lat, max_lat, west_lon, east_lon)
@@ -100,10 +113,6 @@ class FeatureRegion:
     ) -> np.ndarray:
         """Return the ground a whole set of observations covers on the feature.
 
-        The set is projected in one pass rather than one footprint at a time,
-        because the projection is a single numpy expression over every
-        coordinate and shapely's operations take whole arrays.
-
         Args:
             geoms: The parsed footprint geometries in lon/lat degrees.
             swath_widths_m: The cross-track width to give each sounder track,
@@ -127,15 +136,14 @@ class FeatureRegion:
                 buffers[grown],
                 quad_segs=configs.BUFFER_QUAD_SEGMENTS,
             )
+        broken = ~is_valid(projected)
+        if broken.any():
+            projected[broken] = _mend(projected[broken])
         _merge_owned_parts(projected, owners, shapes)
         return self._clip_to_feature(shapes)
 
     def _clip_to_feature(self, shapes: np.ndarray) -> np.ndarray:
         """Cut projected footprints back to the feature they belong to.
-
-        A footprint the feature already contains is left untouched. Intersecting
-        it would return the same ground with its coordinates re-noded, so the
-        skip is both cheaper and one rounding step more faithful.
 
         Args:
             shapes: The projected footprints.

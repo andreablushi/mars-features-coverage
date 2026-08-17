@@ -1,45 +1,19 @@
-"""What files are called, and how they are written."""
+"""How bytes reach disk, and come back."""
 
 from __future__ import annotations
 
 import json
 import os
-import re
 import tempfile
 from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
-_SLUG_RE = re.compile(r"[^a-z0-9]+")
-
-
-def slugify(text: str) -> str:
-    """Convert a name into a lowercase, underscore separated slug.
-
-    The download stage names its directories with this and the coverage stage
-    mirrors those names, so anything starting from a catalogue name rather than
-    from a path on disk needs the same rule.
-
-    Args:
-        text: The raw name, for example "Rovers and Landers".
-
-    Returns:
-        A slug such as "rovers_and_landers", or "unnamed" if empty.
-    """
-    slug = _SLUG_RE.sub("_", text.strip().lower()).strip("_")
-    return slug or "unnamed"
-
 
 @contextmanager
 def atomic_path(path: Path) -> Iterator[Path]:
     """Yield a temporary path that replaces the destination on success.
-
-    Both stages decide what still needs doing by looking at which output files
-    exist, so a file that appears complete but was truncated mid-write would
-    make a resumed run skip work it never finished. The parent directory is
-    created if needed. On any failure the temporary file is removed and the
-    destination is left untouched.
 
     Args:
         path: The destination the temporary file is renamed to.

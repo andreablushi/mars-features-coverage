@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import time
-from argparse import Namespace
 from collections.abc import Callable, Iterator, Sequence
 from concurrent.futures import (
     Executor,
@@ -13,40 +11,33 @@ from concurrent.futures import (
     as_completed,
 )
 from contextlib import closing
-from typing import TypeVar
+from pathlib import Path
 
 from rich.console import Console
 
-import configs
-from analysis import planner as coverage_planner
-from analysis.tasks import run_job as compute_coverage
-from cli import progress
-from cli.console import describe_coverage, describe_download
-from download import planner as download_planner
-from download.api import catalog as ode_catalog
+import planner
+from analysis.measuring import run_job as compute_coverage
+from console import describe_coverage, describe_download, render
 from download.api.client import ODEClient
-from download.tasks import run_job as download_set
-from models.job import CoverageOutcome, DownloadOutcome
-from models.progress import CoverageSummary, DownloadSummary, Outcome, ProgressEvent
-from models.settings import CoverageSettings, DownloadSettings
-from storage import catalog, layout
+from download.fetching import run_job as download_set
+from download.selection.instruments import verify_sets
+from models.job import Job, Outcome, Plan
+from models.progress import ProgressEvent
+from models.settings import Settings
+from storage import catalog, metadata
 
-Job = TypeVar("Job")
 
-
-def run(
+def run_jobs(
     jobs: Sequence[Job], execute: Callable[[Job], Outcome], pool: Executor
 ) -> Iterator[ProgressEvent]:
     """Run every job on the pool, yielding progress as each one finishes.
-
-    Threads suit work waiting on the network and processes work bound to a
-    core, so the pool is the caller's choice and only this is shared.
 
     Args:
         jobs: The work to run.
         execute: What to call for one job, returning its outcome. It must never
             raise, since a stage reports a failure as an outcome rather than by
-            stopping the run.
+            stopping the run, and it must be picklable when the pool runs on
+            processes, which rules out a lambda or a local function.
         pool: The pool to run on, owned and shut down by the caller.
 
     Yields:
@@ -57,202 +48,110 @@ def run(
         yield ProgressEvent(completed=completed, outcome=future.result())
 
 
-def _collecting(events: Iterator[ProgressEvent], into: list) -> Iterator[ProgressEvent]:
-    """Keep every outcome while passing its event on.
-
-    Args:
-        events: The runner's progress events.
-        into: The list the outcomes are appended to.
-
-    Yields:
-        Each event, unchanged.
-    """
-    for event in events:
-        into.append(event.outcome)
-        yield event
-
-
-def _submitting(
+def _measuring(
     events: Iterator[ProgressEvent],
     pool: ProcessPoolExecutor,
-    started: list[Future[CoverageOutcome]],
+    fetched: list[Outcome],
+    started: list[Future[Outcome]],
     *,
-    cumulative_union: bool,
     force: bool,
 ) -> Iterator[ProgressEvent]:
-    """Pass download events through, starting each set's coverage as it lands.
+    """Pass download events through, keeping each one and measuring what landed.
 
     Args:
         events: The download runner's progress events.
         pool: The process pool the coverage jobs run on.
+        fetched: The download outcomes, appended to as they arrive.
         started: The coverage futures, appended to as they are submitted.
-        cumulative_union: Whether each coverage job keeps the running union.
         force: Whether to recompute a set that is already done.
 
     Yields:
         Each event, unchanged.
     """
     for event in events:
+        fetched.append(event.outcome)
         if not event.outcome.failed:
             source = event.outcome.job.output_path
             if source.stat().st_size:
-                for job in coverage_planner.build_plan([source], force=force).jobs:
-                    started.append(pool.submit(compute_coverage, job, cumulative_union))
+                for job in planner.coverage_plan([source], force=force).jobs:
+                    started.append(pool.submit(compute_coverage, job))
         yield event
 
 
-def _drain(started: Sequence[Future[CoverageOutcome]]) -> Iterator[ProgressEvent]:
-    """Yield a progress event as each coverage job finishes.
+def _pending(plan: Plan) -> list[Path]:
+    """Return the sets already on disk that this run will not download again.
+
+    A set the download is about to rewrite is measured once it lands rather
+    than now, so it is left out here and cannot be computed twice.
 
     Args:
-        started: The coverage futures to wait on.
+        plan: The download plan, naming every file this run will write.
 
-    Yields:
-        One event per finished job, in completion order.
+    Returns:
+        The stored metadata files to weigh for the coverage backlog.
     """
-    for completed, future in enumerate(started, start=1):
-        yield ProgressEvent(completed=completed, outcome=future.result())
+    rewriting = {job.output_path for job in plan.jobs}
+    return [source for source in metadata.find_sets() if source not in rewriting]
 
 
-def download_and_compute(
-    args: Namespace,
-    download: DownloadSettings,
-    coverage: CoverageSettings,
-    console: Console,
-) -> tuple[DownloadSummary, list[CoverageOutcome]]:
-    """Download every selected set, measuring each one as it arrives.
+def run_pipeline(
+    settings: Settings, console: Console
+) -> tuple[list[Outcome], list[Outcome]]:
+    """Download every set still missing and measure every set not yet measured.
 
     Args:
-        args: The parsed command line arguments.
-        download: The settled download choices.
-        coverage: The settled coverage choices.
+        settings: The settled choices for the run.
         console: The console to render on.
 
     Returns:
-        The download half's totals and every finished coverage outcome.
+        Every finished download outcome, then every finished coverage outcome.
     """
-    started_at = time.monotonic()
-    futures: list[Future[CoverageOutcome]] = []
-    fetched: list[DownloadOutcome] = []
+    futures: list[Future[Outcome]] = []
+    fetched: list[Outcome] = []
     with ODEClient() as client:
-        features = ode_catalog.load_features(client, refresh=args.refresh_catalog)
-        plan = download_planner.build_plan(
-            features,
-            download.instrument_sets,
-            names=args.feature_name,
-            force=download.force,
+        refresh = settings.refresh_catalog
+        features = catalog.load_features(client, refresh=refresh)
+        verify_sets(
+            settings.instrument_sets,
+            catalog.load_instrument_sets(client, refresh=refresh),
         )
-        describe_download(plan, download.workers, console)
-        if not plan.jobs:
-            return DownloadSummary(0, 0, time.monotonic() - started_at), []
+        plan = planner.download_plan(
+            features,
+            settings.instrument_sets,
+            names=settings.feature_names,
+            force=settings.force,
+        )
+        backlog = planner.coverage_plan(_pending(plan), force=settings.force)
+        describe_download(plan, settings.workers, console)
+        describe_coverage(backlog, settings.workers, console)
         with (
-            ProcessPoolExecutor(max_workers=coverage.workers) as computing,
-            ThreadPoolExecutor(max_workers=download.workers) as fetching,
+            ProcessPoolExecutor(max_workers=settings.workers) as computing,
+            ThreadPoolExecutor(max_workers=settings.workers) as fetching,
         ):
-            stream = _submitting(
-                _collecting(
-                    run(
-                        plan.jobs,
-                        lambda job: download_set(job, client, download.loc),
-                        fetching,
-                    ),
-                    fetched,
+            futures.extend(
+                computing.submit(compute_coverage, job) for job in backlog.jobs
+            )
+            stream = _measuring(
+                run_jobs(
+                    plan.jobs,
+                    lambda job: download_set(job, client, settings.loc),
+                    fetching,
                 ),
                 computing,
+                fetched,
                 futures,
-                cumulative_union=coverage.cumulative_union,
-                force=coverage.force,
+                force=settings.force,
             )
             with closing(stream) as events:
-                progress.render(events, len(plan.jobs), "download", console)
+                render(events, len(plan.jobs), "download", console)
             if futures:
-                progress.render(_drain(futures), len(futures), "coverage", console)
-    summary = DownloadSummary(
-        ran=sum(1 for outcome in fetched if not outcome.failed),
-        failed=sum(1 for outcome in fetched if outcome.failed),
-        elapsed=time.monotonic() - started_at,
-    )
-    return summary, [future.result() for future in futures]
-
-
-def compute_only(coverage: CoverageSettings, console: Console) -> list[CoverageOutcome]:
-    """Measure everything already on disk, downloading nothing.
-
-    Args:
-        coverage: The settled coverage choices.
-        console: The console to render on.
-
-    Returns:
-        Every finished coverage outcome.
-    """
-    plan = coverage_planner.build_plan(layout.find_sets(), force=coverage.force)
-    describe_coverage(plan, coverage.workers, console)
-    if not plan.jobs:
-        return []
-    outcomes: list[CoverageOutcome] = []
-    with ProcessPoolExecutor(max_workers=coverage.workers) as pool:
-        stream = _collecting(
-            run(
-                plan.jobs,
-                lambda job: compute_coverage(job, coverage.cumulative_union),
-                pool,
-            ),
-            outcomes,
-        )
-        with closing(stream) as events:
-            progress.render(events, len(plan.jobs), "coverage", console)
-    return outcomes
-
-
-def discard_metadata(outcomes: Sequence[CoverageOutcome]) -> int:
-    """Delete the metadata of every set whose coverage is now on disk.
-
-    A set is only discarded once its summary exists, so a run that stopped part
-    way never leaves an artifact without the metadata that produced it.
-
-    Args:
-        outcomes: Every finished coverage job.
-
-    Returns:
-        How many metadata files were removed.
-    """
-    removed = 0
-    for outcome in outcomes:
-        if not outcome.failed and outcome.job.summary_path.exists():
-            outcome.job.source.unlink(missing_ok=True)
-            removed += 1
-    return removed
-
-
-def reindex(outcomes: Sequence[CoverageOutcome]) -> int:
-    """Rebuild the per-feature and catalogue-wide summaries from disk.
-
-    Args:
-        outcomes: Every finished coverage job, naming the features to refresh.
-
-    Returns:
-        How many summary rows the catalogue index holds.
-    """
-    for feature_dir in sorted({outcome.job.source.parent for outcome in outcomes}):
-        catalog.finalise_feature(configs.COVERAGE_ROOT, feature_dir)
-    return catalog.rebuild(configs.ARTIFACTS_ROOT, configs.COVERAGE_ROOT)
-
-
-def totals(outcomes: Sequence[CoverageOutcome], elapsed: float) -> CoverageSummary:
-    """Total up what the coverage half of the run did.
-
-    Args:
-        outcomes: Every finished coverage job.
-        elapsed: How long the run took in seconds.
-
-    Returns:
-        The summary.
-    """
-    return CoverageSummary(
-        computed=sum(1 for o in outcomes if not o.failed and not o.empty),
-        empty=sum(1 for o in outcomes if not o.failed and o.empty),
-        failed=sum(1 for o in outcomes if o.failed),
-        events=sum(o.events for o in outcomes if not o.failed),
-        discarded=sum(o.discarded for o in outcomes),
-        elapsed=elapsed,
-    )
+                render(
+                    (
+                        ProgressEvent(completed=done, outcome=future.result())
+                        for done, future in enumerate(futures, start=1)
+                    ),
+                    len(futures),
+                    "coverage",
+                    console,
+                )
+    return fetched, [future.result() for future in futures]

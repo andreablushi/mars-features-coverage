@@ -63,9 +63,6 @@ class TileGrid:
     def __iter__(self) -> Iterator[tuple[BaseGeometry, float, np.ndarray]]:
         """Walk the tiles that can hold ground, with what reaches each one.
 
-        A tile outside the feature is left out, since nothing drawn over it
-        could ever be counted.
-
         Yields:
             Each tile's rectangle, the ground in square metres it could hold,
             and the indices of the shapes reaching it, in their original order.
@@ -82,9 +79,6 @@ class TileGrid:
     ) -> tuple[np.ndarray, np.ndarray]:
         """Cut the given shapes to one tile, dropping the ones that miss it.
 
-        The index answers on bounding boxes, so a shape it reports may still not
-        reach the tile. Cutting settles that, for the whole chunk at once.
-
         Args:
             reaching: The indices of the shapes to cut.
             rectangle: The tile to cut them to.
@@ -99,10 +93,6 @@ class TileGrid:
 
 def _tiles_per_axis(width: float, height: float, shapes: Sequence[BaseGeometry]) -> int:
     """Choose how many tiles a feature needs along each axis.
-
-    A tile much smaller than a footprint is the expensive mistake: the footprint
-    is then cut against dozens of tiles that each hold a sliver of it. Matching
-    the tile to the typical footprint keeps that to a handful.
 
     Args:
         width: The feature's projected width in metres.

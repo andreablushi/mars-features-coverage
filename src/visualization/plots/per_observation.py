@@ -7,8 +7,8 @@ from collections.abc import Sequence
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
 import numpy as np
-from models.coverage import SetCoverage
 
+from models.results import SetCoverage
 from visualization import configs, panels
 
 
@@ -49,17 +49,11 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
 def _panel(axis, entry: SetCoverage, colour, area_km2: float) -> None:
     """Draw one instrument set's observations on its own panel.
 
-    Each point is dropped to the axis by a stem, so a single observation stays
-    visible where the points crowd together. Every panel keeps the same full
-    axis, so a point means the same height in all of them and a narrow swath
-    reads as the narrow swath it is.
-
     Args:
         axis: The panel to draw on.
         entry: The instrument set being drawn.
         colour: The colour the set is drawn in.
-        area_km2: The feature's bounding box area, which the heights are a
-            share of.
+        area_km2: The feature's bounding box area, which the heights are a share of.
 
     Returns:
         None.
@@ -70,6 +64,17 @@ def _panel(axis, entry: SetCoverage, colour, area_km2: float) -> None:
     axis.scatter(
         times, shares, s=12, alpha=0.65, color=colour, edgecolors="none", zorder=3
     )
+    if not entry.observed:
+        axis.text(
+            0.5,
+            0.5,
+            entry.reason,
+            transform=axis.transAxes,
+            ha="center",
+            va="center",
+            fontsize=9,
+            color=configs.GREY,
+        )
     axis.set_ylabel(entry.label, rotation=0, ha="right", va="center", fontsize=9)
     axis.set_ylim(-0.05, 1.05)
     panels.tidy(axis, percent="y", grid="y")
