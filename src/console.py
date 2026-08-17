@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 
@@ -13,6 +14,12 @@ from models.progress import CoverageSummary, DownloadSummary, ProgressEvent
 
 # How many items are named before the rest are counted
 LISTED = 5
+
+# Set by a platform run, whose log takes plain flushed lines rather than a bar.
+PLAIN_LOG_ENV = "PIPELINE_PLAIN_LOG"
+
+# How many progress lines a stage prints where no cursor can be moved
+LOGGED_LINES = 50
 
 
 def describe_download(plan: Plan, workers: int, console: Console) -> None:
@@ -70,6 +77,9 @@ def render(
     Shows the bar and the completed and total counts. Failures are printed
     above the bar as they happen.
 
+    A run that set PLAIN_LOG_ENV takes named lines instead, since a live bar
+    leaves a captured log looking stalled from the first job to the last.
+
     Args:
         events: The progress events produced by a runner.
         total: The number of units in the run.
@@ -80,6 +90,9 @@ def render(
         None.
     """
     console = console or Console()
+    if os.environ.get(PLAIN_LOG_ENV):
+        _log(events, total, description)
+        return
     with Progress(
         BarColumn(bar_width=None),
         MofNCompleteColumn(),
@@ -92,6 +105,34 @@ def render(
                     f"[red]error[/red] {event.outcome.label}: {event.outcome.error}"
                 )
             progress.update(task, completed=event.completed)
+
+
+def _log(events: Iterable[ProgressEvent], total: int, description: str) -> None:
+    """Print which job a stage has reached, every so many jobs.
+
+    Written with the plain flushed print the platform's log carries, since the
+    console's own writes are buffered there and surface only once at the end.
+
+    Args:
+        events: The progress events produced by a runner.
+        total: The number of units in the run.
+        description: The label for the stage.
+
+    Returns:
+        None.
+    """
+    step = max(1, total // LOGGED_LINES)
+    for event in events:
+        outcome = event.outcome
+        if outcome.failed:
+            print(f"error {outcome.label}: {outcome.error}", flush=True)
+        if event.completed % step == 0 or event.completed == total:
+            share = event.completed / total
+            print(
+                f"{description} {event.completed}/{total} ({share:.0%}) "
+                f"{outcome.label}",
+                flush=True,
+            )
 
 
 def print_interrupted(noun: str, console: Console | None = None) -> None:

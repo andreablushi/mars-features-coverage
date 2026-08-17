@@ -1,7 +1,7 @@
 # A run downloads every set still missing and measures every set not yet measured.
 
 # Jobs at once in each half: download threads, then coverage processes.
-workers: 4
+workers: 8
 
 # Keep each set's metadata once computed. Off makes the artifacts final.
 keep_metadata: true
@@ -19,6 +19,7 @@ instruments:
   - MRO/CRISM/MTRDR
   - MRO/CRISM/TRDR:[mh]sp*   # the multispectral survey, not the whole type
   - MRO/SHARAD/USRDRV2
+  - MGS/MOLA/MEGDR
 
 # Restrict the run to named features. Comment out for the whole catalogue.
 # features:

@@ -35,6 +35,12 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     axes = np.atleast_1d(axes)
     for axis, entry in zip(axes, coverage, strict=True):
         _panel(axis, entry, colours[entry.label], area_km2)
+    peak = max(
+        (event.own_km2 / area_km2 for entry in coverage for event in entry.events),
+        default=0.0,
+    )
+    top = peak if peak > 0.0 else 1.0
+    axes[0].set_ylim(-0.05 * top, 1.05 * top)
     axes[0].set_title(
         f"{panels.title(coverage)}  -  coverage per observation",
         fontsize=12,
@@ -76,5 +82,4 @@ def _panel(axis, entry: SetCoverage, colour, area_km2: float) -> None:
             color=configs.GREY,
         )
     axis.set_ylabel(entry.label, rotation=0, ha="right", va="center", fontsize=9)
-    axis.set_ylim(-0.05, 1.05)
     panels.tidy(axis, percent="y", grid="y")
