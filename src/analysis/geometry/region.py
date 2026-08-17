@@ -61,21 +61,6 @@ def _mend(geometry):
     return make_valid(geometry, method="structure", keep_collapsed=False)
 
 
-def _repaired(shapes: np.ndarray) -> np.ndarray:
-    """Mend every footprint the projection left invalid.
-
-    Args:
-        shapes: The projected footprints, mended in place.
-
-    Returns:
-        The same array, with every footprint valid.
-    """
-    broken = ~is_valid(shapes)
-    if broken.any():
-        shapes[broken] = _mend(shapes[broken])
-    return shapes
-
-
 class FeatureRegion:
     """One feature's bounding box, projected into equal-area metres.
 
@@ -151,7 +136,10 @@ class FeatureRegion:
                 buffers[grown],
                 quad_segs=configs.BUFFER_QUAD_SEGMENTS,
             )
-        _merge_owned_parts(_repaired(projected), owners, shapes)
+        broken = ~is_valid(projected)
+        if broken.any():
+            projected[broken] = _mend(projected[broken])
+        _merge_owned_parts(projected, owners, shapes)
         return self._clip_to_feature(shapes)
 
     def _clip_to_feature(self, shapes: np.ndarray) -> np.ndarray:

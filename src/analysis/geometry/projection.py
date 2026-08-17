@@ -134,7 +134,8 @@ def _track_length(wkt: str) -> float:
         The summed length in metres.
     """
     total = 0.0
-    for part in footprints.flatten(from_wkt(wkt)):
+    parts, _ = footprints.single_parts(np.asarray([from_wkt(wkt)], dtype=object))
+    for part in parts:
         if part.geom_type != "LineString":
             continue
         coords = np.asarray(part.coords)
