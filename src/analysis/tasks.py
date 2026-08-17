@@ -8,7 +8,7 @@ from analysis.geometry.region import FeatureRegion
 from models.feature import Feature
 from models.job import CoverageJob, CoverageOutcome
 from models.observation import LoadedSet, ProjectedObservation
-from storage import geometry, parquet, records
+from storage import caching, parquet, records
 from storage.schemas import EVENTS, SUMMARY
 
 
@@ -54,7 +54,7 @@ def _projected_footprints(
         The projected set and the region it was measured against, or None when
         the set holds no records.
     """
-    cached = geometry.load(job.geometry_path, job.source)
+    cached = caching.load(job.geometry_path, job.source)
     if cached is not None:
         return cached, _region(cached.feature)
     loaded = records.load_set(job.source)
@@ -63,7 +63,7 @@ def _projected_footprints(
     region = _region(loaded.feature)
     projected, missed = projection.project(region, loaded.observations)
     if projected:
-        geometry.save(job.geometry_path, loaded.feature, loaded.set_key, projected)
+        caching.save(job.geometry_path, loaded.feature, loaded.set_key, projected)
     return (
         LoadedSet(
             feature=loaded.feature,

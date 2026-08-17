@@ -27,7 +27,7 @@ from download.tasks import run_job as download_set
 from models.job import CoverageOutcome, DownloadOutcome, DownloadPlan, Job
 from models.progress import Outcome, ProgressEvent
 from models.settings import DownloadSettings, PipelineSettings
-from storage import layout
+from storage import metadata
 
 
 def run_jobs(
@@ -94,7 +94,7 @@ def _pending(plan: DownloadPlan) -> list[Path]:
         The stored metadata files to weigh for the coverage backlog.
     """
     rewriting = {job.output_path for job in plan.jobs}
-    return [source for source in layout.find_sets() if source not in rewriting]
+    return [source for source in metadata.find_sets() if source not in rewriting]
 
 
 def run_pipeline(

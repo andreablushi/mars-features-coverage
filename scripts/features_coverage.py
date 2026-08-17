@@ -13,7 +13,7 @@ from analysis import planner as coverage_planner
 from cli import progress
 from cli.console import print_summary
 from models.progress import CoverageSummary, DownloadSummary
-from storage import catalog, layout
+from storage import metadata, summary
 
 
 def main() -> int:
@@ -31,7 +31,7 @@ def main() -> int:
     fetched, outcomes = runner.run_pipeline(download, choices, console)
 
     if not choices.keep_metadata:
-        removed = layout.discard_metadata(outcomes)
+        removed = metadata.discard_metadata(outcomes)
         if removed:
             console.print(f"discarded metadata for {removed} computed sets")
 
@@ -41,8 +41,8 @@ def main() -> int:
     print_summary(
         downloaded,
         computed,
-        catalog.reindex(),
-        coverage_planner.unfinished(layout.find_sets()),
+        summary.reindex(),
+        coverage_planner.unfinished(metadata.find_sets()),
         console,
     )
     return 1 if computed.failed or downloaded.failed else 0

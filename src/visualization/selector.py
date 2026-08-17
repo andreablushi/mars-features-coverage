@@ -8,8 +8,8 @@ import ipywidgets as widgets
 from IPython.display import display
 
 from models.results import SetCoverage
-from storage import catalog, parquet
-from storage.files import slugify
+from storage import catalog, summary
+from storage.paths import slugify
 from visualization import configs, panels
 
 Render = Callable[[Sequence[SetCoverage]], widgets.Widget]
@@ -36,7 +36,7 @@ class FeatureSelector:
             self._names.setdefault(feature.feature_class, []).append(feature.name)
         for names in self._names.values():
             names.sort()
-        self._computed = parquet.computed_features()
+        self._computed = summary.computed_features()
         self.selection: tuple[str, str] | None = None
         self.coverage: list[SetCoverage] = []
         self._areas: list[tuple[widgets.Box, Render]] = []
@@ -132,7 +132,7 @@ class FeatureSelector:
         feature_class, name = self._class.value, self._name.value
         self.selection = (feature_class, name)
         if self._has_data(feature_class, name):
-            self.coverage = parquet.load_feature(feature_class, name)
+            self.coverage = summary.load_feature(feature_class, name)
             note = widgets.HTML(
                 f"Loaded <b>{feature_class} / {name}</b>. "
                 f"The cells below have filled in."

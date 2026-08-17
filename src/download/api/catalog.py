@@ -11,8 +11,8 @@ from download.api.client import ODEClient, as_items
 from download.selection.dedupe import dedupe
 from models.feature import Feature
 from models.product import InstrumentSetInfo
-from storage import catalog
-from storage.files import write_jsonl
+from storage import catalog, paths
+from storage.disk import write_jsonl
 
 
 def fetch_features(client: ODEClient) -> list[Feature]:
@@ -91,7 +91,7 @@ def load_features(
     Returns:
         The list of features.
     """
-    path = catalog.features_path(cache_dir)
+    path = paths.features_path(cache_dir)
     if path.exists() and not refresh:
         return catalog.read_features(cache_dir)
     features = fetch_features(client)
@@ -115,7 +115,7 @@ def load_instrument_sets(
     Returns:
         One entry per unique instrument set.
     """
-    path = catalog.instrument_sets_path(cache_dir)
+    path = paths.instrument_sets_path(cache_dir)
     if path.exists() and not refresh:
         return catalog.read_instrument_sets(cache_dir)
     rows = fetch_instrument_sets(client)

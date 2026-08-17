@@ -10,7 +10,7 @@ from download.selection.features import select_features
 from models.feature import Feature
 from models.instrument import InstrumentSet
 from models.job import DownloadJob, DownloadPlan
-from storage import layout
+from storage import paths
 
 
 def build_plan(
@@ -42,7 +42,7 @@ def build_plan(
     skipped_existing = 0
     for feature in usable:
         for instrument_set in instrument_sets:
-            path = layout.metadata_file(out_root, feature, instrument_set)
+            path = paths.metadata_file(out_root, feature, instrument_set)
             if path.exists() and not force:
                 skipped_existing += 1
                 continue

@@ -8,15 +8,11 @@ from typing import Any
 
 from models.feature import Feature
 from models.observation import LoadedSet, Observation
-from storage.files import read_jsonl
+from storage.disk import read_jsonl
 
 
 def load_set(path: Path) -> LoadedSet[Observation] | None:
     """Read the observations stored for one feature and instrument set.
-
-    Records that cannot be placed on the map or on the time axis are counted
-    rather than dropped quietly, so a set that yields nothing is reported as
-    such instead of passing for a set that had nothing to say.
 
     Args:
         path: The JSONL file holding the set's observations.
@@ -82,11 +78,6 @@ def _box(item: dict[str, Any]) -> Feature:
 def _observation(item: dict[str, Any]) -> Observation | None:
     """Build an observation from a stored record.
 
-    A footprint and a start time are what coverage needs: one to draw the
-    ground, one to place it in time. The stop time is not required, because it
-    only refines a track's swath width, which already falls back when it is
-    missing, and it would otherwise cost the whole observation.
-
     Args:
         item: One stored observation record.
 
@@ -110,9 +101,6 @@ def _observation(item: dict[str, Any]) -> Observation | None:
 
 def _utc(stamp: str) -> datetime:
     """Parse an ODE timestamp as UTC.
-
-    ODE writes some product types with a trailing zone and others without, so
-    a bare timestamp is read as the UTC it already is rather than as local time.
 
     Args:
         stamp: The ISO 8601 timestamp as stored.

@@ -116,4 +116,4 @@ def save(
             )
         ).tolist(),
     }
-    parquet.write_columns(columns, GEOMETRY, path)
+    parquet.write(columns, GEOMETRY, path)

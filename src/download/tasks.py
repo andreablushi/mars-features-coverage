@@ -5,7 +5,7 @@ from __future__ import annotations
 from download.api import products
 from download.api.client import ODEClient
 from models.job import DownloadJob, DownloadOutcome
-from storage.files import write_jsonl
+from storage.disk import write_jsonl
 
 
 def run_job(job: DownloadJob, client: ODEClient, loc: str) -> DownloadOutcome:

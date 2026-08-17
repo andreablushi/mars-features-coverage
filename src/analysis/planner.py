@@ -7,7 +7,7 @@ from pathlib import Path
 
 import configs
 from models.job import CoverageJob, CoveragePlan
-from storage import layout
+from storage import paths
 
 
 def build_plan(
@@ -37,16 +37,16 @@ def build_plan(
     jobs: list[CoverageJob] = []
     skipped_existing = 0
     for source in sorted(sources, key=lambda path: -path.stat().st_size):
-        summary_path = layout.set_summary_path(coverage_root, source)
+        summary_path = paths.set_summary_path(coverage_root, source)
         if summary_path.exists() and not force:
             skipped_existing += 1
             continue
         jobs.append(
             CoverageJob(
                 source=source,
-                events_path=layout.events_path(coverage_root, source),
+                events_path=paths.events_path(coverage_root, source),
                 summary_path=summary_path,
-                geometry_path=layout.geometry_path(geometry_root, source),
+                geometry_path=paths.geometry_path(geometry_root, source),
             )
         )
     return CoveragePlan(
@@ -75,5 +75,5 @@ def unfinished(
     return tuple(
         source
         for source in sources
-        if not layout.set_summary_path(coverage_root, source).exists()
+        if not paths.set_summary_path(coverage_root, source).exists()
     )
