@@ -40,9 +40,6 @@ def run(
 ) -> Iterator[ProgressEvent]:
     """Run every job on the pool, yielding progress as each one finishes.
 
-    Threads suit work waiting on the network and processes work bound to a
-    core, so the pool is the caller's choice and only this is shared.
-
     Args:
         jobs: The work to run.
         execute: What to call for one job, returning its outcome. It must never
