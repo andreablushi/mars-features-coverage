@@ -1,17 +1,19 @@
-# A run downloads every set still missing and measures every set not yet
-# measured, so the gaps an interrupted run left behind close by running again.
+# A run downloads every set still missing and measures every set not yet measured.
 pipeline:
-  # Keep each set's metadata once its coverage is computed. Off makes the
-  # artifacts final: nothing recomputes without downloading again.
+  # Jobs at once in each half: download threads, then coverage processes.
+  workers: 4
+
+  # Keep each set's metadata once computed. Off makes the artifacts final.
   keep_metadata: true
+
+  # Redo finished work in both halves: download again, and measure again.
+  force: false
 
   # Re-fetch the ODE feature and instrument catalogues instead of the cache.
   refresh_catalog: false
 
 download:
-  # IHID/IID/PT, optionally followed by a colon and an ODE product id pattern
-  # to narrow a product type to one observing mode. A set must publish both a
-  # footprint and an acquisition time, and the run refuses one that does not.
+  # IHID/IID/PT, and a colon plus an ODE product id pattern to narrow the type.
   instruments:
     - MRO/CTX/EDR
     - MRO/HIRISE/RDRV11
@@ -24,30 +26,5 @@ download:
   #   - Gale
   #   - Jezero
 
-  # Half-width of the box put around a feature catalogued by centre alone,
-  # in degrees of latitude. Only craters and landing sites are sized this way.
-  point_radius_deg: 0.25
-
-  # Which products a feature's box returns.
-  #   b  the product's own box overlaps it
-  #   f  the product's footprint overlaps it, even partly
-  #   o  the product falls entirely inside it
-  #   i  the product contains the whole feature
+  # Which products a box returns: b box overlap, f footprint overlap, o inside, i containing.
   loc: f
-
-  # Re-download instead of skipping sets already on disk.
-  force: false
-
-  # Concurrent downloads.
-  workers: 4
-
-coverage:
-  # Accumulate the running union, which is the expensive half. Off leaves the
-  # cumulative columns empty, so no coverage fraction and no cumulative plot.
-  cumulative_union: true
-
-  # Recompute instead of skipping sets already computed.
-  force: false
-
-  # Concurrent worker processes.
-  workers: 4

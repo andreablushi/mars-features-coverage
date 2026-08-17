@@ -17,35 +17,11 @@ class DownloadSettings:
             whole catalogue.
         loc: Which products ODE returns for a feature box, "f" for every
             footprint that overlaps it and "o" for only those fully inside.
-        point_radius_deg: Half the width of the box put around a feature the
-            catalogue records by centre alone, in degrees of latitude.
-        force: Whether to re-download instead of skipping finished files.
-        workers: How many downloads to run at once.
     """
 
     instrument_sets: tuple[InstrumentSet, ...]
     feature_names: tuple[str, ...] | None
     loc: str
-    point_radius_deg: float
-    force: bool
-    workers: int
-
-
-@dataclass(frozen=True, slots=True)
-class CoverageSettings:
-    """The settled choices for the coverage stage.
-
-    Attributes:
-        cumulative_union: Whether to accumulate the running union of covered
-            ground, which is the whole of what the union costs. Off leaves each
-            observation's own area measured and the union columns empty.
-        force: Whether to recompute instead of skipping finished sets.
-        workers: How many sets to compute at once.
-    """
-
-    cumulative_union: bool
-    force: bool
-    workers: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,9 +32,15 @@ class PipelineSettings:
         keep_metadata: Whether to keep a set's downloaded JSONL once its
             coverage is computed. Deleting it makes the artifacts final, since
             nothing can be recomputed without downloading again.
+        force: Whether to redo finished work rather than skip it, which covers
+            both halves at once: a set is downloaded again and measured again.
         refresh_catalog: Whether to re-fetch the ODE catalogues rather than
             reading the cached copies.
+        workers: How many jobs each half runs at once, downloads on threads and
+            coverage on processes.
     """
 
     keep_metadata: bool
+    force: bool
     refresh_catalog: bool
+    workers: int

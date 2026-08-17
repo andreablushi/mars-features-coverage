@@ -97,19 +97,6 @@ def geometry_path(root: Path, source: Path) -> Path:
     return _mirrored(root, source.parent) / f"{source.stem}.parquet"
 
 
-def feature_summary_path(root: Path, feature_dir: Path) -> Path:
-    """Return one feature's combined summary.
-
-    Args:
-        root: The coverage artifacts root directory.
-        feature_dir: The feature's metadata directory.
-
-    Returns:
-        The path to the summary parquet file.
-    """
-    return _mirrored(root, feature_dir) / configs.SUMMARY_NAME
-
-
 def catalog_summary_path(root: Path = configs.ARTIFACTS_ROOT) -> Path:
     """Return the file holding every feature's summary rows together.
 

@@ -9,10 +9,9 @@ from typing import Any
 import yaml
 
 import configs
-from analysis import configs as analysis_configs
 from download import configs as download_configs
 from models.instrument import InstrumentSet
-from models.settings import CoverageSettings, DownloadSettings, PipelineSettings
+from models.settings import DownloadSettings, PipelineSettings
 
 
 def _section(name: str, path: Path) -> dict[str, Any]:
@@ -129,24 +128,6 @@ def _instrument_set(key: Any) -> InstrumentSet:
     return InstrumentSet.from_key(raw)
 
 
-def _positive_float(value: Any, name: str) -> float:
-    """Check that a setting is a distance a box can be grown by.
-
-    Args:
-        value: The settled value.
-        name: What to call it if it has to be rejected.
-
-    Returns:
-        The value as a float.
-
-    Raises:
-        ValueError: When it is not a positive number.
-    """
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
-        raise ValueError(f"{name} should be a positive number, found {value!r}")
-    return float(value)
-
-
 def download(path: Path = configs.CONFIG_PATH) -> DownloadSettings:
     """Settle what the download stage should do.
 
@@ -180,52 +161,15 @@ def download(path: Path = configs.CONFIG_PATH) -> DownloadSettings:
         instrument_sets=tuple(_instrument_set(key) for key in keys),
         feature_names=_names(config.get("features")),
         loc=loc,
-        point_radius_deg=_positive_float(
-            _first(
-                config.get("point_radius_deg"),
-                download_configs.DEFAULT_POINT_RADIUS_DEG,
-            ),
-            "point_radius_deg",
-        ),
-        force=_boolean(_first(config.get("force"), False), "force"),
-        workers=_positive_int(
-            _first(config.get("workers"), download_configs.DEFAULT_WORKERS),
-            "workers",
-        ),
-    )
-
-
-def coverage(path: Path = configs.CONFIG_PATH) -> CoverageSettings:
-    """Settle what the coverage stage should do.
-
-    Args:
-        path: The config file, which need not exist.
-
-    Returns:
-        The settled choices for the stage.
-
-    Raises:
-        ValueError: When the config file holds a key it cannot honour.
-    """
-    config = _section(analysis_configs.CONFIG_SECTION, path)
-    return CoverageSettings(
-        cumulative_union=_boolean(
-            _first(
-                config.get("cumulative_union"),
-                analysis_configs.DEFAULT_CUMULATIVE_UNION,
-            ),
-            "cumulative_union",
-        ),
-        force=_boolean(_first(config.get("force"), False), "force"),
-        workers=_positive_int(
-            _first(config.get("workers"), analysis_configs.DEFAULT_WORKERS),
-            "workers",
-        ),
     )
 
 
 def pipeline(path: Path = configs.CONFIG_PATH) -> PipelineSettings:
     """Settle what the run as a whole should do.
+
+    There is no built-in worker count, so the config file has to give one: how
+    many jobs a machine should carry at once is a property of that machine, and
+    a number picked here would be picked for a machine nobody has seen.
 
     Args:
         path: The config file, which need not exist.
@@ -234,16 +178,24 @@ def pipeline(path: Path = configs.CONFIG_PATH) -> PipelineSettings:
         The settled choices for the run.
 
     Raises:
-        ValueError: When the config file holds a key it cannot honour.
+        ValueError: When the config file holds a key it cannot honour, or no
+            worker count was given.
     """
     config = _section(configs.CONFIG_SECTION, path)
+    workers = config.get("workers")
+    if workers is None:
+        raise ValueError(
+            f"no worker count requested: set `pipeline.workers` in {path.name}"
+        )
     return PipelineSettings(
         keep_metadata=_boolean(
             _first(config.get("keep_metadata"), configs.DEFAULT_KEEP_METADATA),
             "keep_metadata",
         ),
+        force=_boolean(_first(config.get("force"), False), "force"),
         refresh_catalog=_boolean(
             _first(config.get("refresh_catalog"), configs.DEFAULT_REFRESH_CATALOG),
             "refresh_catalog",
         ),
+        workers=_positive_int(workers, "workers"),
     )

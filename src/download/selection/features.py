@@ -9,10 +9,7 @@ from models.feature import Feature
 
 
 def select_features(
-    features: Sequence[Feature],
-    *,
-    names: Sequence[str] | None = None,
-    point_radius_deg: float = configs.DEFAULT_POINT_RADIUS_DEG,
+    features: Sequence[Feature], *, names: Sequence[str] | None = None
 ) -> tuple[list[Feature], list[Feature]]:
     """Filter the catalog to the requested features and size the point ones.
 
@@ -21,17 +18,16 @@ def select_features(
 
     A feature the catalogue gives no extent at all is a named position, and ODE
     rejects a query for one outright. Where the position stands for something
-    with a real edge, a crater or a landing site, a box of the configured
-    radius is put around it and recorded as the box coverage is measured
-    against. Where it stands for a classical albedo name, Arabia or Amazonis,
-    there is no edge to recover: those names cover thousands of kilometres of
-    diffuse ground, and any radius would be invented rather than measured.
+    with a real edge, a crater or a landing site, a box of
+    configs.POINT_RADIUS_DEG is put around it and recorded as the box coverage
+    is measured against. Where it stands for a classical albedo name, Arabia or
+    Amazonis, there is no edge to recover: those names cover thousands of
+    kilometres of diffuse ground, and any radius would be invented rather than
+    measured.
 
     Args:
         features: The full feature catalog.
         names: Optional feature names to keep.
-        point_radius_deg: Half the width of the box to put around a point
-            feature that stands for a real landmark.
 
     Returns:
         A pair (usable, sizeless) where sizeless features carry no extent that
@@ -53,7 +49,7 @@ def select_features(
         if not feature.is_point:
             usable.append(feature)
         elif feature.feature_class in configs.SIZED_POINT_CLASSES:
-            usable.append(feature.enlarged(point_radius_deg))
+            usable.append(feature.enlarged(configs.POINT_RADIUS_DEG))
         else:
             sizeless.append(feature)
     return usable, sizeless

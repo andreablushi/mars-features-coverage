@@ -59,12 +59,3 @@ BUFFER_QUAD_SEGMENTS = 16
 # segment step or the swath model changes, so a cache built by the old rule is
 # rebuilt instead of silently reused.
 GEOMETRY_VERSION = b"3"
-
-
-# The section of config.yaml this stage reads
-CONFIG_SECTION = "coverage"
-
-# The running union is the expensive half of the work, so it can be skipped
-DEFAULT_CUMULATIVE_UNION = True
-
-DEFAULT_WORKERS = 8

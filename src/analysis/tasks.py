@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from analysis import configs
 from analysis.coverage import events as coverage
 from analysis.geometry import projection
 from analysis.geometry.region import FeatureRegion
@@ -13,9 +12,7 @@ from storage import geometry, parquet, records
 from storage.schemas import EVENTS, SUMMARY
 
 
-def run_job(
-    job: CoverageJob, cumulative_union: bool = configs.DEFAULT_CUMULATIVE_UNION
-) -> CoverageOutcome:
+def run_job(job: CoverageJob) -> CoverageOutcome:
     """Compute and write coverage for one feature and instrument set.
 
     The events are written before the summary, so a summary on disk means the
@@ -23,7 +20,6 @@ def run_job(
 
     Args:
         job: The instrument set to compute.
-        cumulative_union: Whether to accumulate the running union.
 
     Returns:
         The outcome, carrying the error when the job failed.
@@ -35,9 +31,7 @@ def run_job(
         loaded, region = prepared
         if not loaded.observations:
             return CoverageOutcome(job=job, discarded=loaded.discarded)
-        rows, summary = coverage.measure_set(
-            loaded, region, cumulative_union=cumulative_union
-        )
+        rows, summary = coverage.measure_set(loaded, region)
         parquet.write(rows, EVENTS, job.events_path)
         parquet.write([summary], SUMMARY, job.summary_path)
         return CoverageOutcome(job=job, events=len(rows), discarded=loaded.discarded)

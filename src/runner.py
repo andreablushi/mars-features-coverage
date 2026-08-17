@@ -29,7 +29,7 @@ from download.selection.instruments import verify_sets
 from download.tasks import run_job as download_set
 from models.job import CoverageOutcome, DownloadOutcome, DownloadPlan
 from models.progress import CoverageSummary, DownloadSummary, Outcome, ProgressEvent
-from models.settings import CoverageSettings, DownloadSettings, PipelineSettings
+from models.settings import DownloadSettings, PipelineSettings
 from storage import catalog, layout
 
 Job = TypeVar("Job")
@@ -79,7 +79,6 @@ def _submitting(
     pool: ProcessPoolExecutor,
     started: list[Future[CoverageOutcome]],
     *,
-    cumulative_union: bool,
     force: bool,
 ) -> Iterator[ProgressEvent]:
     """Pass download events through, starting each set's coverage as it lands.
@@ -88,7 +87,6 @@ def _submitting(
         events: The download runner's progress events.
         pool: The process pool the coverage jobs run on.
         started: The coverage futures, appended to as they are submitted.
-        cumulative_union: Whether each coverage job keeps the running union.
         force: Whether to recompute a set that is already done.
 
     Yields:
@@ -99,7 +97,7 @@ def _submitting(
             source = event.outcome.job.output_path
             if source.stat().st_size:
                 for job in coverage_planner.build_plan([source], force=force).jobs:
-                    started.append(pool.submit(compute_coverage, job, cumulative_union))
+                    started.append(pool.submit(compute_coverage, job))
         yield event
 
 
@@ -133,10 +131,7 @@ def _pending(plan: DownloadPlan) -> list[Path]:
 
 
 def survey(
-    download: DownloadSettings,
-    coverage: CoverageSettings,
-    pipeline: PipelineSettings,
-    console: Console,
+    download: DownloadSettings, pipeline: PipelineSettings, console: Console
 ) -> tuple[DownloadSummary, list[CoverageOutcome]]:
     """Download every set still missing and measure every set not yet measured.
 
@@ -146,7 +141,6 @@ def survey(
 
     Args:
         download: The settled download choices.
-        coverage: The settled coverage choices.
         pipeline: The settled choices for the run as a whole.
         console: The console to render on.
 
@@ -167,19 +161,17 @@ def survey(
             features,
             download.instrument_sets,
             names=download.feature_names,
-            point_radius_deg=download.point_radius_deg,
-            force=download.force,
+            force=pipeline.force,
         )
-        backlog = coverage_planner.build_plan(_pending(plan), force=coverage.force)
-        describe_download(plan, download.workers, console)
-        describe_coverage(backlog, coverage.workers, console)
+        backlog = coverage_planner.build_plan(_pending(plan), force=pipeline.force)
+        describe_download(plan, pipeline.workers, console)
+        describe_coverage(backlog, pipeline.workers, console)
         with (
-            ProcessPoolExecutor(max_workers=coverage.workers) as computing,
-            ThreadPoolExecutor(max_workers=download.workers) as fetching,
+            ProcessPoolExecutor(max_workers=pipeline.workers) as computing,
+            ThreadPoolExecutor(max_workers=pipeline.workers) as fetching,
         ):
             futures.extend(
-                computing.submit(compute_coverage, job, coverage.cumulative_union)
-                for job in backlog.jobs
+                computing.submit(compute_coverage, job) for job in backlog.jobs
             )
             stream = _submitting(
                 _collecting(
@@ -192,8 +184,7 @@ def survey(
                 ),
                 computing,
                 futures,
-                cumulative_union=coverage.cumulative_union,
-                force=coverage.force,
+                force=pipeline.force,
             )
             with closing(stream) as events:
                 progress.render(events, len(plan.jobs), "download", console)
@@ -227,17 +218,18 @@ def discard_metadata(outcomes: Sequence[CoverageOutcome]) -> int:
     return removed
 
 
-def reindex(outcomes: Sequence[CoverageOutcome]) -> int:
+def reindex() -> int:
     """Rebuild the per-feature and catalogue-wide summaries from disk.
 
-    Args:
-        outcomes: Every finished coverage job, naming the features to refresh.
+    Every feature holding a finished set is gathered, not only the features
+    this run computed, so an index a stopped run left short of what is on disk
+    is filled in by the next run rather than staying short of it.
 
     Returns:
         How many summary rows the catalogue index holds.
     """
-    for feature_dir in sorted({outcome.job.source.parent for outcome in outcomes}):
-        catalog.finalise_feature(configs.COVERAGE_ROOT, feature_dir)
+    for feature_dir in sorted(configs.COVERAGE_ROOT.glob("*/*")):
+        catalog.finalise_feature(feature_dir)
     return catalog.rebuild(configs.ARTIFACTS_ROOT, configs.COVERAGE_ROOT)
 
 

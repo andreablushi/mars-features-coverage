@@ -15,7 +15,7 @@ git config core.hooksPath .githooks        # once per clone, blocks unlinted pus
 ## Running the pipeline
 
 ```bash
-uv run python scripts/survey_features.py
+uv run python scripts/features_coverage.py
 ```
 
 One entry point runs both halves, and takes no arguments: every choice comes
@@ -28,7 +28,7 @@ the download waits on the network while the measurement uses the cores. Download
 writes one JSONL file per feature and instrument set, coverage turns those into
 parquet: a row per observation saying what it covered and what it newly added,
 and a row per set saying how much of the feature it reached and over what span.
-Neither half redoes finished work, and the `force` keys recompute anyway.
+Neither half redoes finished work, and the one `force` key redoes both.
 
 Coverage is measured against the feature's bounding box, in an equal-area
 projection centred on it, as an exact union rather than a sampled grid.
@@ -36,7 +36,7 @@ projection centred on it, as an exact union rather than a sampled grid.
 Queries are built from that same box rather than from the feature's name, so the
 ground asked for is the ground measured. A feature the catalogue writes with
 equal west and east longitudes circles a pole and is asked for in two halves; one
-it records by centre alone is given a box of `point_radius_deg`, unless it is a
+it records by centre alone is given a box of `POINT_RADIUS_DEG`, unless it is a
 classical albedo name, which has no edge any radius could stand in for and is
 reported unqueried instead. ODE answers a query it cannot place with a count of
 -1 rather than an error, and that is treated as the failure it is rather than as
@@ -45,10 +45,22 @@ an empty result.
 ## Configuration
 
 `config.yaml` holds every choice a run makes, one section each, each parameter
-documented in place. Delete a key for its built-in default, delete the file for
-all of them. Nothing is passed on the command line, so a run cannot differ from
-what the file records. `download.features` restricts a run to named features
-and is commented out by default, which surveys the whole catalogue.
+documented in place on one line. Delete a key for its built-in default. Nothing
+is passed on the command line, so a run cannot differ from what the file
+records. `download.features` restricts a run to named features and is commented
+out by default, which surveys the whole catalogue.
+
+Two keys have no default and have to be given: `download.instruments`, since a
+run that asks for nothing is a mistake rather than a survey of some default
+selection, and `pipeline.workers`, since how many jobs to carry at once is a
+property of the machine and any number here would be picked for a machine
+nobody has seen. That one count runs both halves, download threads and coverage
+processes alike.
+
+What is not a choice is not in there: the measurement always keeps the running
+union, and the box put around a point feature is fixed in `download/configs.py`,
+since a coverage figure measured against a box of some other size would not be
+comparable with the artifacts already computed.
 
 Instrument sets are written `IHID/IID/PT`, optionally followed by a colon and an
 ODE product id pattern to narrow one product type to a single observing mode, as

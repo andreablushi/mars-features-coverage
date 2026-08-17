@@ -15,21 +15,22 @@ from storage.files import atomic_path, read_jsonl
 from storage.schemas import SUMMARY
 
 
-def finalise_feature(coverage_root: Path, feature_dir: Path) -> int:
+def finalise_feature(feature_dir: Path) -> int:
     """Gather one feature's instrument set summaries into a single file.
 
+    The feature is read from the artifacts alone, so an index can be rebuilt
+    after the metadata that produced it has been discarded.
+
     Args:
-        coverage_root: The coverage artifacts root directory.
-        feature_dir: The feature's metadata directory.
+        feature_dir: The feature's artifacts directory.
 
     Returns:
         The number of summary rows written, or zero when nothing is finished.
     """
-    destination = layout.feature_summary_path(coverage_root, feature_dir)
-    paths = sorted(destination.parent.glob(f"*{configs.SET_SUMMARY_SUFFIX}"))
+    paths = sorted(feature_dir.glob(f"*{configs.SET_SUMMARY_SUFFIX}"))
     if not paths:
         return 0
-    return _concatenate(paths, destination)
+    return _concatenate(paths, feature_dir / configs.SUMMARY_NAME)
 
 
 def rebuild(artifacts_root: Path, coverage_root: Path) -> int:

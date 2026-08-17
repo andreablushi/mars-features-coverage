@@ -18,23 +18,16 @@ from storage import layout
 def main() -> int:
     """Download ODE metadata for geological features and measure their coverage.
 
-    Every choice a run makes is read from the config file, so the same file
-    describes what was run and what to run again. There is nothing to pass
-    here, and nothing a flag could quietly change between two runs. One run
-    fills both gaps: it downloads what is missing and measures what is
-    unmeasured, whichever earlier run left them behind.
+    Every choice a run makes is read from the config file.
 
     Returns:
         A process exit code, non zero when either half had a failure.
     """
     choices = settings.pipeline()
-    coverage = settings.coverage()
     console = Console()
     started_at = time.monotonic()
 
-    downloaded, outcomes = runner.survey(
-        settings.download(), coverage, choices, console
-    )
+    downloaded, outcomes = runner.survey(settings.download(), choices, console)
 
     if not choices.keep_metadata:
         removed = runner.discard_metadata(outcomes)
@@ -45,7 +38,7 @@ def main() -> int:
     print_summary(
         downloaded,
         totals,
-        runner.reindex(outcomes),
+        runner.reindex(),
         coverage_planner.unfinished(layout.find_sets()),
         console,
     )

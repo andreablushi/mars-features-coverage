@@ -21,7 +21,7 @@ LONGITUDE_HALVES = ((0.0, 180.0), (180.0, 360.0))
 
 # Half the width of the box put around a point feature, in degrees of
 # latitude. About 15 km on Mars, which holds a crater or a landing site
-DEFAULT_POINT_RADIUS_DEG = 0.25
+POINT_RADIUS_DEG = 0.25
 
 # The point features worth sizing: a named position standing for something
 # with a real edge, rather than for a diffuse classical albedo region
@@ -35,8 +35,6 @@ LOC_MODES = ("b", "f", "o", "i")
 
 # The section of config.yaml this stage reads
 CONFIG_SECTION = "download"
-
-DEFAULT_WORKERS = 4
 
 RETAINED_FIELDS = (
     "pdsid",
