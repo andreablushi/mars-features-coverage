@@ -32,6 +32,12 @@ DENSITY_COLORMAP = "YlGnBu"
 DENSITY_EMPTY = "#ffffff"
 DENSITY_ROW_EDGE = "#cccccc"
 
+# The mean of the sets' records over time, with the weakest set filled under it
+AVAILABILITY_FIGURE_SIZE = (11, 3.4)
+AVAILABILITY_COLOUR = "#2c7fb8"
+AVAILABILITY_MEAN_ALPHA = 0.35
+AVAILABILITY_FLOOR_ALPHA = 0.85
+
 # The running curve beside the totals, and how the width is split between them
 CUMULATIVE_FIGURE_SIZE = (13, 5)
 CUMULATIVE_WIDTH_RATIOS = [3, 1]
