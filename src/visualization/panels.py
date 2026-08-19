@@ -13,7 +13,7 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import PercentFormatter
 
 from models.results import SetCoverage
-from visualization import configs
+from visualization import browse, configs
 
 Colour = tuple[float, float, float]
 
@@ -100,7 +100,8 @@ def overview(coverage: Sequence[SetCoverage], _window) -> widgets.Widget:
             however far the figures below it are zoomed in.
 
     Returns:
-        The report, or the grey panel when nothing is loaded.
+        The report beside a picture of the ground, or the grey panel when
+        nothing is loaded.
     """
     if not coverage:
         return unavailable()
@@ -114,7 +115,54 @@ def overview(coverage: Sequence[SetCoverage], _window) -> widgets.Widget:
         for entry in coverage
     ]
     body = escape("\n".join(lines))
-    return widgets.HTML(f"<pre style='margin: 0; line-height: 1.4'>{body}</pre>")
+    report = widgets.HTML(f"<pre style='margin: 0; line-height: 1.4'>{body}</pre>")
+    return widgets.HBox(
+        [report, _ground(coverage)],
+        layout=widgets.Layout(align_items="flex-start", grid_gap="24px"),
+    )
+
+
+def _ground(coverage: Sequence[SetCoverage]) -> widgets.Widget:
+    """Show the ground under the feature, as ODE published it.
+
+    Args:
+        coverage: The feature's instrument sets, at least one of them loaded.
+
+    Returns:
+        The ODE browse image of the observation reaching most of the feature,
+        captioned with the product it came from, or a note in its place when
+        ODE has no browse image to give.
+    """
+    event = browse.widest(coverage)
+    picture = browse.image(event.pdsid) if event else None
+    if picture is None:
+        return _note("ODE published no browse image for this feature.")
+    caption = f"{event.iid} {event.pt} {event.pdsid}, {event.t_start:%Y-%m-%d}"
+    return widgets.VBox(
+        [
+            widgets.Image(
+                value=picture,
+                format="png",
+                layout=widgets.Layout(height=configs.BROWSE_HEIGHT, width="auto"),
+            ),
+            _note(caption),
+        ]
+    )
+
+
+def _note(text: str) -> widgets.HTML:
+    """Set a line of grey small print under or in place of the picture.
+
+    Args:
+        text: The line to set.
+
+    Returns:
+        The rendered line.
+    """
+    return widgets.HTML(
+        f"<div style='color: {configs.GREY}; font-family: sans-serif; "
+        f"font-size: 11px;'>{escape(text)}</div>"
+    )
 
 
 def title(coverage: Sequence[SetCoverage]) -> str:

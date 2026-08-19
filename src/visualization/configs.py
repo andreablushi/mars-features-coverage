@@ -13,6 +13,11 @@ MONTH_DROPDOWN_WIDTH = "190px"
 # The blank first month, which leaves that end of the range open.
 OPEN_END_LABEL = ""
 
+# The ODE browse image beside the overview, and how many are kept in memory.
+BROWSE_TIMEOUT = 15.0
+BROWSE_CACHE = 64
+BROWSE_HEIGHT = "260px"
+
 # How an instrument set with nothing to draw is drawn anyway.
 UNOBSERVED_LINESTYLE = (0, (1, 3))
 
