@@ -188,17 +188,37 @@ class FeatureSelector:
         self._status.children = (note,)
         self._refill()
 
-    def _retimed(self, _change=None) -> None:
+    def _retimed(self, change=None) -> None:
         """Limit every claimed area to the picked range of months.
 
         Args:
-            _change: The widget change event, ignored.
+            change: The widget change event naming which end was picked, or
+                None when the range was set without one.
 
         Returns:
             None.
         """
+        self._order_range(change)
         self.window = Window.over_months(self._from.value, self._to.value)
         self._refill()
+
+    def _order_range(self, change) -> None:
+        """Keep From at or before To, by dragging the end that was not picked.
+
+        Args:
+            change: The widget change event naming which end was picked, or
+                None to leave From standing and move To.
+
+        Returns:
+            None.
+        """
+        start, end = self._from.value, self._to.value
+        if start is None or end is None or start <= end:
+            return
+        if change is not None and change["owner"] is self._to:
+            self._set_quietly(self._from, end)
+        else:
+            self._set_quietly(self._to, start)
 
     def _reset_range(self, _button=None) -> None:
         """Reopen both ends of the month range, redrawing once rather than twice.
@@ -209,11 +229,24 @@ class FeatureSelector:
         Returns:
             None.
         """
-        for picker in (self._from, self._to):
-            picker.unobserve(self._retimed, names="value")
-            picker.value = None
-            picker.observe(self._retimed, names="value")
+        self._set_quietly(self._from, None)
+        self._set_quietly(self._to, None)
         self._retimed()
+
+    def _set_quietly(self, picker: widgets.Dropdown, value: date | None) -> None:
+        """Set a month picker without letting it trigger a redraw of its own.
+
+        Args:
+            picker: The From or the To dropdown.
+            value: The first day of the month to select, or None to leave that
+                end of the range open.
+
+        Returns:
+            None.
+        """
+        picker.unobserve(self._retimed, names="value")
+        picker.value = value
+        picker.observe(self._retimed, names="value")
 
     def _refill(self) -> None:
         """Redraw every claimed area from the current feature and window.
