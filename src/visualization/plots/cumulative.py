@@ -13,14 +13,14 @@ from visualization import configs, panels
 from visualization.selectors.window import Window
 
 
-def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
+def plot(coverage: Sequence[SetCoverage], _window: Window) -> widgets.Widget:
     """Draw the running coverage per instrument beside its final total.
 
     Args:
         coverage: The feature's instrument sets, widest coverage first.
-        window: The date range the running curve is shown over. The curves
-            themselves are not recomputed, so one entering the window part way
-            up keeps the level it had already reached.
+        _window: The picked date range, ignored: a running total only reads
+            straight against the whole record, so this panel always shows it
+            however far the ones above are zoomed in.
 
     Returns:
         The figure as a widget, or the grey panel when nothing is loaded.
@@ -55,7 +55,7 @@ def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
     running.set_xlabel("Observation start time")
     running.set_ylabel("Share of the feature covered so far")
     running.set_ylim(0, 1.05)
-    running.set_xlim(left=window.start, right=window.end or last)
+    running.set_xlim(right=last)
     panels.tidy(running, percent="y", grid="both")
     running.legend(fontsize=9, loc="upper left", frameon=False)
     _totals(bars, coverage, colours)
