@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 from collections.abc import Sequence
 from html import escape
+from itertools import cycle
 
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
@@ -27,8 +28,8 @@ def colours(coverage: Sequence[SetCoverage]) -> dict[str, Colour]:
     Returns:
         One colour per instrument set label.
     """
-    cycle = plt.cm.tab10.colors * 3
-    return {entry.label: colour for entry, colour in zip(coverage, cycle, strict=False)}
+    wheel = cycle(plt.cm.tab10.colors)
+    return {entry.label: colour for entry, colour in zip(coverage, wheel, strict=False)}
 
 
 def tidy(axis: Axes, percent: str, grid: str) -> None:

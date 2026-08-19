@@ -9,6 +9,10 @@ from datetime import UTC, date, datetime, time
 
 from models.results import Event
 
+# The bounds an open end of a window stands in for.
+_DAWN = datetime.min.replace(tzinfo=UTC)
+_DUSK = datetime.max.replace(tzinfo=UTC)
+
 
 @dataclass(frozen=True, slots=True)
 class Window:
@@ -52,8 +56,8 @@ class Window:
         Returns:
             Those falling inside the window, in the same order.
         """
-        start = self.start or datetime.min.replace(tzinfo=UTC)
-        end = self.end or datetime.max.replace(tzinfo=UTC)
+        start = self.start or _DAWN
+        end = self.end or _DUSK
         return [event for event in events if start <= event.t_start <= end]
 
 
