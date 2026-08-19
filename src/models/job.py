@@ -24,7 +24,6 @@ class Job:
         events_path: The parquet file the per-observation rows go to.
         summary_path: The parquet file the set's one summary row goes to,
             written last so its presence marks the set as finished.
-        geometry_path: The parquet file caching the projected footprints.
     """
 
     feature: Feature | None = None
@@ -33,7 +32,6 @@ class Job:
     source: Path | None = None
     events_path: Path | None = None
     summary_path: Path | None = None
-    geometry_path: Path | None = None
 
     @property
     def label(self) -> str:

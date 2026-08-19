@@ -7,13 +7,12 @@ import time
 
 from rich.console import Console
 
-import configs
 import planner
 import runner
 import settings
 from console import print_interrupted, print_summary
 from models.progress import CoverageSummary, DownloadSummary
-from storage import caching, metadata, summary
+from storage import metadata, summary
 
 
 def main() -> int:
@@ -32,10 +31,6 @@ def main() -> int:
         removed = metadata.discard_metadata(outcomes)
         if removed:
             console.print(f"discarded metadata for {removed} computed sets")
-
-    freed = caching.discard(configs.GEOMETRY_ROOT)
-    if freed:
-        console.print(f"discarded the projection cache, {freed / 1e6:.0f} MB")
 
     elapsed = time.monotonic() - started_at
     downloaded = DownloadSummary.from_outcomes(fetched, elapsed)

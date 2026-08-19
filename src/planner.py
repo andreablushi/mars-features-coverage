@@ -88,7 +88,6 @@ def download_plan(
 def coverage_plan(
     sources: Sequence[Path],
     coverage_root: Path = configs.COVERAGE_ROOT,
-    geometry_root: Path = configs.GEOMETRY_ROOT,
     *,
     force: bool = False,
 ) -> Plan:
@@ -101,7 +100,6 @@ def coverage_plan(
     Args:
         sources: The instrument set metadata files discovered on disk.
         coverage_root: The coverage artifacts root directory.
-        geometry_root: The projected geometry cache root directory.
         force: When True, recompute sets that are already done.
 
     Returns:
@@ -114,7 +112,6 @@ def coverage_plan(
             source=source,
             events_path=paths.events_path(coverage_root, source),
             summary_path=output,
-            geometry_path=paths.geometry_path(geometry_root, source),
         ),
         force=force,
     )

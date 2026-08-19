@@ -5,7 +5,7 @@ from __future__ import annotations
 from analysis.coverage import events as coverage
 from analysis.geometry import projection
 from models.job import Job, Outcome
-from storage import caching, parquet
+from storage import parquet
 from storage.schemas import EVENTS, SUMMARY
 
 
@@ -28,7 +28,6 @@ def run_job(job: Job) -> Outcome:
         rows, summary = coverage.measure_set(loaded, region)
         parquet.write(rows, EVENTS, job.events_path)
         parquet.write([summary], SUMMARY, job.summary_path)
-        caching.drop(job.geometry_path)
         return Outcome(job=job, events=len(rows), discarded=loaded.discarded)
     except Exception as exc:
         return Outcome(job=job, error=exc)

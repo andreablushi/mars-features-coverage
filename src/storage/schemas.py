@@ -4,11 +4,7 @@ from __future__ import annotations
 
 import pyarrow as pa
 
-from analysis import configs
-
 _TIMESTAMP = pa.timestamp("us", tz="UTC")
-
-GEOMETRY_VERSION_KEY = b"geometry_version"
 
 EVENTS = pa.schema(
     [
@@ -45,26 +41,4 @@ SUMMARY = pa.schema(
         ("t_last", _TIMESTAMP),
         ("span_days", pa.float64()),
     ]
-)
-
-GEOMETRY = pa.schema(
-    [
-        ("feature_class", pa.string()),
-        ("feature_name", pa.string()),
-        ("set_key", pa.string()),
-        ("min_lat", pa.float64()),
-        ("max_lat", pa.float64()),
-        ("west_lon", pa.float64()),
-        ("east_lon", pa.float64()),
-        ("pdsid", pa.string()),
-        ("ihid", pa.string()),
-        ("iid", pa.string()),
-        ("pt", pa.string()),
-        ("t_start", _TIMESTAMP),
-        ("t_stop", _TIMESTAMP),
-        ("width_km", pa.float64()),
-        ("width_source", pa.string()),
-        ("wkb", pa.binary()),
-    ],
-    metadata={GEOMETRY_VERSION_KEY: configs.GEOMETRY_VERSION},
 )
