@@ -11,7 +11,7 @@ MAX_RETRIES = 20
 BACKOFF_BASE = 0.5
 # Ceiling on one backoff sleep, so many retries stay minutes rather than days
 BACKOFF_MAX = 30.0
-RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
+RETRYABLE_STATUS = frozenset({403, 429, 500, 502, 503, 504})
 
 PAGE_SIZE = 5000
 PAGE_ORDER = "oba"
