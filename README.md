@@ -121,6 +121,6 @@ data/
   metadata/           <class>/<feature>/<IHID_IID_PT>.jsonl
   artifacts/
     coverage/         <class>/<feature>/<set>.{events,summary}.parquet
-    geometry/         cached projected footprints, rebuilt when the rule changes
+    geometry/         projection cache, dropped when a run ends
     summary.parquet   every feature's summary rows together
 ```

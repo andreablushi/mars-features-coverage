@@ -16,6 +16,7 @@ from digitalhub_runtime_python import handler
 import configs
 import console
 import settings
+from storage import caching
 
 PROJECT_NAME = "mars-features-coverage"
 FUNCTION_NAME = "features-coverage"
@@ -77,8 +78,10 @@ def save_artifacts(project):
     print("measuring coverage", flush=True)
     failed = features_coverage.main()
 
-    # Drop the projection cache, which dwarfs the results it produced.
-    shutil.rmtree(configs.GEOMETRY_ROOT, ignore_errors=True)
+    # Drop the projection cache, which dwarfs the results it produced. Never
+    # optional here: the archive below would otherwise carry it to the platform.
+    freed = caching.discard(configs.GEOMETRY_ROOT)
+    print(f"dropped the projection cache, {freed / 1e6:.0f} MB", flush=True)
 
     # Publish the measurements themselves.
     print("packing the measurements", flush=True)

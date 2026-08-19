@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -14,6 +15,26 @@ from models.feature import Feature
 from models.observation import LoadedSet, ProjectedObservation
 from storage import parquet
 from storage.schemas import GEOMETRY, GEOMETRY_VERSION_KEY
+
+
+def discard(root: Path) -> int:
+    """Delete the whole projection cache, which nothing reads once a run ends.
+
+    The cache only exists to spare a re-run the projection work, so a finished
+    run can drop it without losing anything that cannot be rebuilt from the
+    metadata it came from.
+
+    Args:
+        root: The geometry cache root directory.
+
+    Returns:
+        How many bytes the cache was holding, and zero when there was none.
+    """
+    if not root.exists():
+        return 0
+    freed = sum(path.stat().st_size for path in root.rglob("*") if path.is_file())
+    shutil.rmtree(root, ignore_errors=True)
+    return freed
 
 
 def load(path: Path, source: Path) -> LoadedSet[ProjectedObservation] | None:
