@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 from collections.abc import Sequence
 from html import escape
+from itertools import cycle
 
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
@@ -27,8 +28,8 @@ def colours(coverage: Sequence[SetCoverage]) -> dict[str, Colour]:
     Returns:
         One colour per instrument set label.
     """
-    cycle = plt.cm.tab10.colors * 3
-    return {entry.label: colour for entry, colour in zip(coverage, cycle, strict=False)}
+    wheel = cycle(plt.cm.tab10.colors)
+    return {entry.label: colour for entry, colour in zip(coverage, wheel, strict=False)}
 
 
 def tidy(axis: Axes, percent: str, grid: str) -> None:
@@ -89,32 +90,6 @@ def unavailable(
           <div style="font-size: 13px; margin-top: 6px;">{escape(message)}</div>
         </div>"""
     )
-
-
-def overview(coverage: Sequence[SetCoverage], _window) -> widgets.Widget:
-    """Report what was loaded for the confirmed feature.
-
-    Args:
-        coverage: The feature's instrument sets, widest coverage first.
-        _window: The date range, ignored: the report covers the whole record
-            however far the figures below it are zoomed in.
-
-    Returns:
-        The report, or the grey panel when nothing is loaded.
-    """
-    if not coverage:
-        return unavailable()
-    lines = [
-        f"{title(coverage)}: {coverage[0].summary.feature_area_km2:,.1f} km2 "
-        f"bounding box"
-    ]
-    lines += [
-        f"  {entry.label:16s} {entry.summary.n_obs:6,d} observations"
-        f"{f'  ({entry.reason})' if entry.reason else ''}"
-        for entry in coverage
-    ]
-    body = escape("\n".join(lines))
-    return widgets.HTML(f"<pre style='margin: 0; line-height: 1.4'>{body}</pre>")
 
 
 def title(coverage: Sequence[SetCoverage]) -> str:

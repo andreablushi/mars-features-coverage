@@ -13,6 +13,21 @@ MONTH_DROPDOWN_WIDTH = "190px"
 # The blank first month, which leaves that end of the range open.
 OPEN_END_LABEL = ""
 
+# The global mosaic a feature is drawn on, served as WMS by the USGS.
+BASEMAP_URL = "https://planetarymaps.usgs.gov/cgi-bin/mapserv"
+BASEMAP_MAP = "/maps/mars/mars_simp_cyl.map"
+BASEMAP_LAYER = "THEMIS"
+BASEMAP_PIXELS = 700
+BASEMAP_WIDTH = "300px"
+BASEMAP_TIMEOUT = 30.0
+BASEMAP_FAILED = "The basemap could not be fetched: {reason}"
+BASEMAP_LOADING = "Fetching the basemap..."
+BASEMAP_CACHE = 32
+
+# How many times the feature's own width the view spans, and its floor.
+BASEMAP_PADDING = 4.0
+BASEMAP_MIN_SPAN_DEG = 0.5
+
 # How an instrument set with nothing to draw is drawn anyway.
 UNOBSERVED_LINESTYLE = (0, (1, 3))
 

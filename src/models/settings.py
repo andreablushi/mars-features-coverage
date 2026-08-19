@@ -13,6 +13,8 @@ class Settings:
 
     Attributes:
         instrument_sets: The instrument sets to download for every feature.
+        plot_instrument_sets: The sets the notebook figures draw, or None to
+            draw every set the artifacts hold. Nothing about a run reads it.
         feature_names: The features to restrict the run to, or None for the
             whole catalogue.
         loc: Which products ODE returns for a feature box, "f" for every
@@ -29,6 +31,7 @@ class Settings:
     """
 
     instrument_sets: tuple[InstrumentSet, ...]
+    plot_instrument_sets: tuple[InstrumentSet, ...] | None
     feature_names: tuple[str, ...] | None
     loc: str
     keep_metadata: bool

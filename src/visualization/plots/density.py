@@ -28,8 +28,9 @@ def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
     """
     if not coverage:
         return panels.unavailable()
-    edges = _bins(coverage, window)
+    edges = date2num(_bins(coverage, window))
     counts = np.array([_counts(entry, window, edges) for entry in coverage])
+    binned = _bin_name()
     figure, axis = plt.subplots(
         figsize=(
             configs.FIGURE_WIDTH,
@@ -40,7 +41,7 @@ def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
         bad=configs.DENSITY_EMPTY
     )
     mesh = axis.pcolormesh(
-        date2num(edges),
+        edges,
         np.arange(len(coverage) + 1),
         np.ma.masked_equal(counts, 0),
         cmap=colours,
@@ -48,13 +49,13 @@ def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
     )
     _label(axis, coverage, edges)
     axis.set_title(
-        f"{panels.title(coverage)}  -  observations per {_bin_name()}",
+        f"{panels.title(coverage)}  -  observations per {binned}",
         fontsize=12,
         loc="left",
     )
     axis.set_xlabel("Observation start time")
     bar = figure.colorbar(mesh, ax=axis, pad=0.01)
-    bar.set_label(f"Observations in the {_bin_name()}", fontsize=9)
+    bar.set_label(f"Observations in the {binned}", fontsize=9)
     bar.ax.tick_params(labelsize=8)
     figure.tight_layout()
     return panels.rendered(figure)
@@ -87,31 +88,29 @@ def _bins(coverage: Sequence[SetCoverage], window: Window) -> list[datetime]:
     return month_edges(first, last, configs.DENSITY_BIN_MONTHS)
 
 
-def _counts(
-    entry: SetCoverage, window: Window, edges: Sequence[datetime]
-) -> np.ndarray:
+def _counts(entry: SetCoverage, window: Window, edges: np.ndarray) -> np.ndarray:
     """Count one instrument set's observations in each time bin.
 
     Args:
         entry: The instrument set being counted.
         window: The date range, which excludes what falls outside it.
-        edges: The bin edges, in order.
+        edges: The bin edges as matplotlib date numbers, in order.
 
     Returns:
         One count per bin, in the same order.
     """
     times = [date2num(event.t_start) for event in window.visible(entry.events)]
-    counts, _ = np.histogram(times, bins=date2num(edges))
+    counts, _ = np.histogram(times, bins=edges)
     return counts
 
 
-def _label(axis, coverage: Sequence[SetCoverage], edges: Sequence[datetime]) -> None:
+def _label(axis, coverage: Sequence[SetCoverage], edges: np.ndarray) -> None:
     """Name each row after its instrument set, widest coverage on top.
 
     Args:
         axis: The panel to label.
         coverage: The feature's instrument sets, widest coverage first.
-        edges: The bin edges, used to place the note on an empty row.
+        edges: The bin edges as date numbers, placing the note on an empty row.
 
     Returns:
         None.
@@ -124,11 +123,10 @@ def _label(axis, coverage: Sequence[SetCoverage], edges: Sequence[datetime]) -> 
     axis.xaxis_date()
     axis.tick_params(labelsize=8, length=0)
     axis.spines[:].set_visible(False)
-    middle = (date2num(edges[0]) + date2num(edges[-1])) / 2
     for row, entry in enumerate(coverage):
         if not entry.observed:
             axis.text(
-                middle,
+                (edges[0] + edges[-1]) / 2,
                 row + 0.5,
                 entry.reason,
                 ha="center",
