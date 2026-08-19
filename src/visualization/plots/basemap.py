@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from functools import lru_cache
+from html import escape
 
 import httpx
 import ipywidgets as widgets
@@ -25,8 +26,8 @@ def plot(coverage: Sequence[SetCoverage], _window=None) -> widgets.Widget:
         _window: The date range, ignored: the ground does not move.
 
     Returns:
-        The measurements above the basemap view, or the grey panel when
-        nothing is loaded.
+        The report beside the basemap view, or the grey panel when nothing is
+        loaded.
     """
     if not coverage:
         return panels.unavailable()
@@ -34,14 +35,17 @@ def plot(coverage: Sequence[SetCoverage], _window=None) -> widgets.Widget:
     feature = _feature(summary.feature_class, summary.feature_name)
     if feature is None:
         return panels.unavailable(configs.BASEMAP_FAILED.format(reason="unknown box"))
-    return widgets.VBox([_measurements(coverage, feature), _view(feature)])
+    return widgets.HBox(
+        [_report(coverage, feature), _view(feature)],
+        layout=widgets.Layout(align_items="flex-start", grid_gap="24px"),
+    )
 
 
-def _measurements(coverage: Sequence[SetCoverage], feature: Feature) -> widgets.HTML:
-    """Report the feature's extent and the ground its box covers.
+def _report(coverage: Sequence[SetCoverage], feature: Feature) -> widgets.HTML:
+    """Report the feature's extent and what each instrument set holds of it.
 
     Args:
-        coverage: The feature's instrument sets, carrying the measured area.
+        coverage: The feature's instrument sets, widest coverage first.
         feature: The catalogued feature, carrying its lat/lon box.
 
     Returns:
@@ -50,9 +54,17 @@ def _measurements(coverage: Sequence[SetCoverage], feature: Feature) -> widgets.
     area_km2 = coverage[0].summary.feature_area_km2
     lat = f"{feature.min_lat:.3f} to {feature.max_lat:.3f} lat"
     lon = f"{feature.west_lon:.3f} to {feature.east_lon:.3f} lon"
+    body = escape(
+        "\n".join(
+            f"{entry.label:16s} {entry.summary.n_obs:6,d} observations"
+            f"{f'  ({entry.reason})' if entry.reason else ''}"
+            for entry in coverage
+        )
+    )
     return widgets.HTML(
         f"<b>{panels.title(coverage)}</b><br>"
         f"{area_km2:,.1f} km2 bounding box, {lat}, {lon}"
+        f"<pre style='margin: 8px 0 0; line-height: 1.4'>{body}</pre>"
     )
 
 
@@ -72,18 +84,12 @@ def _view(feature: Feature) -> widgets.Widget:
     return widgets.Image(
         value=image,
         format="png",
-        layout=widgets.Layout(max_width="100%", height="auto"),
+        layout=widgets.Layout(width=configs.BASEMAP_WIDTH, height="auto"),
     )
 
 
 def _window(feature: Feature) -> tuple[float, float, float, float]:
     """Return the lon/lat box to draw around a feature.
-
-    The view is widened so the feature sits in context rather than filling the
-    frame. Longitudes are measured against latitude on the way in and stretched
-    back on the way out, because a degree of longitude covers less ground the
-    further from the equator it sits, so comparing the two spans raw would
-    frame a polar feature as if it were far wider than it is.
 
     Args:
         feature: The feature to centre the view on.

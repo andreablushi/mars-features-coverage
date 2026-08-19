@@ -91,32 +91,6 @@ def unavailable(
     )
 
 
-def overview(coverage: Sequence[SetCoverage], _window) -> widgets.Widget:
-    """Report what was loaded for the confirmed feature.
-
-    Args:
-        coverage: The feature's instrument sets, widest coverage first.
-        _window: The date range, ignored: the report covers the whole record
-            however far the figures below it are zoomed in.
-
-    Returns:
-        The report, or the grey panel when nothing is loaded.
-    """
-    if not coverage:
-        return unavailable()
-    lines = [
-        f"{title(coverage)}: {coverage[0].summary.feature_area_km2:,.1f} km2 "
-        f"bounding box"
-    ]
-    lines += [
-        f"  {entry.label:16s} {entry.summary.n_obs:6,d} observations"
-        f"{f'  ({entry.reason})' if entry.reason else ''}"
-        for entry in coverage
-    ]
-    body = escape("\n".join(lines))
-    return widgets.HTML(f"<pre style='margin: 0; line-height: 1.4'>{body}</pre>")
-
-
 def title(coverage: Sequence[SetCoverage]) -> str:
     """Return the feature a loaded coverage belongs to.
 

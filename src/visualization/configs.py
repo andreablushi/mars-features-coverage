@@ -18,6 +18,7 @@ BASEMAP_URL = "https://planetarymaps.usgs.gov/cgi-bin/mapserv"
 BASEMAP_MAP = "/maps/mars/mars_simp_cyl.map"
 BASEMAP_LAYER = "THEMIS"
 BASEMAP_PIXELS = 700
+BASEMAP_WIDTH = "300px"
 BASEMAP_TIMEOUT = 30.0
 BASEMAP_FAILED = "The basemap could not be fetched: {reason}"
 
