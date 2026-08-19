@@ -21,7 +21,7 @@ def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
 
     Args:
         coverage: The feature's instrument sets, widest coverage first.
-        window: The date range to bin over, one column per month of it.
+        window: The date range to bin over, one column per bin of it.
 
     Returns:
         The figure as a widget, or the grey panel when nothing is loaded.
@@ -48,20 +48,31 @@ def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
     )
     _label(axis, coverage, edges)
     axis.set_title(
-        f"{panels.title(coverage)}  -  observations per month",
+        f"{panels.title(coverage)}  -  observations per {_bin_name()}",
         fontsize=12,
         loc="left",
     )
     axis.set_xlabel("Observation start time")
     bar = figure.colorbar(mesh, ax=axis, pad=0.01)
-    bar.set_label("Observations in the month", fontsize=9)
+    bar.set_label(f"Observations in the {_bin_name()}", fontsize=9)
     bar.ax.tick_params(labelsize=8)
     figure.tight_layout()
     return panels.rendered(figure)
 
 
+def _bin_name() -> str:
+    """Name the configured bin width, for the title and the colour bar.
+
+    Returns:
+        The bin width as it reads in a sentence, such as "month" or
+        "3 months".
+    """
+    months = configs.DENSITY_BIN_MONTHS
+    return "month" if months == 1 else f"{months} months"
+
+
 def _bins(coverage: Sequence[SetCoverage], window: Window) -> list[datetime]:
-    """Return one monthly bin edge per month the panel covers.
+    """Return the bin edges the panel covers, at the configured width.
 
     Args:
         coverage: The feature's instrument sets, widest coverage first.
@@ -69,11 +80,11 @@ def _bins(coverage: Sequence[SetCoverage], window: Window) -> list[datetime]:
             record's own extent there.
 
     Returns:
-        The edges in order, one more than there are months.
+        The edges in order, one more than there are bins.
     """
     first = window.start or min(entry.summary.t_first for entry in coverage)
     last = window.end or max(entry.summary.t_last for entry in coverage)
-    return month_edges(first, last)
+    return month_edges(first, last, configs.DENSITY_BIN_MONTHS)
 
 
 def _counts(

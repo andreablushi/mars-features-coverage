@@ -23,7 +23,8 @@ FULL_PLANET_INSTRUMENTS = ("MOLA",)
 FIGURE_WIDTH = 11
 PANEL_HEIGHT = 2.5
 
-# One density column per month, however long the range is.
+# How many months one density column covers, however long the range is.
+DENSITY_BIN_MONTHS = 1
 DENSITY_ROW_HEIGHT = 0.5
 DENSITY_COLORMAP = "YlGnBu"
 DENSITY_EMPTY = "#ffffff"
