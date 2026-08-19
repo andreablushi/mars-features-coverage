@@ -77,9 +77,6 @@ def save_artifacts(project):
     print("measuring coverage", flush=True)
     failed = features_coverage.main()
 
-    # Drop the projection cache, which dwarfs the results it produced.
-    shutil.rmtree(configs.GEOMETRY_ROOT, ignore_errors=True)
-
     # Publish the measurements themselves.
     print("packing the measurements", flush=True)
     packed = _archive(configs.ARTIFACTS_ROOT, ARTIFACTS_NAME)

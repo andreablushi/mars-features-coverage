@@ -78,19 +78,6 @@ def set_summary_path(root: Path, source: Path) -> Path:
     return _mirrored(root, source.parent) / f"{source.stem}{configs.SET_SUMMARY_SUFFIX}"
 
 
-def geometry_path(root: Path, source: Path) -> Path:
-    """Return the cached projected footprints for one instrument set.
-
-    Args:
-        root: The geometry cache root directory.
-        source: The instrument set's metadata JSONL file.
-
-    Returns:
-        The path to the geometry cache parquet file.
-    """
-    return _mirrored(root, source.parent) / f"{source.stem}.parquet"
-
-
 def catalog_summary_path(root: Path = configs.ARTIFACTS_ROOT) -> Path:
     """Return the file holding every feature's summary rows together.
 

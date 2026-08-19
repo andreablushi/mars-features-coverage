@@ -12,16 +12,13 @@ from analysis.geometry.region import FeatureRegion
 from analysis.utils import geodesy, swath
 from models.job import Job
 from models.observation import LoadedSet, Observation, ProjectedObservation
-from storage import caching, records
+from storage import records
 
 
 def load_projected(
     job: Job,
 ) -> tuple[LoadedSet[ProjectedObservation], FeatureRegion] | None:
-    """Load one set's projected footprints, from the cache when it is valid.
-
-    A cache hit reports no discards. Only a set that yielded something is ever
-    cached, so the sets whose discards matter are always read afresh.
+    """Project one set's stored footprints onto its feature.
 
     Args:
         job: The instrument set being computed.
@@ -30,16 +27,11 @@ def load_projected(
         The projected set and the region it was measured against, or None when
         the set holds no records.
     """
-    cached = caching.load(job.geometry_path, job.source)
-    if cached is not None:
-        return cached, FeatureRegion(cached.feature)
     loaded = records.load_set(job.source)
     if loaded is None:
         return None
     region = FeatureRegion(loaded.feature)
     projected, missed = project(region, loaded.observations)
-    if projected:
-        caching.save(job.geometry_path, loaded.feature, loaded.set_key, projected)
     return (
         LoadedSet(
             feature=loaded.feature,

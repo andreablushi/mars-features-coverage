@@ -13,7 +13,6 @@ METADATA_ROOT = DATA_ROOT / "metadata"
 CATALOG_ROOT = DATA_ROOT / "_catalog"
 ARTIFACTS_ROOT = DATA_ROOT / "artifacts"
 COVERAGE_ROOT = ARTIFACTS_ROOT / "coverage"
-GEOMETRY_ROOT = ARTIFACTS_ROOT / "geometry"
 
 FEATURES_CACHE_NAME = "features.jsonl"
 INSTRUMENT_SETS_CACHE_NAME = "instrument_sets.jsonl"

@@ -45,7 +45,3 @@ MAX_SEGMENT_DEG = 0.25
 
 # Segments per quarter circle when a track is buffered to its swath.
 BUFFER_QUAD_SEGMENTS = 16
-
-
-# Stamped into every cached projection.
-GEOMETRY_VERSION = b"3"
