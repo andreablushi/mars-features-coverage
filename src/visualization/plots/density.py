@@ -15,22 +15,20 @@ from models.results import SetCoverage
 from visualization import configs, panels
 from visualization.selectors.window import Window, month_edges
 
-BIN_NAMES = {1: "month", 3: "quarter", 12: "year"}
-
 
 def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
     """Draw how many observations each instrument set took in each time bin.
 
     Args:
         coverage: The feature's instrument sets, widest coverage first.
-        window: The date range to bin over, which also sets how wide a bin is.
+        window: The date range to bin over, one column per month of it.
 
     Returns:
         The figure as a widget, or the grey panel when nothing is loaded.
     """
     if not coverage:
         return panels.unavailable()
-    edges, step = _bins(coverage, window)
+    edges = _bins(coverage, window)
     counts = np.array([_counts(entry, window, edges) for entry in coverage])
     figure, axis = plt.subplots(
         figsize=(
@@ -47,27 +45,23 @@ def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
         np.ma.masked_equal(counts, 0),
         cmap=colours,
         norm=LogNorm(vmin=1, vmax=max(counts.max(), 2)),
-        edgecolors=configs.DENSITY_CELL_EDGE,
-        linewidth=0.4,
     )
     _label(axis, coverage, edges)
     axis.set_title(
-        f"{panels.title(coverage)}  -  observations per {BIN_NAMES[step]}",
+        f"{panels.title(coverage)}  -  observations per month",
         fontsize=12,
         loc="left",
     )
     axis.set_xlabel("Observation start time")
     bar = figure.colorbar(mesh, ax=axis, pad=0.01)
-    bar.set_label(f"Observations in the {BIN_NAMES[step]}", fontsize=9)
+    bar.set_label("Observations in the month", fontsize=9)
     bar.ax.tick_params(labelsize=8)
     figure.tight_layout()
     return panels.rendered(figure)
 
 
-def _bins(
-    coverage: Sequence[SetCoverage], window: Window
-) -> tuple[list[datetime], int]:
-    """Return the time bin edges for a feature, and how wide a bin is.
+def _bins(coverage: Sequence[SetCoverage], window: Window) -> list[datetime]:
+    """Return one monthly bin edge per month the panel covers.
 
     Args:
         coverage: The feature's instrument sets, widest coverage first.
@@ -75,18 +69,11 @@ def _bins(
             record's own extent there.
 
     Returns:
-        The edges in order, and the number of months one bin spans.
+        The edges in order, one more than there are months.
     """
     first = window.start or min(entry.summary.t_first for entry in coverage)
     last = window.end or max(entry.summary.t_last for entry in coverage)
-    months = (last.year - first.year) * 12 + last.month - first.month + 1
-    if months > configs.DENSITY_MAX_COLUMNS * 3:
-        step = 12
-    elif months > configs.DENSITY_MAX_COLUMNS:
-        step = 3
-    else:
-        step = 1
-    return month_edges(first, last, step), step
+    return month_edges(first, last)
 
 
 def _counts(
@@ -120,6 +107,8 @@ def _label(axis, coverage: Sequence[SetCoverage], edges: Sequence[datetime]) -> 
     """
     axis.set_yticks(np.arange(len(coverage)) + 0.5)
     axis.set_yticklabels([entry.label for entry in coverage], fontsize=9)
+    for boundary in range(1, len(coverage)):
+        axis.axhline(boundary, color=configs.DENSITY_ROW_EDGE, linewidth=0.6)
     axis.invert_yaxis()
     axis.xaxis_date()
     axis.tick_params(labelsize=8, length=0)
