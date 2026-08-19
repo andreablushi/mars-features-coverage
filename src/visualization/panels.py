@@ -14,7 +14,6 @@ from matplotlib.ticker import PercentFormatter
 
 from models.results import SetCoverage
 from visualization import configs
-from visualization.plots import basemap
 
 Colour = tuple[float, float, float]
 
@@ -101,8 +100,7 @@ def overview(coverage: Sequence[SetCoverage], _window) -> widgets.Widget:
             however far the figures below it are zoomed in.
 
     Returns:
-        The report beside a picture of the ground, or the grey panel when
-        nothing is loaded.
+        The report, or the grey panel when nothing is loaded.
     """
     if not coverage:
         return unavailable()
@@ -116,11 +114,7 @@ def overview(coverage: Sequence[SetCoverage], _window) -> widgets.Widget:
         for entry in coverage
     ]
     body = escape("\n".join(lines))
-    report = widgets.HTML(f"<pre style='margin: 0; line-height: 1.4'>{body}</pre>")
-    return widgets.HBox(
-        [report, basemap.ground(coverage)],
-        layout=widgets.Layout(align_items="flex-start", grid_gap="24px"),
-    )
+    return widgets.HTML(f"<pre style='margin: 0; line-height: 1.4'>{body}</pre>")
 
 
 def title(coverage: Sequence[SetCoverage]) -> str:
