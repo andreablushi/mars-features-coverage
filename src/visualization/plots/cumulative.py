@@ -10,10 +10,9 @@ import matplotlib.pyplot as plt
 
 from models.results import SetCoverage
 from visualization import configs, panels
-from visualization.selectors.window import Window
 
 
-def plot(coverage: Sequence[SetCoverage], _window: Window) -> widgets.Widget:
+def plot(coverage: Sequence[SetCoverage], _window) -> widgets.Widget:
     """Draw the running coverage per instrument beside its final total.
 
     Args:
