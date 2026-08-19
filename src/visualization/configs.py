@@ -13,6 +13,9 @@ DATE_PICKER_WIDTH = "230px"
 # How an instrument set with nothing to draw is drawn anyway.
 UNOBSERVED_LINESTYLE = (0, (1, 3))
 
+# Instruments whose whole planet coverage would flatten every other panel.
+FULL_PLANET_INSTRUMENTS = ("MOLA",)
+
 # One stacked panel per instrument set, so the height is per panel
 FIGURE_WIDTH = 11
 PANEL_HEIGHT = 2.5
