@@ -175,7 +175,6 @@ def main() -> int:
     function.refresh()
 
     # Start the job on the built image, telling it where the clone lands.
-    # The clone root stays first: the runtime imports its own handler from there.
     run = function.run(
         action="job",
         resources={

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import threading
 from collections.abc import Sequence
 from functools import lru_cache
 from html import escape
@@ -69,22 +70,64 @@ def _report(coverage: Sequence[SetCoverage], feature: Feature) -> widgets.HTML:
 
 
 def _view(feature: Feature) -> widgets.Widget:
-    """Fetch the basemap around a feature.
+    """Claim the space the basemap goes in and fetch it off the redraw.
+
+    The fetch crosses the network, so it runs on its own thread and fills the
+    space in when it lands. The rest of the panel is drawn and read meanwhile.
 
     Args:
         feature: The feature to centre the view on.
 
     Returns:
-        The image, or the grey panel explaining why it could not be fetched.
+        A box holding the loading note, which the fetch replaces.
+    """
+    box = widgets.Box([_placeholder(configs.BASEMAP_LOADING)])
+    threading.Thread(target=_fill, args=(box, feature), daemon=True).start()
+    return box
+
+
+def _fill(box: widgets.Box, feature: Feature) -> None:
+    """Put the fetched view in the space claimed for it.
+
+    Args:
+        box: The claimed space, already on screen.
+        feature: The feature to centre the view on.
+
+    Returns:
+        None.
     """
     try:
         image = _fetch(_window(feature))
     except Exception as exc:
-        return panels.unavailable(configs.BASEMAP_FAILED.format(reason=exc))
-    return widgets.Image(
-        value=image,
-        format="png",
-        layout=widgets.Layout(width=configs.BASEMAP_WIDTH, height="auto"),
+        box.children = (_placeholder(configs.BASEMAP_FAILED.format(reason=exc)),)
+        return
+    box.children = (
+        widgets.Image(
+            value=image,
+            format="png",
+            layout=widgets.Layout(width=configs.BASEMAP_WIDTH, height="auto"),
+        ),
+    )
+
+
+def _placeholder(text: str) -> widgets.HTML:
+    """Set a note in the space the image will fill.
+
+    Args:
+        text: The line to set.
+
+    Returns:
+        The note, squared off to the image's own size so nothing jumps when the
+        fetch lands.
+    """
+    return widgets.HTML(
+        f"<div style='width: {configs.BASEMAP_WIDTH};"
+        f" height: {configs.BASEMAP_WIDTH};"
+        f" display: flex; align-items: center; justify-content: center;"
+        f" box-sizing: border-box; padding: 10px; text-align: center;"
+        f" background: #f2f2f2; border: 1px solid #d8d8d8; border-radius: 4px;"
+        f" color: {configs.GREY}; font-family: sans-serif; font-size: 12px;'>"
+        f"{escape(text)}</div>"
     )
 
 
@@ -129,7 +172,7 @@ def _fit(centre: float, half: float, limit: float) -> tuple[float, float]:
     return low, low + 2 * half
 
 
-@lru_cache(maxsize=32)
+@lru_cache(maxsize=configs.BASEMAP_CACHE)
 def _fetch(window: tuple[float, float, float, float]) -> bytes:
     """Fetch one basemap view.
 

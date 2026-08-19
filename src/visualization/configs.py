@@ -21,6 +21,8 @@ BASEMAP_PIXELS = 700
 BASEMAP_WIDTH = "300px"
 BASEMAP_TIMEOUT = 30.0
 BASEMAP_FAILED = "The basemap could not be fetched: {reason}"
+BASEMAP_LOADING = "Fetching the basemap..."
+BASEMAP_CACHE = 32
 
 # How many times the feature's own width the view spans, and its floor.
 BASEMAP_PADDING = 4.0
