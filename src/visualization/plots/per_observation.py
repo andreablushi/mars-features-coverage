@@ -10,13 +10,15 @@ import numpy as np
 
 from models.results import SetCoverage
 from visualization import configs, panels
+from visualization.selectors.window import Window
 
 
-def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
+def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
     """Draw one stacked panel per instrument set, sharing both axes.
 
     Args:
         coverage: The feature's instrument sets, widest coverage first.
+        window: The date range the panels are shown over.
 
     Returns:
         The figure as a widget, or the grey panel when nothing is loaded.
@@ -35,12 +37,8 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     axes = np.atleast_1d(axes)
     for axis, entry in zip(axes, coverage, strict=True):
         _panel(axis, entry, colours[entry.label], area_km2)
-    peak = max(
-        (event.own_km2 / area_km2 for entry in coverage for event in entry.events),
-        default=0.0,
-    )
-    top = peak if peak > 0.0 else 1.0
-    axes[0].set_ylim(-0.05 * top, 1.05 * top)
+    axes[0].set_ylim(-0.05, 1.05)
+    axes[0].set_xlim(left=window.start, right=window.end)
     axes[0].set_title(
         f"{panels.title(coverage)}  -  coverage per observation",
         fontsize=12,

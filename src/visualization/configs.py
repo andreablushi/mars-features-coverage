@@ -8,6 +8,10 @@ GREY = "#8a8a8a"
 DEFAULT_CLASS = "Crater"
 NO_DATA_SUFFIX = "  (no data)"
 DROPDOWN_WIDTH = "340px"
+MONTH_DROPDOWN_WIDTH = "190px"
+
+# The blank first month, which leaves that end of the range open.
+OPEN_END_LABEL = ""
 
 # How an instrument set with nothing to draw is drawn anyway.
 UNOBSERVED_LINESTYLE = (0, (1, 3))
@@ -15,6 +19,13 @@ UNOBSERVED_LINESTYLE = (0, (1, 3))
 # One stacked panel per instrument set, so the height is per panel
 FIGURE_WIDTH = 11
 PANEL_HEIGHT = 2.5
+
+# How many months one density column covers, however long the range is.
+DENSITY_BIN_MONTHS = 1
+DENSITY_ROW_HEIGHT = 0.5
+DENSITY_COLORMAP = "YlGnBu"
+DENSITY_EMPTY = "#ffffff"
+DENSITY_ROW_EDGE = "#cccccc"
 
 # The running curve beside the totals, and how the width is split between them
 CUMULATIVE_FIGURE_SIZE = (13, 5)

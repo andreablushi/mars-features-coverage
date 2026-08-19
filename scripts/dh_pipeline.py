@@ -147,9 +147,6 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--cpu", default=None, help="cores (default: config workers)")
     parser.add_argument("--mem", default=MEMORY, help=f"memory (default: {MEMORY})")
     parser.add_argument("--disk", default=DISK, help=f"disk (default: {DISK})")
-    parser.add_argument(
-        "--wait", action="store_true", help="block until the run finishes"
-    )
     return parser
 
 
@@ -157,8 +154,8 @@ def main() -> int:
     """Register a version of the function from a pushed commit, and run it.
 
     Returns:
-        A process exit code, non zero when the build, or a waited-for run, did
-        not succeed.
+        A process exit code, non zero when the image did not build. The job is
+        never waited on, so its own outcome is read from the platform.
     """
     arguments = _parser().parse_args()
 
@@ -195,10 +192,10 @@ def main() -> int:
                 "value": f"{SOURCE_ROOT}:{SOURCE_ROOT}/src:{SOURCE_ROOT}/scripts",
             }
         ],
-        wait=arguments.wait,
+        wait=False,
     )
     print(run.key)
-    return 1 if arguments.wait and run.status.state != COMPLETED else 0
+    return 0
 
 
 if __name__ == "__main__":
