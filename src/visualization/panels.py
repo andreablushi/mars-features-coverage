@@ -32,21 +32,18 @@ def colours(coverage: Sequence[SetCoverage]) -> dict[str, Colour]:
     return {entry.label: colour for entry, colour in zip(coverage, cycle, strict=False)}
 
 
-def tidy(axis: Axes, percent: str, grid: str, decimals: int | None = 0) -> None:
+def tidy(axis: Axes, percent: str, grid: str) -> None:
     """Format an axis as percentages, grid it faintly, and drop its outer frame.
 
     Args:
         axis: The axis to style.
         percent: Which axis carries the coverage share, "x" or "y".
         grid: Which axis to draw gridlines along, "x", "y", or "both".
-        decimals: How many places the percentages carry, or None to let the
-            axis pick from its own range, which a panel needs when its shares
-            are small enough for whole percents to round them together.
 
     Returns:
         None.
     """
-    formatter = PercentFormatter(xmax=1.0, decimals=decimals)
+    formatter = PercentFormatter(xmax=1.0, decimals=0)
     target = axis.xaxis if percent == "x" else axis.yaxis
     target.set_major_formatter(formatter)
     axis.grid(axis=grid, alpha=0.25, linewidth=0.5)
