@@ -17,12 +17,26 @@ from storage import parquet
 from storage.schemas import GEOMETRY, GEOMETRY_VERSION_KEY
 
 
+def drop(path: Path | None) -> None:
+    """Delete one set's cached projection, once its coverage is written.
+
+    Nothing reads a set's cache again in the run that wrote it, so dropping it
+    as soon as the set is finished keeps the tree at the size of the work in
+    flight rather than the size of the whole catalogue. A set that failed keeps
+    its cache, which is the one case a re-run can still use.
+
+    Args:
+        path: The set's geometry cache file, or None on a job that has none.
+
+    Returns:
+        None.
+    """
+    if path is not None:
+        path.unlink(missing_ok=True)
+
+
 def discard(root: Path) -> int:
     """Delete the whole projection cache, which nothing reads once a run ends.
-
-    The cache only exists to spare a re-run the projection work, so a finished
-    run can drop it without losing anything that cannot be rebuilt from the
-    metadata it came from.
 
     Args:
         root: The geometry cache root directory.

@@ -78,8 +78,7 @@ def save_artifacts(project):
     print("measuring coverage", flush=True)
     failed = features_coverage.main()
 
-    # Drop the projection cache, which dwarfs the results it produced. Never
-    # optional here: the archive below would otherwise carry it to the platform.
+    # Drop the projection cache, which dwarfs the results it produced
     freed = caching.discard(configs.GEOMETRY_ROOT)
     print(f"dropped the projection cache, {freed / 1e6:.0f} MB", flush=True)
 

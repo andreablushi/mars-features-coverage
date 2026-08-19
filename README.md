@@ -102,25 +102,25 @@ uv run --group notebook jupyter lab notebooks/coverage.ipynb
 ## Structure
 
 ```
-config.yaml           what to download, and how to measure it
-scripts/              the local entry point, and the DigitalHub one
-notebooks/            interactive reads of the artifacts
+config.yaml           # Configures the run, local and DigitalHub
+scripts/              # Entrypoints for the pipeline, local and DigitalHub
+notebooks/            # Interactive notebook for exploring the results
 src/
-  configs.py          paths, and what the project's files are called
-  settings.py         reads config.yaml and checks what it holds
-  runner.py           the pooled runner and the two halves it drives
-  console.py          the progress bar and everything printed
-  utils.py            helpers shared across the pipeline
-  models/             what the stages pass around: features, jobs, results
-  storage/            paths, slugs, atomic writes, JSONL, parquet, schemas
-  download/           ODE metadata download: api, selection
-  analysis/           the coverage computation: geometry, coverage, utils
-  visualization/      the feature picker and the plots the notebook draws
+  configs.py          # Global constants and paths
+  settings.py         # The config.yaml parser and validator
+  runner.py           # Orchestrates the pipeline stages
+  console.py          # Progress bar for console prints
+  utils.py            # Helpers shared across the pipeline
+  models/             # The data model: features, instruments, coverage, geometry
+  storage/            # Caches and the parquet read/write helpers
+  download/           # ODE metadata fetching
+  analysis/           # Coverage measurement and summary generation
+  visualization/      # Notebook and figure generation
 data/
-  _catalog/           cached ODE catalogs
-  metadata/           <class>/<feature>/<IHID_IID_PT>.jsonl
+  _catalog/           # Cached ODE catalogs
+  metadata/           # Raw ODE records
   artifacts/
-    coverage/         <class>/<feature>/<set>.{events,summary}.parquet
-    geometry/         projection cache, dropped when a run ends
-    summary.parquet   every feature's summary rows together
+    coverage/         # Coverage measurements
+    geometry/         # Projection cache, dropped when a run ends
+    summary.parquet   # Every feature's summary rows together
 ```
