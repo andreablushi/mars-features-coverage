@@ -23,6 +23,14 @@ FULL_PLANET_INSTRUMENTS = ("MOLA",)
 FIGURE_WIDTH = 11
 PANEL_HEIGHT = 2.5
 
+# A density column covers a month, a quarter, or a year, whichever keeps the
+# panel under this many columns.
+DENSITY_MAX_COLUMNS = 48
+DENSITY_ROW_HEIGHT = 0.5
+DENSITY_COLORMAP = "YlGnBu"
+DENSITY_EMPTY = "#ffffff"
+DENSITY_CELL_EDGE = "#dddddd"
+
 # The running curve beside the totals, and how the width is split between them
 CUMULATIVE_FIGURE_SIZE = (13, 5)
 CUMULATIVE_WIDTH_RATIOS = [3, 1]

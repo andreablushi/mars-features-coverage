@@ -76,6 +76,30 @@ def month_options(first: datetime, last: datetime) -> list[tuple[str, date]]:
     return months
 
 
+def month_edges(first: datetime, last: datetime, step: int) -> list[datetime]:
+    """Return bin edges every step months, covering a period whole.
+
+    The last edge always sits past the end of the period, so the final bin is
+    closed and the month holding last is counted in it.
+
+    Args:
+        first: The earliest moment the bins must cover.
+        last: The latest moment they must cover.
+        step: How many months one bin spans.
+
+    Returns:
+        The edges in UTC, in order, one more than there are bins.
+    """
+    cursor, stop = _first_of(first), _first_of(last)
+    edges = []
+    while cursor <= stop:
+        edges.append(datetime.combine(cursor, time.min, UTC))
+        for _ in range(step):
+            cursor = _first_of_next(cursor)
+    edges.append(datetime.combine(cursor, time.min, UTC))
+    return edges
+
+
 def _first_of(moment: datetime) -> date:
     """Return the first day of a moment's own month.
 
