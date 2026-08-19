@@ -140,15 +140,16 @@ def _window(feature: Feature) -> tuple[float, float, float, float]:
     Returns:
         The west, south, east, and north bounds, inside the globe.
     """
-    centre_lon, centre_lat = geodesy.bbox_centre(
-        feature.min_lat, feature.max_lat, feature.west_lon, feature.east_lon
-    )
+    centre_lat = (feature.min_lat + feature.max_lat) / 2.0
     shrink = max(math.cos(math.radians(centre_lat)), 0.05)
-    span = max(
-        feature.max_lat - feature.min_lat,
-        geodesy.longitude_span(feature.west_lon, feature.east_lon) * shrink,
-        configs.BASEMAP_MIN_SPAN_DEG,
-    )
+    if feature.has_longitude_extent:
+        centre_lon = geodesy.bbox_centre(
+            feature.min_lat, feature.max_lat, feature.west_lon, feature.east_lon
+        )[0]
+        width = geodesy.longitude_span(feature.west_lon, feature.east_lon) * shrink
+    else:
+        centre_lon, width = feature.west_lon, 0.0
+    span = max(feature.max_lat - feature.min_lat, width, configs.BASEMAP_MIN_SPAN_DEG)
     half_lat = span * configs.BASEMAP_PADDING / 2.0
     half_lon = half_lat / shrink
     south, north = _fit(centre_lat, half_lat, 90.0)
