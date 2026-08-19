@@ -14,7 +14,7 @@ from matplotlib.ticker import PercentFormatter
 
 from models.results import SetCoverage
 from visualization import configs
-from visualization.window import Window
+from visualization.selectors.window import Window
 
 Colour = tuple[float, float, float]
 

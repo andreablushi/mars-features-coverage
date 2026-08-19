@@ -13,10 +13,6 @@ from models.results import Event
 class Window:
     """The period the time axis is limited to.
 
-    Nothing is recomputed for a window: it moves the viewport over the whole
-    record, so a running curve keeps the level it had already reached when it
-    enters the window rather than restarting inside it.
-
     Attributes:
         start: The earliest moment shown, or None to start at the record's own
             beginning.

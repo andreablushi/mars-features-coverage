@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 from models.results import SetCoverage
 from visualization import configs, panels
-from visualization.window import Window
+from visualization.selectors.window import Window
 
 
 def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:

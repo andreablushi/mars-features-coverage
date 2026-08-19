@@ -11,7 +11,7 @@ from models.results import SetCoverage
 from storage import catalog, summary
 from utils import slugify
 from visualization import configs, panels
-from visualization.window import Window
+from visualization.selectors.window import Window
 
 Render = Callable[[Sequence[SetCoverage], Window], widgets.Widget]
 
