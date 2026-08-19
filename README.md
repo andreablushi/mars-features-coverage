@@ -60,7 +60,6 @@ that image, and then starts the job. It prints the run key and returns.
 | `--cpu` | `workers` from `config.yaml` | cores to request |
 | `--mem` | `8Gi` | memory to request |
 | `--disk` | `16Gi` | disk to request, sized for a whole catalogue |
-| `--wait` | off | block until the run finishes |
 
 ### What a finished run leaves behind
 
