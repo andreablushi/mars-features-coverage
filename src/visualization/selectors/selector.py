@@ -70,9 +70,11 @@ class FeatureSelector:
             description="To:",
             layout=widgets.Layout(width=configs.MONTH_DROPDOWN_WIDTH),
         )
+        self._reset = widgets.Button(description="Reset", icon="times")
         self._status = widgets.VBox()
         self._class.observe(self._refresh_names, names="value")
         self._confirm.on_click(self._confirmed)
+        self._reset.on_click(self._reset_range)
         self._from.observe(self._retimed, names="value")
         self._to.observe(self._retimed, names="value")
         self._refresh_names()
@@ -95,6 +97,7 @@ class FeatureSelector:
                 ),
                 self._from,
                 self._to,
+                self._reset,
             ]
         )
         display(widgets.VBox([controls, dates, self._status]))
@@ -196,6 +199,21 @@ class FeatureSelector:
         """
         self.window = Window.over_months(self._from.value, self._to.value)
         self._refill()
+
+    def _reset_range(self, _button=None) -> None:
+        """Reopen both ends of the month range, redrawing once rather than twice.
+
+        Args:
+            _button: The button that was clicked, ignored.
+
+        Returns:
+            None.
+        """
+        for picker in (self._from, self._to):
+            picker.unobserve(self._retimed, names="value")
+            picker.value = None
+            picker.observe(self._retimed, names="value")
+        self._retimed()
 
     def _refill(self) -> None:
         """Redraw every claimed area from the current feature and window.
