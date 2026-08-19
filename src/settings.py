@@ -73,10 +73,14 @@ def load(path: Path = configs.CONFIG_PATH) -> Settings:
         raise ValueError(
             f"loc should be one of {download_configs.LOC_MODES}, found {loc!r}"
         )
+    plotted = _setting(config, "plot_instruments", list, required=False)
     return Settings(
         instrument_sets=tuple(
             InstrumentSet.from_key(key) for key in _setting(config, "instruments", list)
         ),
+        plot_instrument_sets=tuple(InstrumentSet.from_key(key) for key in plotted)
+        if plotted
+        else None,
         feature_names=_setting(config, "features", list, required=False),
         loc=loc,
         keep_metadata=_setting(config, "keep_metadata", bool),

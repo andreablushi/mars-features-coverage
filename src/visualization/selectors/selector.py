@@ -11,7 +11,7 @@ from IPython.display import display
 from models.results import SetCoverage
 from storage import catalog, summary
 from utils import slugify
-from visualization import configs, panels
+from visualization import configs, panels, sets
 from visualization.selectors.window import Window, month_options
 
 Render = Callable[[Sequence[SetCoverage], Window], widgets.Widget]
@@ -175,7 +175,7 @@ class FeatureSelector:
         feature_class, name = self._class.value, self._name.value
         self.selection = (feature_class, name)
         if self._has_data(feature_class, name):
-            self.coverage = summary.load_feature(feature_class, name)
+            self.coverage = sets.plotted(summary.load_feature(feature_class, name))
             note = widgets.HTML(
                 f"Loaded <b>{feature_class} / {name}</b>. "
                 f"The cells below have filled in."
