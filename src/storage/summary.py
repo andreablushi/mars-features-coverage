@@ -10,11 +10,12 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-import configs
+import utils.paths as paths
 from models.instrument import InstrumentSet
 from models.results import Event, SetCoverage, Summary
-from storage import metadata, paths
+from storage import metadata
 from storage.disk import atomic_path
+from storage.paths import catalog_summary_path, feature_artifacts_dir
 from storage.schemas import EVENTS, SUMMARY
 
 
@@ -27,10 +28,10 @@ def finalise_feature(feature_dir: Path) -> int:
     Returns:
         The number of summary rows written, or zero when nothing is finished.
     """
-    found = sorted(feature_dir.glob(f"*{configs.SET_SUMMARY_SUFFIX}"))
+    found = sorted(feature_dir.glob(f"*{paths.SET_SUMMARY_SUFFIX}"))
     if not found:
         return 0
-    return _concatenate(found, feature_dir / configs.SUMMARY_NAME)
+    return _concatenate(found, feature_dir / paths.SUMMARY_NAME)
 
 
 def reindex() -> int:
@@ -39,9 +40,9 @@ def reindex() -> int:
     Returns:
         How many summary rows the catalogue index holds.
     """
-    for feature_dir in sorted(configs.COVERAGE_ROOT.glob("*/*")):
+    for feature_dir in sorted(paths.COVERAGE_ROOT.glob("*/*")):
         finalise_feature(feature_dir)
-    return rebuild(configs.ARTIFACTS_ROOT, configs.COVERAGE_ROOT)
+    return rebuild(paths.ARTIFACTS_ROOT, paths.COVERAGE_ROOT)
 
 
 def rebuild(artifacts_root: Path, coverage_root: Path) -> int:
@@ -54,8 +55,8 @@ def rebuild(artifacts_root: Path, coverage_root: Path) -> int:
     Returns:
         The number of summary rows written.
     """
-    found = sorted(coverage_root.glob(f"*/*/{configs.SUMMARY_NAME}"))
-    return _concatenate(found, paths.catalog_summary_path(artifacts_root))
+    found = sorted(coverage_root.glob(f"*/*/{paths.SUMMARY_NAME}"))
+    return _concatenate(found, catalog_summary_path(artifacts_root))
 
 
 def _concatenate(found: list[Path], destination: Path) -> int:
@@ -75,7 +76,7 @@ def _concatenate(found: list[Path], destination: Path) -> int:
     return combined.num_rows
 
 
-def computed_features(root: Path = configs.COVERAGE_ROOT) -> set[tuple[str, str]]:
+def computed_features(root: Path = paths.COVERAGE_ROOT) -> set[tuple[str, str]]:
     """Return every feature that has coverage computed locally.
 
     Args:
@@ -87,11 +88,11 @@ def computed_features(root: Path = configs.COVERAGE_ROOT) -> set[tuple[str, str]
     """
     return {
         (path.parent.parent.name, path.parent.name)
-        for path in root.glob(f"*/*/*{configs.EVENTS_SUFFIX}")
+        for path in root.glob(f"*/*/*{paths.EVENTS_SUFFIX}")
     }
 
 
-def catalogued_sets(root: Path = configs.ARTIFACTS_ROOT) -> list[str]:
+def catalogued_sets(root: Path = paths.ARTIFACTS_ROOT) -> list[str]:
     """Return every instrument set the computed artifacts hold anywhere.
 
     Args:
@@ -101,14 +102,14 @@ def catalogued_sets(root: Path = configs.ARTIFACTS_ROOT) -> list[str]:
         The identifier of each set, in the order the index first mentions it,
         and empty when there is no index.
     """
-    path = paths.catalog_summary_path(root)
+    path = catalog_summary_path(root)
     if not path.exists():
         return []
     return list(dict.fromkeys(_summary_table(path).column("set_key").to_pylist()))
 
 
 def catalogued_span(
-    root: Path = configs.ARTIFACTS_ROOT,
+    root: Path = paths.ARTIFACTS_ROOT,
 ) -> tuple[datetime, datetime] | None:
     """Return the period the computed artifacts cover anywhere.
 
@@ -119,7 +120,7 @@ def catalogued_span(
         The earliest and the latest observation the index holds, or None when
         there is no index or it carries no rows.
     """
-    path = paths.catalog_summary_path(root)
+    path = catalog_summary_path(root)
     if not path.exists():
         return None
     table = _summary_table(path)
@@ -134,8 +135,8 @@ def catalogued_span(
 def load_feature(
     feature_class: str,
     name: str,
-    root: Path = configs.COVERAGE_ROOT,
-    artifacts_root: Path = configs.ARTIFACTS_ROOT,
+    root: Path = paths.COVERAGE_ROOT,
+    artifacts_root: Path = paths.ARTIFACTS_ROOT,
 ) -> list[SetCoverage]:
     """Read every instrument set for one feature, observed or not.
 
@@ -157,10 +158,10 @@ def load_feature(
         union measured no coverage to rank by, so those sets fall back to the
         busiest first.
     """
-    directory = paths.feature_artifacts_dir(root, feature_class, name)
+    directory = feature_artifacts_dir(root, feature_class, name)
     measured = [
         entry
-        for path in sorted(directory.glob(f"*{configs.EVENTS_SUFFIX}"))
+        for path in sorted(directory.glob(f"*{paths.EVENTS_SUFFIX}"))
         if (entry := _load_set(path))
     ]
     return sorted(
@@ -200,7 +201,7 @@ def _load_set(events_path: Path) -> SetCoverage | None:
         set whose computation never finished.
     """
     summary_path = events_path.with_name(
-        events_path.name.replace(configs.EVENTS_SUFFIX, configs.SET_SUMMARY_SUFFIX)
+        events_path.name.replace(paths.EVENTS_SUFFIX, paths.SET_SUMMARY_SUFFIX)
     )
     if not summary_path.exists():
         return None

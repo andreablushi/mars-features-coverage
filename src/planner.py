@@ -5,12 +5,12 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
 
-import configs
+import utils.paths as paths
 from download.selection.features import select_features
 from models.feature import Feature
 from models.instrument import InstrumentSet
 from models.job import Job, Plan
-from storage import paths
+from storage.paths import events_path, metadata_file, set_summary_path
 
 
 def _outstanding[T](
@@ -45,7 +45,7 @@ def _outstanding[T](
 def download_plan(
     features: Sequence[Feature],
     instrument_sets: Sequence[InstrumentSet],
-    out_root: Path = configs.METADATA_ROOT,
+    out_root: Path = paths.METADATA_ROOT,
     *,
     names: Sequence[str] | None = None,
     force: bool = False,
@@ -70,7 +70,7 @@ def download_plan(
     ]
     jobs, skipped = _outstanding(
         pairs,
-        lambda pair: paths.metadata_file(out_root, *pair),
+        lambda pair: metadata_file(out_root, *pair),
         lambda pair, output: Job(
             feature=pair[0], instrument_set=pair[1], output_path=output
         ),
@@ -87,7 +87,7 @@ def download_plan(
 
 def coverage_plan(
     sources: Sequence[Path],
-    coverage_root: Path = configs.COVERAGE_ROOT,
+    coverage_root: Path = paths.COVERAGE_ROOT,
     *,
     force: bool = False,
 ) -> Plan:
@@ -107,10 +107,10 @@ def coverage_plan(
     """
     jobs, skipped = _outstanding(
         sorted(sources, key=lambda path: -path.stat().st_size),
-        lambda source: paths.set_summary_path(coverage_root, source),
+        lambda source: set_summary_path(coverage_root, source),
         lambda source, output: Job(
             source=source,
-            events_path=paths.events_path(coverage_root, source),
+            events_path=events_path(coverage_root, source),
             summary_path=output,
         ),
         force=force,
@@ -124,7 +124,7 @@ def coverage_plan(
 
 
 def unfinished(
-    sources: Sequence[Path], coverage_root: Path = configs.COVERAGE_ROOT
+    sources: Sequence[Path], coverage_root: Path = paths.COVERAGE_ROOT
 ) -> tuple[Path, ...]:
     """Return the instrument sets that still have no coverage artifact.
 
@@ -138,5 +138,5 @@ def unfinished(
     return tuple(
         source
         for source in sources
-        if not paths.set_summary_path(coverage_root, source).exists()
+        if not set_summary_path(coverage_root, source).exists()
     )

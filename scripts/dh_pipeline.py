@@ -13,9 +13,9 @@ import digitalhub as dh
 import features_coverage
 from digitalhub_runtime_python import handler
 
-import configs
 import console
-import settings
+import utils.paths as paths
+import utils.settings as settings
 
 PROJECT_NAME = "mars-features-coverage"
 FUNCTION_NAME = "features-coverage"
@@ -53,7 +53,7 @@ def _archive(source: Path, name: str) -> Path:
     Returns:
         The path of the archive, written beside the packed tree.
     """
-    return Path(shutil.make_archive(str(configs.DATA_ROOT / name), "gztar", source))
+    return Path(shutil.make_archive(str(paths.DATA_ROOT / name), "gztar", source))
 
 
 @handler(outputs=[ARTIFACTS_NAME, SUMMARY_NAME])
@@ -79,7 +79,7 @@ def save_artifacts(project):
 
     # Publish the measurements themselves.
     print("packing the measurements", flush=True)
-    packed = _archive(configs.ARTIFACTS_ROOT, ARTIFACTS_NAME)
+    packed = _archive(paths.ARTIFACTS_ROOT, ARTIFACTS_NAME)
     print(
         f"uploading the measurements, {packed.stat().st_size / 1e6:.0f} MB", flush=True
     )
@@ -94,14 +94,14 @@ def save_artifacts(project):
     print("uploading the summary", flush=True)
     summary = project.log_table(
         name=SUMMARY_NAME,
-        source=str(configs.ARTIFACTS_ROOT / configs.SUMMARY_NAME),
+        source=str(paths.ARTIFACTS_ROOT / paths.SUMMARY_NAME),
         description="One row per feature and instrument set.",
     )
 
     # Publish the records too, unless the run was told to discard them.
-    if configs.METADATA_ROOT.exists() and any(configs.METADATA_ROOT.rglob("*.jsonl")):
+    if paths.METADATA_ROOT.exists() and any(paths.METADATA_ROOT.rglob("*.jsonl")):
         print("packing the records", flush=True)
-        packed = _archive(configs.METADATA_ROOT, METADATA_NAME)
+        packed = _archive(paths.METADATA_ROOT, METADATA_NAME)
         print(
             f"uploading the records, {packed.stat().st_size / 1e6:.0f} MB", flush=True
         )
@@ -126,7 +126,7 @@ def _requirements() -> list[str]:
         Every runtime dependency, as pip requirement strings, plus what only
         the platform side asks for.
     """
-    manifest = (configs.REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    manifest = (paths.REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     return tomllib.loads(manifest)["project"]["dependencies"] + IMAGE_EXTRAS
 
 

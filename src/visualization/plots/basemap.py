@@ -15,7 +15,7 @@ from analysis.utils import geodesy
 from models.feature import Feature
 from models.results import SetCoverage
 from storage import catalog
-from utils import slugify
+from utils.slugify import slugify
 from visualization import configs, panels
 
 

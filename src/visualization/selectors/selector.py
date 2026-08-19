@@ -10,7 +10,7 @@ from IPython.display import display
 
 from models.results import SetCoverage
 from storage import catalog, summary
-from utils import slugify
+from utils.slugify import slugify
 from visualization import configs, panels, sets
 from visualization.selectors.window import Window, month_options
 

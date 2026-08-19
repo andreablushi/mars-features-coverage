@@ -8,7 +8,7 @@ from typing import Any
 
 import yaml
 
-import configs
+import utils.paths as paths
 from download import configs as download_configs
 from models.instrument import InstrumentSet
 from models.settings import Settings
@@ -37,7 +37,7 @@ def _setting(
     found = config.get(key)
     if found is None or found == []:
         if required:
-            raise ValueError(f"`{key}` is not set in {configs.CONFIG_PATH.name}")
+            raise ValueError(f"`{key}` is not set in {paths.CONFIG_PATH.name}")
         return None
     if kind is bool and not isinstance(found, bool):
         raise ValueError(f"`{key}` should be true or false, found {found!r}")
@@ -52,7 +52,7 @@ def _setting(
     return str(found) if kind is str else found
 
 
-def load(path: Path = configs.CONFIG_PATH) -> Settings:
+def load(path: Path = paths.CONFIG_PATH) -> Settings:
     """Settle what a run should do, reading the config file once.
 
     Args:

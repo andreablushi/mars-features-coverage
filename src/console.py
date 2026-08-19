@@ -74,12 +74,6 @@ def render(
 ) -> None:
     """Draw a live progress bar while consuming runner events.
 
-    Shows the bar and the completed and total counts. Failures are printed
-    above the bar as they happen.
-
-    A run that set PLAIN_LOG_ENV takes named lines instead, since a live bar
-    leaves a captured log looking stalled from the first job to the last.
-
     Args:
         events: The progress events produced by a runner.
         total: The number of units in the run.
@@ -109,9 +103,6 @@ def render(
 
 def _log(events: Iterable[ProgressEvent], total: int, description: str) -> None:
     """Print which job a stage has reached, every so many jobs.
-
-    Written with the plain flushed print the platform's log carries, since the
-    console's own writes are buffered there and surface only once at the end.
 
     Args:
         events: The progress events produced by a runner.

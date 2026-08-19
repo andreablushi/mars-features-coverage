@@ -5,12 +5,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 from pathlib import Path
 
-import configs
+import utils.paths as paths
 from models.instrument import InstrumentSet
 from models.job import Outcome
 
 
-def find_sets(root: Path = configs.METADATA_ROOT) -> list[Path]:
+def find_sets(root: Path = paths.METADATA_ROOT) -> list[Path]:
     """Find every stored instrument set holding observations.
 
     Args:
@@ -23,7 +23,7 @@ def find_sets(root: Path = configs.METADATA_ROOT) -> list[Path]:
 
 
 def has_metadata(
-    feature_dir: Path, instrument_set: InstrumentSet, root: Path = configs.METADATA_ROOT
+    feature_dir: Path, instrument_set: InstrumentSet, root: Path = paths.METADATA_ROOT
 ) -> bool:
     """Report whether one feature holds downloaded records for an instrument set.
 
