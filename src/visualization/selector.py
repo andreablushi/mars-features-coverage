@@ -11,8 +11,9 @@ from models.results import SetCoverage
 from storage import catalog, summary
 from utils import slugify
 from visualization import configs, panels
+from visualization.window import Window
 
-Render = Callable[[Sequence[SetCoverage]], widgets.Widget]
+Render = Callable[[Sequence[SetCoverage], Window], widgets.Widget]
 
 
 class FeatureSelector:
@@ -23,6 +24,8 @@ class FeatureSelector:
             confirm button has been pressed.
         coverage: The confirmed feature's instrument sets, widest coverage
             first, and empty until a feature with local data is confirmed.
+        window: The date range the figures are limited to, open at both ends
+            until a day is picked.
     """
 
     def __init__(self) -> None:
@@ -39,6 +42,7 @@ class FeatureSelector:
         self._computed = summary.computed_features()
         self.selection: tuple[str, str] | None = None
         self.coverage: list[SetCoverage] = []
+        self.window = Window()
         self._areas: list[tuple[widgets.Box, Render]] = []
         self._class = widgets.Dropdown(
             options=sorted(self._names),
@@ -54,9 +58,17 @@ class FeatureSelector:
         self._confirm = widgets.Button(
             description="Confirm", button_style="primary", icon="check"
         )
+        self._from = widgets.DatePicker(
+            description="From:", layout=widgets.Layout(width=configs.DATE_PICKER_WIDTH)
+        )
+        self._to = widgets.DatePicker(
+            description="To:", layout=widgets.Layout(width=configs.DATE_PICKER_WIDTH)
+        )
         self._status = widgets.VBox()
         self._class.observe(self._refresh_names, names="value")
         self._confirm.on_click(self._confirmed)
+        self._from.observe(self._retimed, names="value")
+        self._to.observe(self._retimed, names="value")
         self._refresh_names()
 
     def choose(self) -> None:
@@ -69,15 +81,26 @@ class FeatureSelector:
         print(f"{catalogued} catalogued features in {len(self._names)} classes")
         print(f"{len(self._computed)} with coverage computed locally")
         controls = widgets.HBox([self._class, self._name, self._confirm])
-        display(widgets.VBox([controls, self._status]))
+        dates = widgets.HBox(
+            [
+                widgets.HTML(
+                    f"<div style='color: {configs.GREY}; padding: 4px 8px 0 0'>"
+                    f"Date range (optional):</div>"
+                ),
+                self._from,
+                self._to,
+            ]
+        )
+        display(widgets.VBox([controls, dates, self._status]))
 
     def show_panel(self, render: Render) -> None:
         """Claim an area here and fill it whenever a feature is confirmed.
 
         Args:
-            render: What to draw in it, given the confirmed feature's coverage.
-                It is called with an empty sequence while nothing is confirmed,
-                which is when it should show the grey panel.
+            render: What to draw in it, given the confirmed feature's coverage
+                and the date range to limit it to. It is called with an empty
+                sequence while nothing is confirmed, which is when it should
+                show the grey panel.
 
         Returns:
             None.
@@ -86,7 +109,7 @@ class FeatureSelector:
         self._areas = [claimed for claimed in self._areas if claimed[1] is not render]
         self._areas.append((area, render))
         display(area)
-        area.children = (render(self.coverage),)
+        area.children = (render(self.coverage, self.window),)
 
     def _has_data(self, feature_class: str, name: str) -> bool:
         """Report whether a feature has computed coverage on disk.
@@ -143,5 +166,25 @@ class FeatureSelector:
                 f"Nothing has been downloaded or computed for {feature_class} / {name}."
             )
         self._status.children = (note,)
+        self._refill()
+
+    def _retimed(self, _change=None) -> None:
+        """Limit every claimed area to the picked date range.
+
+        Args:
+            _change: The widget change event, ignored.
+
+        Returns:
+            None.
+        """
+        self.window = Window.between(self._from.value, self._to.value)
+        self._refill()
+
+    def _refill(self) -> None:
+        """Redraw every claimed area from the current feature and window.
+
+        Returns:
+            None.
+        """
         for area, render in self._areas:
-            area.children = (render(self.coverage),)
+            area.children = (render(self.coverage, self.window),)

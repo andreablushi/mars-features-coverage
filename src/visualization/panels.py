@@ -14,6 +14,7 @@ from matplotlib.ticker import PercentFormatter
 
 from models.results import SetCoverage
 from visualization import configs
+from visualization.window import Window
 
 Colour = tuple[float, float, float]
 
@@ -91,11 +92,13 @@ def unavailable(
     )
 
 
-def overview(coverage: Sequence[SetCoverage]) -> widgets.Widget:
+def overview(coverage: Sequence[SetCoverage], _window: Window) -> widgets.Widget:
     """Report what was loaded for the confirmed feature.
 
     Args:
         coverage: The feature's instrument sets, widest coverage first.
+        _window: The date range, ignored: the report covers the whole record
+            however far the figures below it are zoomed in.
 
     Returns:
         The report, or the grey panel when nothing is loaded.
