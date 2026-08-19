@@ -45,3 +45,33 @@ DENSITY_ROW_EDGE = "#cccccc"
 # The running curve beside the totals, and how the width is split between them
 CUMULATIVE_FIGURE_SIZE = (13, 5)
 CUMULATIVE_WIDTH_RATIOS = [3, 1]
+
+# The grid of candidate windows a feature's record is scored on.
+WINDOW_COLUMNS = 240
+WINDOW_WIDTHS = 64
+WINDOW_MIN_DAYS = 1.0
+WINDOW_MAX_DAYS = 365.0
+WINDOW_FIGURE_SIZE = (12, 6)
+
+# How a window holding no sounder track is drawn, and how the counts are traced.
+WINDOW_UNSOUNDED = "#d9d9d9"
+WINDOW_CONTOUR = "#4d4d4d"
+
+# How hard the colours lean towards the low shares a short window reaches.
+WINDOW_GAMMA = 0.5
+
+# How the instrument count rings are drawn, the ring holding every one of them last.
+WINDOW_RING = 0.7
+WINDOW_RING_ALL = 1.5
+WINDOW_TICKS = [
+    (1.0, "1 day"),
+    (7.0, "1 week"),
+    (30.0, "1 month"),
+    (91.0, "3 months"),
+    (183.0, "6 months"),
+    (365.0, "1 year"),
+    (730.0, "2 years"),
+    (1826.0, "5 years"),
+    (3652.0, "10 years"),
+    (7305.0, "20 years"),
+]

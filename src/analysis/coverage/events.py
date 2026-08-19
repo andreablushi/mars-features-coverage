@@ -7,6 +7,7 @@ from collections.abc import Sequence
 import numpy as np
 
 from analysis.coverage import union
+from analysis.coverage.raster import FeatureRaster
 from analysis.geometry.region import FeatureRegion
 from models.feature import Feature
 from models.observation import LoadedSet, ProjectedObservation
@@ -35,12 +36,21 @@ def measure_set(
     feature, observations = loaded.feature, loaded.observations
     fresh = union.new_ground(region, [o.shape for o in observations])
     cumulative = np.cumsum(fresh)
+    grid = FeatureRaster(region)
     events = [
-        _observation_row(feature, observation, region, fresh, cumulative, position)
+        _observation_row(
+            feature, observation, region, fresh, cumulative, position, grid
+        )
         for position, observation in enumerate(observations)
     ]
     return events, _set_summary_row(
-        feature, loaded.set_key, observations[0].set_key, region, cumulative, events
+        feature,
+        loaded.set_key,
+        observations[0].set_key,
+        region,
+        cumulative,
+        events,
+        grid.cells,
     )
 
 
@@ -51,6 +61,7 @@ def _observation_row(
     fresh: np.ndarray,
     cumulative: np.ndarray,
     position: int,
+    grid: FeatureRaster,
 ) -> Event:
     """Record what one observation contributed.
 
@@ -61,6 +72,7 @@ def _observation_row(
         fresh: The new ground every observation covered.
         cumulative: The running total behind every observation.
         position: Where this observation sits in those arrays.
+        grid: The feature's cells, which the footprint is burned into.
 
     Returns:
         The event row.
@@ -80,6 +92,7 @@ def _observation_row(
         cum_frac=float(cumulative[position]) / region.area_m2,
         width_km=observation.width_km,
         width_source=observation.width_source,
+        mask=grid.burn(observation.shape),
     )
 
 
@@ -90,6 +103,7 @@ def _set_summary_row(
     region: FeatureRegion,
     cumulative: np.ndarray,
     events: Sequence[Event],
+    cells: int,
 ) -> Summary:
     """Build the one row describing a finished instrument set.
 
@@ -100,6 +114,7 @@ def _set_summary_row(
         region: That feature projected into equal-area metres.
         cumulative: The running total behind every observation.
         events: The set's event rows, in chronological order.
+        cells: How many of the feature's grid cells fall inside it.
 
     Returns:
         The summary row.
@@ -120,4 +135,5 @@ def _set_summary_row(
         t_first=first,
         t_last=last,
         span_days=(last - first).total_seconds() / 86400.0,
+        mask_cells=cells,
     )

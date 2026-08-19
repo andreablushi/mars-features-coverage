@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from pathlib import Path
 
-import configs
+import utils.paths as paths
 from download.api import catalog as ode
 from download.api.client import ODEClient
 from models.feature import Feature
@@ -14,7 +14,7 @@ from storage.disk import read_jsonl, write_jsonl
 from storage.paths import features_path, instrument_sets_path
 
 
-def read_features(cache_dir: Path = configs.CATALOG_ROOT) -> list[Feature]:
+def read_features(cache_dir: Path = paths.CATALOG_ROOT) -> list[Feature]:
     """Read the cached geological feature catalogue.
 
     Args:
@@ -27,7 +27,7 @@ def read_features(cache_dir: Path = configs.CATALOG_ROOT) -> list[Feature]:
 
 
 def read_instrument_sets(
-    cache_dir: Path = configs.CATALOG_ROOT,
+    cache_dir: Path = paths.CATALOG_ROOT,
 ) -> list[InstrumentSetInfo]:
     """Read the cached instrument set catalogue.
 
@@ -44,7 +44,7 @@ def read_instrument_sets(
 
 def load_features(
     client: ODEClient,
-    cache_dir: Path = configs.CATALOG_ROOT,
+    cache_dir: Path = paths.CATALOG_ROOT,
     *,
     refresh: bool = False,
 ) -> list[Feature]:
@@ -68,7 +68,7 @@ def load_features(
 
 def load_instrument_sets(
     client: ODEClient,
-    cache_dir: Path = configs.CATALOG_ROOT,
+    cache_dir: Path = paths.CATALOG_ROOT,
     *,
     refresh: bool = False,
 ) -> list[InstrumentSetInfo]:

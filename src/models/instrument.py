@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from utils import slugify
+from utils.slugify import slugify
 
 
 @dataclass(frozen=True)

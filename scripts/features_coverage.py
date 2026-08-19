@@ -9,7 +9,7 @@ from rich.console import Console
 
 import planner
 import runner
-import settings
+import utils.settings as settings
 from console import print_interrupted, print_summary
 from models.progress import CoverageSummary, DownloadSummary
 from storage import metadata, summary

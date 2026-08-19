@@ -1,0 +1,200 @@
+"""Every window a feature's record could be clustered into, and what each holds."""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from dataclasses import dataclass
+
+import numpy as np
+from matplotlib.dates import date2num
+
+from models.results import Event, SetCoverage
+from visualization import configs
+from visualization.selectors.window import Window
+
+_BITS = np.unpackbits(np.arange(256, dtype=np.uint8)[:, None], axis=1).sum(axis=1)
+
+
+@dataclass(frozen=True, slots=True)
+class Grid:
+    """What every candidate window of one feature holds.
+
+    Attributes:
+        centres: The moment each column's window is centred on, as date
+            numbers. A window reaches half its length either side of it.
+        widths: How long each row's window lasts, in days, up to the longest
+            a cluster is allowed to span.
+        reached: The share of the feature's cells a window covers, averaged
+            over the instruments that observed it, one value per width and
+            centre.
+        instruments: How many instruments observed the feature inside every
+            window, shaped as reached.
+        sounded: Whether every window holds a sounder track, which a cluster
+            cannot do without, shaped as reached.
+    """
+
+    centres: np.ndarray
+    widths: np.ndarray
+    reached: np.ndarray
+    instruments: np.ndarray
+    sounded: np.ndarray
+
+
+def build(coverage: Sequence[SetCoverage], window: Window) -> Grid | None:
+    """Score every window the feature's observations could be clustered into.
+
+    Args:
+        coverage: The feature's instrument sets, in the order the config names them.
+        window: The date range to score inside, which excludes the rest.
+
+    Returns:
+        The scored grid, or None when the record is too short to hold a choice
+        of windows at all.
+    """
+    observed = [window.visible(entry.events) for entry in coverage]
+    observed = [events for events in observed if events]
+    if not observed:
+        return None
+    moments = np.sort(np.concatenate([_moments(events) for events in observed]))
+    span = float(moments[-1] - moments[0])
+    if span < configs.WINDOW_MIN_DAYS:
+        return None
+    centres = np.linspace(moments[0], moments[-1], configs.WINDOW_COLUMNS)
+    widths = np.geomspace(
+        configs.WINDOW_MIN_DAYS,
+        min(span, configs.WINDOW_MAX_DAYS),
+        configs.WINDOW_WIDTHS,
+    )
+    cells = coverage[0].summary.mask_cells
+    covered = [_covered(events, cells, centres, widths) for events in observed]
+    present = [_counts(events, centres, widths) > 0 for events in observed]
+    sounders = [events for events in observed if _sounder(events)]
+    return Grid(
+        centres=centres,
+        widths=widths,
+        reached=np.mean(covered, axis=0),
+        instruments=np.sum(present, axis=0),
+        sounded=_qualified(sounders, centres, widths),
+    )
+
+
+def _sounder(events: Sequence[Event]) -> bool:
+    """Report whether a set sounds a track rather than publishing an area.
+
+    Args:
+        events: One instrument set's observations of the feature.
+
+    Returns:
+        True when the set's footprints were widened from a bare line.
+    """
+    return any(event.width_source for event in events)
+
+
+def _qualified(
+    sets: Sequence[Sequence[Event]], centres: np.ndarray, widths: np.ndarray
+) -> np.ndarray:
+    """Mark the windows a sounder flew through at least once.
+
+    Args:
+        sets: The observations of every set that sounds a track.
+        centres: The moment each column's window is centred on.
+        widths: How long each row's window lasts, in days.
+
+    Returns:
+        True where a window holds a track, one value per width and centre, and
+        False everywhere when no sounder reached the feature at all, since a
+        cluster is required to hold one.
+    """
+    if not sets:
+        return np.zeros((widths.size, centres.size), dtype=bool)
+    flown = sum(_counts(events, centres, widths) for events in sets)
+    return flown > 0
+
+
+def _moments(events: Sequence[Event]) -> np.ndarray:
+    """Return when each of a set's observations started, as date numbers.
+
+    Args:
+        events: One instrument set's observations, in chronological order.
+
+    Returns:
+        The start times in the same order.
+    """
+    return date2num([event.t_start for event in events])
+
+
+def _covered(
+    events: Sequence[Event], cells: int, centres: np.ndarray, widths: np.ndarray
+) -> np.ndarray:
+    """Measure the ground one set covers inside every candidate window.
+
+    Args:
+        events: The set's observations, in chronological order.
+        cells: How many of the feature's cells fall inside it.
+        centres: The moment each column's window is centred on.
+        widths: How long each row's window lasts, in days.
+
+    Returns:
+        The share of the feature it covers, one value per width and centre.
+    """
+    masks = np.array([np.frombuffer(event.mask, dtype=np.uint8) for event in events])
+    moments = _moments(events)
+    filled = [
+        [
+            _folded(masks[first:last])
+            for first, last in zip(*_reaching(moments, centres, width), strict=True)
+        ]
+        for width in widths
+    ]
+    return np.array(filled) / cells
+
+
+def _folded(masks: np.ndarray) -> int:
+    """Count the cells at least one of a run of footprints fills.
+
+    Args:
+        masks: The packed cells of the observations inside one window.
+
+    Returns:
+        How many cells they fill between them.
+    """
+    if not masks.size:
+        return 0
+    return int(_BITS[np.bitwise_or.reduce(masks, axis=0)].sum())
+
+
+def _counts(
+    events: Sequence[Event], centres: np.ndarray, widths: np.ndarray
+) -> np.ndarray:
+    """Count how many of one set's observations fall inside every window.
+
+    Args:
+        events: The set's observations, in chronological order.
+        centres: The moment each column's window is centred on.
+        widths: How long each row's window lasts, in days.
+
+    Returns:
+        The count, one value per width and centre.
+    """
+    moments = _moments(events)
+    windows = [_reaching(moments, centres, width) for width in widths]
+    return np.array([last - first for first, last in windows])
+
+
+def _reaching(
+    moments: np.ndarray, centres: np.ndarray, width: float
+) -> tuple[np.ndarray, np.ndarray]:
+    """Find which of a set's observations every window of one length holds.
+
+    Args:
+        moments: When the set's observations started, in order.
+        centres: The moment each column's window is centred on.
+        width: How long the windows last, in days.
+
+    Returns:
+        The first and the last index each window holds, as a half open range.
+    """
+    return (
+        np.searchsorted(moments, centres - width / 2.0, side="left"),
+        np.searchsorted(moments, centres + width / 2.0, side="right"),
+    )

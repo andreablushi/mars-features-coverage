@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import configs
+import utils.paths as paths
 from models.feature import Feature
 from models.instrument import InstrumentSet
-from utils import slugify
+from utils.slugify import slugify
 
 
 def metadata_file(root: Path, feature: Feature, instrument_set: InstrumentSet) -> Path:
@@ -62,7 +62,7 @@ def events_path(root: Path, source: Path) -> Path:
     Returns:
         The path to the events parquet file.
     """
-    return _mirrored(root, source.parent) / f"{source.stem}{configs.EVENTS_SUFFIX}"
+    return _mirrored(root, source.parent) / f"{source.stem}{paths.EVENTS_SUFFIX}"
 
 
 def set_summary_path(root: Path, source: Path) -> Path:
@@ -75,10 +75,10 @@ def set_summary_path(root: Path, source: Path) -> Path:
     Returns:
         The path to the summary parquet file.
     """
-    return _mirrored(root, source.parent) / f"{source.stem}{configs.SET_SUMMARY_SUFFIX}"
+    return _mirrored(root, source.parent) / f"{source.stem}{paths.SET_SUMMARY_SUFFIX}"
 
 
-def catalog_summary_path(root: Path = configs.ARTIFACTS_ROOT) -> Path:
+def catalog_summary_path(root: Path = paths.ARTIFACTS_ROOT) -> Path:
     """Return the file holding every feature's summary rows together.
 
     Args:
@@ -87,10 +87,10 @@ def catalog_summary_path(root: Path = configs.ARTIFACTS_ROOT) -> Path:
     Returns:
         The path to the catalogue-wide summary parquet file.
     """
-    return root / configs.SUMMARY_NAME
+    return root / paths.SUMMARY_NAME
 
 
-def features_path(cache_dir: Path = configs.CATALOG_ROOT) -> Path:
+def features_path(cache_dir: Path = paths.CATALOG_ROOT) -> Path:
     """Return where the cached feature catalogue lives.
 
     Args:
@@ -99,10 +99,10 @@ def features_path(cache_dir: Path = configs.CATALOG_ROOT) -> Path:
     Returns:
         The path to the features JSONL file, which need not exist.
     """
-    return cache_dir / configs.FEATURES_CACHE_NAME
+    return cache_dir / paths.FEATURES_CACHE_NAME
 
 
-def instrument_sets_path(cache_dir: Path = configs.CATALOG_ROOT) -> Path:
+def instrument_sets_path(cache_dir: Path = paths.CATALOG_ROOT) -> Path:
     """Return where the cached instrument set catalogue lives.
 
     Args:
@@ -111,4 +111,4 @@ def instrument_sets_path(cache_dir: Path = configs.CATALOG_ROOT) -> Path:
     Returns:
         The path to the instrument sets JSONL file, which need not exist.
     """
-    return cache_dir / configs.INSTRUMENT_SETS_CACHE_NAME
+    return cache_dir / paths.INSTRUMENT_SETS_CACHE_NAME

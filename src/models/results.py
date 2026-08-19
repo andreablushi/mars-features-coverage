@@ -29,6 +29,8 @@ class Event:
         cum_frac: The same as a share of the feature, or None.
         width_km: The swath width used, or None when the footprint had area.
         width_source: Where the swath width came from, or None.
+        mask: The feature's cells this footprint fills, one bit each, so any
+            set of observations can be unioned by folding their bits together.
     """
 
     feature_class: str
@@ -45,6 +47,7 @@ class Event:
     cum_frac: float | None
     width_km: float | None
     width_source: str | None
+    mask: bytes
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,6 +70,8 @@ class Summary:
         t_first: When the earliest of them started.
         t_last: When the latest of them started.
         span_days: How long the row's observations span.
+        mask_cells: How many of the feature's grid cells fall inside it, which
+            is what a count of covered cells is a share of.
     """
 
     feature_class: str
@@ -82,6 +87,7 @@ class Summary:
     t_first: datetime
     t_last: datetime
     span_days: float
+    mask_cells: int
 
 
 @dataclass(frozen=True, slots=True)
