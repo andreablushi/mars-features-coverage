@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import replace
+from datetime import datetime
 from pathlib import Path
 
 import pyarrow as pa
@@ -104,6 +105,30 @@ def catalogued_sets(root: Path = configs.ARTIFACTS_ROOT) -> list[str]:
     if not path.exists():
         return []
     return list(dict.fromkeys(_summary_table(path).column("set_key").to_pylist()))
+
+
+def catalogued_span(
+    root: Path = configs.ARTIFACTS_ROOT,
+) -> tuple[datetime, datetime] | None:
+    """Return the period the computed artifacts cover anywhere.
+
+    Args:
+        root: The artifacts root directory holding the catalogue index.
+
+    Returns:
+        The earliest and the latest observation the index holds, or None when
+        there is no index or it carries no rows.
+    """
+    path = paths.catalog_summary_path(root)
+    if not path.exists():
+        return None
+    table = _summary_table(path)
+    if not table.num_rows:
+        return None
+    return (
+        min(table.column("t_first").to_pylist()),
+        max(table.column("t_last").to_pylist()),
+    )
 
 
 def load_feature(

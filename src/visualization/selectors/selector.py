@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from datetime import date
 
 import ipywidgets as widgets
 from IPython.display import display
@@ -11,7 +12,7 @@ from models.results import SetCoverage
 from storage import catalog, summary
 from utils import slugify
 from visualization import configs, panels
-from visualization.selectors.window import Window
+from visualization.selectors.window import Window, month_options
 
 Render = Callable[[Sequence[SetCoverage], Window], widgets.Widget]
 
@@ -58,11 +59,16 @@ class FeatureSelector:
         self._confirm = widgets.Button(
             description="Confirm", button_style="primary", icon="check"
         )
-        self._from = widgets.DatePicker(
-            description="From:", layout=widgets.Layout(width=configs.DATE_PICKER_WIDTH)
+        months = self._month_choices()
+        self._from = widgets.Dropdown(
+            options=months,
+            description="From:",
+            layout=widgets.Layout(width=configs.MONTH_DROPDOWN_WIDTH),
         )
-        self._to = widgets.DatePicker(
-            description="To:", layout=widgets.Layout(width=configs.DATE_PICKER_WIDTH)
+        self._to = widgets.Dropdown(
+            options=months,
+            description="To:",
+            layout=widgets.Layout(width=configs.MONTH_DROPDOWN_WIDTH),
         )
         self._status = widgets.VBox()
         self._class.observe(self._refresh_names, names="value")
@@ -85,7 +91,7 @@ class FeatureSelector:
             [
                 widgets.HTML(
                     f"<div style='color: {configs.GREY}; padding: 4px 8px 0 0'>"
-                    f"Date range (optional):</div>"
+                    f"Month range (optional):</div>"
                 ),
                 self._from,
                 self._to,
@@ -110,6 +116,17 @@ class FeatureSelector:
         self._areas.append((area, render))
         display(area)
         area.children = (render(self.coverage, self.window),)
+
+    def _month_choices(self) -> list[tuple[str, date | None]]:
+        """List the months the computed artifacts reach, for the range pickers.
+
+        Returns:
+            A blank entry leaving that end of the range open, followed by one
+            entry per month the artifacts cover. Only the blank entry is left
+            when nothing has been computed yet.
+        """
+        span = summary.catalogued_span()
+        return [(configs.OPEN_END_LABEL, None)] + (month_options(*span) if span else [])
 
     def _has_data(self, feature_class: str, name: str) -> bool:
         """Report whether a feature has computed coverage on disk.
@@ -169,7 +186,7 @@ class FeatureSelector:
         self._refill()
 
     def _retimed(self, _change=None) -> None:
-        """Limit every claimed area to the picked date range.
+        """Limit every claimed area to the picked range of months.
 
         Args:
             _change: The widget change event, ignored.
@@ -177,7 +194,7 @@ class FeatureSelector:
         Returns:
             None.
         """
-        self.window = Window.between(self._from.value, self._to.value)
+        self.window = Window.over_months(self._from.value, self._to.value)
         self._refill()
 
     def _refill(self) -> None:

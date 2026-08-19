@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from calendar import monthrange
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
@@ -23,19 +24,23 @@ class Window:
     end: datetime | None = None
 
     @classmethod
-    def between(cls, start: date | None, end: date | None) -> Window:
-        """Build a window from the two days a picker returns.
+    def over_months(cls, start: date | None, end: date | None) -> Window:
+        """Build a window from the two months a picker returns.
 
         Args:
-            start: The first day to show, or None to leave that end open.
-            end: The last day to show, whole, or None to leave that end open.
+            start: Any day in the first month to show, or None to leave that
+                end open.
+            end: Any day in the last month to show, or None to leave that end
+                open.
 
         Returns:
             The window in UTC, which is what the artifacts are timestamped in.
         """
         return cls(
-            start=datetime.combine(start, time.min, UTC) if start else None,
-            end=datetime.combine(end, time.max, UTC) if end else None,
+            start=datetime.combine(start.replace(day=1), time.min, UTC)
+            if start
+            else None,
+            end=datetime.combine(_month_end(end), time.max, UTC) if end else None,
         )
 
     def visible(self, events: Sequence[Event]) -> list[Event]:
@@ -50,3 +55,58 @@ class Window:
         start = self.start or datetime.min.replace(tzinfo=UTC)
         end = self.end or datetime.max.replace(tzinfo=UTC)
         return [event for event in events if start <= event.t_start <= end]
+
+
+def month_options(first: datetime, last: datetime) -> list[tuple[str, date]]:
+    """List every month a period touches, as a dropdown shows them.
+
+    Args:
+        first: The earliest moment the period covers.
+        last: The latest moment it covers.
+
+    Returns:
+        One label and first day per month, from the month holding first to the
+        month holding last, in order.
+    """
+    cursor, stop = _first_of(first), _first_of(last)
+    months = []
+    while cursor <= stop:
+        months.append((f"{cursor:%Y-%m}", cursor))
+        cursor = _first_of_next(cursor)
+    return months
+
+
+def _first_of(moment: datetime) -> date:
+    """Return the first day of a moment's own month.
+
+    Args:
+        moment: The moment to place.
+
+    Returns:
+        The first day of the month it falls in.
+    """
+    return date(moment.year, moment.month, 1)
+
+
+def _first_of_next(day: date) -> date:
+    """Return the first day of the month after a day's own.
+
+    Args:
+        day: The day to step on from.
+
+    Returns:
+        The first day of the following month.
+    """
+    return date(day.year + day.month // 12, day.month % 12 + 1, 1)
+
+
+def _month_end(day: date) -> date:
+    """Return the last day of a day's own month.
+
+    Args:
+        day: Any day in the month.
+
+    Returns:
+        Its month's final day.
+    """
+    return day.replace(day=monthrange(day.year, day.month)[1])

@@ -8,7 +8,10 @@ GREY = "#8a8a8a"
 DEFAULT_CLASS = "Crater"
 NO_DATA_SUFFIX = "  (no data)"
 DROPDOWN_WIDTH = "340px"
-DATE_PICKER_WIDTH = "230px"
+MONTH_DROPDOWN_WIDTH = "190px"
+
+# The blank first month, which leaves that end of the range open.
+OPEN_END_LABEL = ""
 
 # How an instrument set with nothing to draw is drawn anyway.
 UNOBSERVED_LINESTYLE = (0, (1, 3))
