@@ -22,6 +22,7 @@ EVENTS = pa.schema(
         ("cum_frac", pa.float64()),
         ("width_km", pa.float64()),
         ("width_source", pa.string()),
+        ("mask", pa.binary()),
     ]
 )
 
@@ -40,5 +41,6 @@ SUMMARY = pa.schema(
         ("t_first", _TIMESTAMP),
         ("t_last", _TIMESTAMP),
         ("span_days", pa.float64()),
+        ("mask_cells", pa.int64()),
     ]
 )

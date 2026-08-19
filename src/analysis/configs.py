@@ -45,3 +45,6 @@ MAX_SEGMENT_DEG = 0.25
 
 # Segments per quarter circle when a track is buffered to its swath.
 BUFFER_QUAD_SEGMENTS = 16
+
+# Cells across the feature's grid, which every footprint is burned into
+RASTER_SIDE = 64

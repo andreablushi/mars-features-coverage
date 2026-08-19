@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 import numpy as np
@@ -11,6 +11,8 @@ from matplotlib.dates import date2num
 from models.results import Event, SetCoverage
 from visualization import configs
 from visualization.selectors.window import Window
+
+_BITS = np.unpackbits(np.arange(256, dtype=np.uint8)[:, None], axis=1).sum(axis=1)
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,8 +24,9 @@ class Grid:
             numbers. A window reaches half its length either side of it.
         widths: How long each row's window lasts, in days, up to the longest
             a cluster is allowed to span.
-        reached: The share of the feature a window covers, averaged over the
-            instruments that observed it, one value per width and centre.
+        reached: The share of the feature's cells a window covers, averaged
+            over the instruments that observed it, one value per width and
+            centre.
         instruments: How many instruments observed the feature inside every
             window, shaped as reached.
         sounded: Whether every window holds a sounder track, which a cluster
@@ -39,14 +42,6 @@ class Grid:
 
 def build(coverage: Sequence[SetCoverage], window: Window) -> Grid | None:
     """Score every window the feature's observations could be clustered into.
-
-    Coverage accumulates one instrument at a time and the instruments are then
-    averaged, since a camera cannot stand in for a spectrometer and the two
-    cover their own ground. A set that observed nothing of the feature at all
-    is left out of the average, so one silent instrument does not drag every
-    window down. A sounder is averaged in like the rest, but it also decides
-    whether a window counts at all: a cluster without a track through it is no
-    cluster, so a window holding none is disqualified however much it covers.
 
     Args:
         coverage: The feature's instrument sets, in the order the config names them.
@@ -70,14 +65,14 @@ def build(coverage: Sequence[SetCoverage], window: Window) -> Grid | None:
         min(span, configs.WINDOW_MAX_DAYS),
         configs.WINDOW_WIDTHS,
     )
-    area_km2 = coverage[0].summary.feature_area_km2
-    covered = [_certain(events, centres, widths) for events in observed]
+    cells = coverage[0].summary.mask_cells
+    covered = [_covered(events, cells, centres, widths) for events in observed]
     present = [_counts(events, centres, widths) > 0 for events in observed]
     sounders = [events for events in observed if _sounder(events)]
     return Grid(
         centres=centres,
         widths=widths,
-        reached=np.mean(covered, axis=0) / area_km2,
+        reached=np.mean(covered, axis=0),
         instruments=np.sum(present, axis=0),
         sounded=_qualified(sounders, centres, widths),
     )
@@ -128,56 +123,44 @@ def _moments(events: Sequence[Event]) -> np.ndarray:
     return date2num([event.t_start for event in events])
 
 
-def _certain(
-    events: Sequence[Event], centres: np.ndarray, widths: np.ndarray
+def _covered(
+    events: Sequence[Event], cells: int, centres: np.ndarray, widths: np.ndarray
 ) -> np.ndarray:
-    """Measure the ground one set cannot fail to cover inside every window.
-
-    The running union credits an observation only with what nothing before it
-    had reached, so a window late in the record is credited with almost
-    nothing however much it sees. A window also covers at least the whole of
-    its single widest observation, which no earlier window can take away, so
-    the greater of the two is what the window is certain to reach.
+    """Measure the ground one set covers inside every candidate window.
 
     Args:
         events: The set's observations, in chronological order.
+        cells: How many of the feature's cells fall inside it.
         centres: The moment each column's window is centred on.
         widths: How long each row's window lasts, in days.
 
     Returns:
-        The square kilometres it covers, one value per width and centre.
+        The share of the feature it covers, one value per width and centre.
     """
-    return np.maximum(
-        _totals(events, centres, widths, lambda event: event.new_km2 or 0.0),
-        _peaks(events, centres, widths),
-    )
-
-
-def _peaks(
-    events: Sequence[Event], centres: np.ndarray, widths: np.ndarray
-) -> np.ndarray:
-    """Find the widest single observation one set has inside every window.
-
-    Args:
-        events: The set's observations, in chronological order.
-        centres: The moment each column's window is centred on.
-        widths: How long each row's window lasts, in days.
-
-    Returns:
-        The square kilometres its widest footprint covers, one value per width
-        and centre, and zero where the window holds none.
-    """
+    masks = np.array([np.frombuffer(event.mask, dtype=np.uint8) for event in events])
     moments = _moments(events)
-    own = np.array([event.own_km2 for event in events])
-    return np.array(
+    filled = [
         [
-            [
-                own[first:last].max() if last > first else 0.0
-                for first, last in zip(*_reaching(moments, centres, width), strict=True)
-            ]
-            for width in widths
+            _folded(masks[first:last])
+            for first, last in zip(*_reaching(moments, centres, width), strict=True)
         ]
-    )
+        for width in widths
+    ]
+    return np.array(filled) / cells
+
+
+def _folded(masks: np.ndarray) -> int:
+    """Count the cells at least one of a run of footprints fills.
+
+    Args:
+        masks: The packed cells of the observations inside one window.
+
+    Returns:
+        How many cells they fill between them.
+    """
+    if not masks.size:
+        return 0
+    return int(_BITS[np.bitwise_or.reduce(masks, axis=0)].sum())
 
 
 def _counts(
@@ -196,29 +179,6 @@ def _counts(
     moments = _moments(events)
     windows = [_reaching(moments, centres, width) for width in widths]
     return np.array([last - first for first, last in windows])
-
-
-def _totals(
-    events: Sequence[Event],
-    centres: np.ndarray,
-    widths: np.ndarray,
-    value: Callable[[Event], float],
-) -> np.ndarray:
-    """Add up what one set contributes inside every candidate window.
-
-    Args:
-        events: The set's observations, in chronological order.
-        centres: The moment each column's window is centred on.
-        widths: How long each row's window lasts, in days.
-        value: What one observation contributes.
-
-    Returns:
-        The total inside each window, one value per width and centre.
-    """
-    moments = _moments(events)
-    running = np.concatenate([[0.0], np.cumsum([value(event) for event in events])])
-    windows = [_reaching(moments, centres, width) for width in widths]
-    return np.array([running[last] - running[first] for first, last in windows])
 
 
 def _reaching(
