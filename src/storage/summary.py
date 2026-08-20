@@ -169,41 +169,19 @@ def load_feature(
     )
 
 
-def _require_current(path: Path, schema: pa.Schema) -> None:
-    """Refuse an artifact written before the current schema.
-
-    Args:
-        path: The parquet file about to be read.
-        schema: The schema it is about to be read under.
-
-    Returns:
-        None.
-
-    Raises:
-        ValueError: When the file is missing any of the schema's columns.
-    """
-    held = set(pq.read_schema(path).names)
-    missing = [name for name in schema.names if name not in held]
-    if missing:
-        raise ValueError(
-            f"{path} was written by an older pipeline and carries no "
-            f"{', '.join(missing)}; recompute it before reading."
-        )
-
-
 def _summary_table(path: Path) -> pa.Table:
-    """Read a summary file, refusing one written before the current schema.
+    """Read a summary file under the current schema.
+
+    A file written before a column existed simply carries nothing in it, since
+    reading under a schema fills what is missing and drops what it does not
+    name.
 
     Args:
         path: The summary parquet file.
 
     Returns:
         The table, under the current schema.
-
-    Raises:
-        ValueError: When the file predates the current schema.
     """
-    _require_current(path, SUMMARY)
     return pq.read_table(path, schema=SUMMARY)
 
 
@@ -216,16 +194,12 @@ def _load_set(events_path: Path) -> SetCoverage | None:
     Returns:
         The set's coverage, or None when its summary is missing, which marks a
         set whose computation never finished.
-
-    Raises:
-        ValueError: When either artifact predates the current schema.
     """
     summary_path = events_path.with_name(
         events_path.name.replace(paths.EVENTS_SUFFIX, paths.SET_SUMMARY_SUFFIX)
     )
     if not summary_path.exists():
         return None
-    _require_current(events_path, EVENTS)
     summary = _summary_table(summary_path).to_pylist()
     events = pq.read_table(events_path, schema=EVENTS).to_pylist()
     return SetCoverage(
