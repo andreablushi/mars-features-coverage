@@ -56,10 +56,7 @@ def project(
         The projected observations that landed on the feature, in the order
         they were given, and how many missed it entirely.
     """
-    widths = _track_widths(observations)
-    resolved = [
-        widths.get(observation.pdsid, (0.0, None)) for observation in observations
-    ]
+    resolved = _track_widths(observations)
     shapes = region.footprint_areas(
         from_wkt(
             np.asarray([observation.wkt for observation in observations], dtype=object)
@@ -92,28 +89,34 @@ def project(
 
 def _track_widths(
     observations: Sequence[Observation],
-) -> dict[str, tuple[float, str]]:
+) -> list[tuple[float, str | None]]:
     """Derive a swath width for every ground track among the observations.
 
     Args:
         observations: The observations to inspect.
 
     Returns:
-        The width in metres and its source, keyed by product identifier, for
-        the track footprints only.
+        One (width in metres, source) pair per observation, in the order they
+        were given, carrying no width and no source for the footprints that
+        already enclose area.
     """
-    tracks = [observation for observation in observations if observation.is_track]
-    if not tracks:
-        return {}
-    measurements = [
-        (_track_length(observation.wkt), observation.duration_s)
-        for observation in tracks
+    tracks = [
+        position
+        for position, observation in enumerate(observations)
+        if observation.is_track
     ]
-    resolved = swath.resolve_widths(measurements)
-    return {
-        observation.pdsid: width
-        for observation, width in zip(tracks, resolved, strict=True)
-    }
+    widths: list[tuple[float, str | None]] = [(0.0, None)] * len(observations)
+    if not tracks:
+        return widths
+    resolved = swath.resolve_widths(
+        [
+            (_track_length(observations[at].wkt), observations[at].duration_s)
+            for at in tracks
+        ]
+    )
+    for position, width in zip(tracks, resolved, strict=True):
+        widths[position] = width
+    return widths
 
 
 def _track_length(wkt: str) -> float:
