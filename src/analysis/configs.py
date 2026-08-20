@@ -33,6 +33,14 @@ SATURATION_TOLERANCE = 1e-12
 # Grid an overlay is snapped to when exact arithmetic cannot node it.
 SNAP_GRID_M = 1e-6
 
+# A SHARAD sounding is as wide as its swath and as long as the spacing between
+# traces in a focused radargram, which ODE does not publish.
+SHARAD_ALONG_TRACK_M = 460.0
+
+# Ground pixel size for the sets ODE publishes no map scale for, in metres.
+# CRISM's survey modes are binned about ten times coarser than its targeted one.
+FALLBACK_PIXEL_M = {"MRO/CRISM/TRDR:[mh]sp*": 180.0}
+
 # Straight lon/lat edges curve once projected, so resample below this step
 MAX_SEGMENT_DEG = 0.25
 

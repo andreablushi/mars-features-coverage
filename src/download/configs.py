@@ -33,6 +33,7 @@ RETAINED_FIELDS = (
     "ihid",
     "iid",
     "pt",
+    "Map_scale",
     "UTC_start_time",
     "UTC_stop_time",
     "Minimum_latitude",

@@ -92,6 +92,7 @@ def _observation_row(
         cum_km2=float(cumulative[position]) / 1e6,
         cum_frac=float(cumulative[position]) / region.area_m2,
         width_km=observation.width_km,
+        pixels=observation.shape.area / 1e6 / observation.pixel_km2,
         mask=grid.burn(observation.shape),
     )
 
@@ -137,4 +138,5 @@ def _set_summary_row(
         t_last=last,
         span_days=(last - first).total_seconds() / 86400.0,
         mask_cells=cells,
+        pixels=sum(event.pixels for event in events),
     )

@@ -39,6 +39,7 @@ class Observation:
         start: When the observation started.
         stop: When the observation finished, or None when none was published.
         wkt: The footprint as well-known text, left unparsed.
+        map_scale_m: The ground size of one pixel, or None when unpublished.
     """
 
     pdsid: str
@@ -48,6 +49,7 @@ class Observation:
     start: datetime
     stop: datetime | None
     wkt: str
+    map_scale_m: float | None
 
     @property
     def is_track(self) -> bool:
@@ -82,6 +84,7 @@ class ProjectedObservation:
         stop: When the observation finished, or None when none was published.
         shape: The projected footprint, clipped to the feature.
         width_km: The swath width used, or None when the footprint had area.
+        pixel_km2: The ground one of its pixels covers.
     """
 
     pdsid: str
@@ -92,3 +95,4 @@ class ProjectedObservation:
     stop: datetime | None
     shape: BaseGeometry
     width_km: float | None
+    pixel_km2: float

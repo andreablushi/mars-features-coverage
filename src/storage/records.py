@@ -50,6 +50,7 @@ def _observation(item: dict[str, Any]) -> Observation | None:
     """
     wkt = item.get("Footprint_C0_geometry")
     start, stop = item.get("UTC_start_time"), item.get("UTC_stop_time")
+    scale = item.get("Map_scale")
     if not wkt or not start:
         return None
     return Observation(
@@ -60,4 +61,5 @@ def _observation(item: dict[str, Any]) -> Observation | None:
         start=provenance.as_utc(start),
         stop=provenance.as_utc(stop) if stop else None,
         wkt=wkt,
+        map_scale_m=float(scale) if scale else None,
     )

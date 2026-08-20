@@ -28,6 +28,7 @@ class Event:
             or None when the run kept no running union.
         cum_frac: The same as a share of the feature, or None.
         width_km: The swath width used, or None when the footprint had area.
+        pixels: How many of the instrument's pixels landed inside the feature.
         mask: The feature's cells this footprint fills, packed as a bitmap or
             as a list of cells, whichever is smaller, so any set of
             observations can be unioned by merging their cells.
@@ -46,6 +47,7 @@ class Event:
     cum_km2: float | None
     cum_frac: float | None
     width_km: float | None
+    pixels: float
     mask: bytes
 
 
@@ -71,6 +73,8 @@ class Summary:
         span_days: How long the row's observations span.
         mask_cells: How many of the feature's grid cells fall inside it, which
             is what a count of covered cells is a share of.
+        pixels: How many pixels the set landed inside the feature in total,
+            counting a revisit again.
     """
 
     feature_class: str
@@ -87,6 +91,7 @@ class Summary:
     t_last: datetime
     span_days: float
     mask_cells: int
+    pixels: float
 
 
 @dataclass(frozen=True, slots=True)

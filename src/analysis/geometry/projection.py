@@ -9,7 +9,7 @@ from shapely import from_wkt
 
 from analysis.geometry import footprints
 from analysis.geometry.region import FeatureRegion
-from analysis.utils import geodesy, swath
+from analysis.utils import geodesy, pixels, swath
 from models.job import Job
 from models.observation import LoadedSet, Observation, ProjectedObservation
 from storage import records
@@ -31,7 +31,7 @@ def load_projected(
     if loaded is None:
         return None
     region = FeatureRegion(loaded.feature)
-    projected, missed = project(region, loaded.observations)
+    projected, missed = project(region, loaded.observations, loaded.set_key)
     return (
         LoadedSet(
             feature=loaded.feature,
@@ -44,13 +44,14 @@ def load_projected(
 
 
 def project(
-    region: FeatureRegion, observations: Sequence[Observation]
+    region: FeatureRegion, observations: Sequence[Observation], set_key: str
 ) -> tuple[list[ProjectedObservation], int]:
     """Project every observation's footprint onto its feature.
 
     Args:
         region: The projected feature the footprints are cut to.
         observations: The observations to project.
+        set_key: The instrument set the observations were asked for by.
 
     Returns:
         The projected observations that landed on the feature, in the order
@@ -69,6 +70,7 @@ def project(
         if shape.is_empty:
             missed += 1
             continue
+        width_km = width_m / 1000.0 if width_m is not None else None
         projected.append(
             ProjectedObservation(
                 pdsid=observation.pdsid,
@@ -78,7 +80,10 @@ def project(
                 start=observation.start,
                 stop=observation.stop,
                 shape=shape,
-                width_km=width_m / 1000.0 if width_m is not None else None,
+                width_km=width_km,
+                pixel_km2=pixels.ground_pixel_km2(
+                    set_key, observation.map_scale_m, width_km
+                ),
             )
         )
     return projected, missed
