@@ -37,7 +37,7 @@ IMAGE_EXTRAS = ["digitalhub>=0.15.6,<0.16", "pandas"]
 
 
 def _archive(source: Path, name: str) -> Path:
-    """Pack a tree into one file, since logging it file by file is refused.
+    """Pack a tree into one file, carrying the directory the pipeline reads it from.
 
     The platform records every uploaded file on the entity, and caps that
     record at two megabytes, which a run of this size passes many times over.
@@ -46,14 +46,25 @@ def _archive(source: Path, name: str) -> Path:
     code bundle, registering it under a "zip+s3" path that the downloader
     expands rather than fetches, which lands an empty directory.
 
+    The tree is packed as its own named directory rather than as bare
+    contents, so unpacking the archive under data/ puts every file back
+    exactly where the pipeline looks for it.
+
     Args:
-        source: The directory to pack.
+        source: The directory to pack, whose name the archive entries carry.
         name: The stem the written archive takes.
 
     Returns:
         The path of the archive, written beside the packed tree.
     """
-    return Path(shutil.make_archive(str(paths.DATA_ROOT / name), "gztar", source))
+    return Path(
+        shutil.make_archive(
+            str(paths.DATA_ROOT / name),
+            "gztar",
+            root_dir=paths.DATA_ROOT,
+            base_dir=source.name,
+        )
+    )
 
 
 @handler(outputs=[ARTIFACTS_NAME, SUMMARY_NAME])
@@ -87,7 +98,7 @@ def save_artifacts(project):
         name=ARTIFACTS_NAME,
         kind="artifact",
         source=str(packed),
-        description="Coverage events and summaries for every measured feature.",
+        description="Coverage events and summaries; unpack under data/.",
     )
 
     # Register the index on its own too, so the console can preview it.
@@ -109,7 +120,7 @@ def save_artifacts(project):
             name=METADATA_NAME,
             kind="artifact",
             source=str(packed),
-            description="The ODE records each measurement was computed from.",
+            description="The ODE records behind each measurement; unpack under data/.",
         )
 
     # Report a partly failed run only once everything is safely uploaded.
