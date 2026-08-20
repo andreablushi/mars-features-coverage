@@ -10,7 +10,7 @@ from download.selection.features import select_features
 from models.feature import Feature
 from models.instrument import InstrumentSet
 from models.job import Job, Plan
-from storage.paths import events_path, metadata_file, set_summary_path
+from utils.paths import events_path, metadata_file, set_summary_path
 
 
 def _outstanding[T, R](

@@ -15,8 +15,8 @@ from models.instrument import InstrumentSet
 from models.results import Event, SetCoverage, Summary
 from storage import metadata
 from storage.disk import atomic_path
-from storage.paths import catalog_summary_path, feature_artifacts_dir
 from storage.schemas import EVENTS, SUMMARY
+from utils.paths import catalog_summary_path, feature_artifacts_dir
 
 
 def finalise_feature(feature_dir: Path) -> int:
