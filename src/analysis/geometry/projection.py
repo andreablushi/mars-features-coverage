@@ -9,7 +9,7 @@ from shapely import from_wkt
 
 from analysis.geometry import footprints
 from analysis.geometry.region import FeatureRegion
-from analysis.utils import geodesy, swath
+from analysis.utils import geodesy, pixels, swath
 from models.job import Job
 from models.observation import LoadedSet, Observation, ProjectedObservation
 from storage import records
@@ -17,21 +17,18 @@ from storage import records
 
 def load_projected(
     job: Job,
-) -> tuple[LoadedSet[ProjectedObservation], FeatureRegion] | None:
+) -> tuple[LoadedSet[ProjectedObservation], FeatureRegion]:
     """Project one set's stored footprints onto its feature.
 
     Args:
         job: The instrument set being computed.
 
     Returns:
-        The projected set and the region it was measured against, or None when
-        the set holds no records.
+        The projected set and the region it was measured against.
     """
     loaded = records.load_set(job.source)
-    if loaded is None:
-        return None
     region = FeatureRegion(loaded.feature)
-    projected, missed = project(region, loaded.observations)
+    projected, missed = project(region, loaded.observations, loaded.set_key)
     return (
         LoadedSet(
             feature=loaded.feature,
@@ -44,36 +41,33 @@ def load_projected(
 
 
 def project(
-    region: FeatureRegion, observations: Sequence[Observation]
+    region: FeatureRegion, observations: Sequence[Observation], set_key: str
 ) -> tuple[list[ProjectedObservation], int]:
     """Project every observation's footprint onto its feature.
 
     Args:
         region: The projected feature the footprints are cut to.
         observations: The observations to project.
+        set_key: The instrument set the observations were asked for by.
 
     Returns:
         The projected observations that landed on the feature, in the order
         they were given, and how many missed it entirely.
     """
-    widths = _track_widths(observations)
-    resolved = [
-        widths.get(observation.pdsid, (0.0, None)) for observation in observations
-    ]
+    resolved = _track_widths(observations)
     shapes = region.footprint_areas(
         from_wkt(
             np.asarray([observation.wkt for observation in observations], dtype=object)
         ),
-        np.asarray([width for width, _ in resolved], dtype=float),
+        np.asarray([width or 0.0 for width in resolved], dtype=float),
     )
     projected = []
     missed = 0
-    for observation, (width_m, source), shape in zip(
-        observations, resolved, shapes, strict=True
-    ):
+    for observation, width_m, shape in zip(observations, resolved, shapes, strict=True):
         if shape.is_empty:
             missed += 1
             continue
+        width_km = width_m / 1000.0 if width_m is not None else None
         projected.append(
             ProjectedObservation(
                 pdsid=observation.pdsid,
@@ -83,37 +77,37 @@ def project(
                 start=observation.start,
                 stop=observation.stop,
                 shape=shape,
-                width_km=width_m / 1000.0 if source else None,
-                width_source=source,
+                width_km=width_km,
+                pixel_km2=pixels.ground_pixel_km2(
+                    set_key, observation.map_scale_m, width_km
+                ),
             )
         )
     return projected, missed
 
 
-def _track_widths(
-    observations: Sequence[Observation],
-) -> dict[str, tuple[float, str]]:
+def _track_widths(observations: Sequence[Observation]) -> list[float | None]:
     """Derive a swath width for every ground track among the observations.
+
+    A track implies a swath only through the speed its length and its elapsed
+    time give, so one carrying neither cannot be widened and is left without a
+    width, which drops it as unmeasurable rather than guessing one for it.
 
     Args:
         observations: The observations to inspect.
 
     Returns:
-        The width in metres and its source, keyed by product identifier, for
-        the track footprints only.
+        One width in metres per observation, in the order they were given, and
+        None for the footprints that already enclose area.
     """
-    tracks = [observation for observation in observations if observation.is_track]
-    if not tracks:
-        return {}
-    measurements = [
-        (_track_length(observation.wkt), observation.duration_s)
-        for observation in tracks
-    ]
-    resolved = swath.resolve_widths(measurements)
-    return {
-        observation.pdsid: width
-        for observation, width in zip(tracks, resolved, strict=True)
-    }
+    widths: list[float | None] = [None] * len(observations)
+    for position, observation in enumerate(observations):
+        if not observation.is_track or observation.duration_s <= 0.0:
+            continue
+        length = _track_length(observation.wkt)
+        if length > 0.0:
+            widths[position] = swath.track_width(length, observation.duration_s)
+    return widths
 
 
 def _track_length(wkt: str) -> float:

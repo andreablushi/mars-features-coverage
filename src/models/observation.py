@@ -39,6 +39,7 @@ class Observation:
         start: When the observation started.
         stop: When the observation finished, or None when none was published.
         wkt: The footprint as well-known text, left unparsed.
+        map_scale_m: The ground size of one pixel, or None when unpublished.
     """
 
     pdsid: str
@@ -48,6 +49,7 @@ class Observation:
     start: datetime
     stop: datetime | None
     wkt: str
+    map_scale_m: float | None
 
     @property
     def is_track(self) -> bool:
@@ -64,7 +66,7 @@ class Observation:
 
         Returns:
             The elapsed time in seconds, or zero when no stop was published,
-            which leaves a track to take the fallback swath width.
+            which leaves a track without a width and drops it as unmeasurable.
         """
         return (self.stop - self.start).total_seconds() if self.stop else 0.0
 
@@ -82,7 +84,7 @@ class ProjectedObservation:
         stop: When the observation finished, or None when none was published.
         shape: The projected footprint, clipped to the feature.
         width_km: The swath width used, or None when the footprint had area.
-        width_source: Where the swath width came from, or None.
+        pixel_km2: The ground one of its pixels covers.
     """
 
     pdsid: str
@@ -93,13 +95,4 @@ class ProjectedObservation:
     stop: datetime | None
     shape: BaseGeometry
     width_km: float | None
-    width_source: str | None
-
-    @property
-    def set_key(self) -> tuple[str, str, str]:
-        """Return the instrument set this observation belongs to.
-
-        Returns:
-            The instrument host, instrument, and product type.
-        """
-        return (self.ihid, self.iid, self.pt)
+    pixel_km2: float

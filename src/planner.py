@@ -10,36 +10,40 @@ from download.selection.features import select_features
 from models.feature import Feature
 from models.instrument import InstrumentSet
 from models.job import Job, Plan
-from storage.paths import events_path, metadata_file, set_summary_path
+from utils.paths import events_path, metadata_file, set_summary_path
 
 
-def _outstanding[T](
+def _outstanding[T, R](
     candidates: Iterable[T],
     output_for: Callable[[T], Path],
-    job_for: Callable[[T, Path], Job],
+    result_for: Callable[[T, Path], R],
     *,
     force: bool,
-) -> tuple[tuple[Job, ...], int]:
-    """Build a job for every candidate whose output is not already on disk.
+) -> tuple[tuple[R, ...], int]:
+    """Keep every candidate whose output is not already on disk.
+
+    This is the one place that decides a candidate is finished, so a planner
+    and a report of what is left both read the same rule.
 
     Args:
         candidates: What the run could do, in the order to do it.
         output_for: The file whose presence marks a candidate as finished.
-        job_for: Builds the job for a candidate and its output path.
+        result_for: Builds what to return for a candidate and its output path.
         force: When True, include candidates that are already finished.
 
     Returns:
-        The jobs to run, and how many candidates were skipped as finished.
+        The results for the candidates still outstanding, and how many were
+        skipped as finished.
     """
-    jobs: list[Job] = []
+    outstanding: list[R] = []
     skipped = 0
     for candidate in candidates:
         output = output_for(candidate)
         if output.exists() and not force:
             skipped += 1
             continue
-        jobs.append(job_for(candidate, output))
-    return tuple(jobs), skipped
+        outstanding.append(result_for(candidate, output))
+    return tuple(outstanding), skipped
 
 
 def download_plan(
@@ -135,8 +139,10 @@ def unfinished(
     Returns:
         The metadata files with no summary beside them, in discovery order.
     """
-    return tuple(
-        source
-        for source in sources
-        if not set_summary_path(coverage_root, source).exists()
+    sources_left, _ = _outstanding(
+        sources,
+        lambda source: set_summary_path(coverage_root, source),
+        lambda source, _output: source,
+        force=False,
     )
+    return sources_left

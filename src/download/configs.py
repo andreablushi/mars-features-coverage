@@ -33,6 +33,7 @@ RETAINED_FIELDS = (
     "ihid",
     "iid",
     "pt",
+    "Map_scale",
     "UTC_start_time",
     "UTC_stop_time",
     "Minimum_latitude",
@@ -40,5 +41,4 @@ RETAINED_FIELDS = (
     "Westernmost_longitude",
     "Easternmost_longitude",
     "Footprint_C0_geometry",
-    "Map_scale",
 )

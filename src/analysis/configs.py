@@ -12,13 +12,6 @@ MARS_GM = 4.2828372e13
 SHARAD_CENTRE_FREQUENCY_HZ = 20e6
 SHARAD_WAVELENGTH_M = SPEED_OF_LIGHT / SHARAD_CENTRE_FREQUENCY_HZ
 
-# MRO orbits at 255-320 km; a solve outside this band is unusable
-SHARAD_MIN_ALTITUDE_M = 200e3
-SHARAD_MAX_ALTITUDE_M = 400e3
-
-# Median solved altitude, used only when no track in a feature solves
-SHARAD_NOMINAL_ALTITUDE_M = 315e3
-
 # Tracks are clipped to a dilated box so buffering still reaches the edge
 LINE_CLIP_MARGIN_DEG = 2.0
 
@@ -40,11 +33,26 @@ SATURATION_TOLERANCE = 1e-12
 # Grid an overlay is snapped to when exact arithmetic cannot node it.
 SNAP_GRID_M = 1e-6
 
+# A SHARAD sounding is as wide as its swath and as long as the spacing between
+# traces in a focused radargram, which ODE does not publish.
+SHARAD_ALONG_TRACK_M = 460.0
+
+# Ground pixel size for the sets ODE publishes no map scale for, in metres.
+# CRISM's survey modes are binned about ten times coarser than its targeted one.
+FALLBACK_PIXEL_M = {"MRO/CRISM/TRDR:[mh]sp*": 180.0}
+
 # Straight lon/lat edges curve once projected, so resample below this step
 MAX_SEGMENT_DEG = 0.25
 
 # Segments per quarter circle when a track is buffered to its swath.
 BUFFER_QUAD_SEGMENTS = 16
 
-# Cells across the feature's grid, which every footprint is burned into
-RASTER_SIDE = 64
+# Cells across a feature's grid scale with the cube root of its width, so a
+# crater keeps sub-kilometre cells and a continent does not need millions.
+# The factor puts a feature of a few tens of km at about 64 cells a side.
+RASTER_CELL_FACTOR = 18.0
+RASTER_CELL_EXPONENT = 1.0 / 3.0
+
+# A footprint smaller than this share of one cell is given no cell at all,
+# since a whole cell would credit it with ground it never reached
+MIN_CELL_SHARE = 0.5

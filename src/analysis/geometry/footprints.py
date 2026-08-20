@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import math
-
 import numpy as np
 from shapely import box, get_parts, get_type_id, intersection, is_empty
 from shapely.geometry.base import BaseGeometry
@@ -36,7 +34,7 @@ def clip_boxes(
         The clipping region, as one rectangle or the union of two.
     """
     lat_limit = min(max(abs(min_lat), abs(max_lat)), 89.0)
-    lon_margin = margin_deg / max(math.cos(math.radians(lat_limit)), 0.05)
+    lon_margin = margin_deg / geodesy.longitude_stretch(lat_limit)
     lat_lo = max(-90.0, min_lat - margin_deg)
     lat_hi = min(90.0, max_lat + margin_deg)
     span = geodesy.longitude_span(west_lon, east_lon) + 2.0 * lon_margin
@@ -95,8 +93,8 @@ def single_parts(geoms: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
     parts = np.asarray(geoms, dtype=object)
     owners = np.arange(parts.size)
-    while parts.size and (get_type_id(parts) >= _FIRST_MULTIPART).any():
+    while (get_type_id(parts) >= _FIRST_MULTIPART).any():
         parts, index = get_parts(parts, return_index=True)
         owners = owners[index]
-    alive = ~is_empty(parts) if parts.size else np.zeros(0, dtype=bool)
+    alive = ~is_empty(parts)
     return parts[alive], owners[alive]

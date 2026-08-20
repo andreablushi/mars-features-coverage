@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import datetime, timezone
 from typing import Any, TypeAlias
 
+import utils.provenance as provenance
 from download import configs
 from download.api.client import ODEClient
 from download.api.response import as_items
@@ -137,17 +137,7 @@ def fetch_products(
     Returns:
         One record per distinct product, in the order ODE returned them.
     """
-    provenance = {
-        "feature_name": feature.name,
-        "feature_class": feature.feature_class,
-        "feature_min_lat": feature.min_lat,
-        "feature_max_lat": feature.max_lat,
-        "feature_west_lon": feature.west_lon,
-        "feature_east_lon": feature.east_lon,
-        "instrument_set": instrument_set.key,
-        "loc_mode": loc,
-        "retrieved_at": datetime.now(timezone.utc).isoformat(),
-    }
+    stamped = provenance.stamp(feature, instrument_set, loc)
     records: list[ProductRecord] = []
     seen: set[tuple[str, str]] = set()
     for box in query_boxes(feature):
@@ -158,5 +148,5 @@ def fetch_products(
                     continue
                 seen.add(identity)
                 kept = {f: item[f] for f in configs.RETAINED_FIELDS if f in item}
-                records.append(kept | provenance)
+                records.append(kept | stamped)
     return records

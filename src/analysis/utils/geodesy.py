@@ -8,6 +8,9 @@ import numpy as np
 
 from analysis import configs
 
+# A degree of longitude vanishes at a pole, so the correction is floored
+MIN_COSINE = 0.05
+
 
 def normalise_longitude(lon: np.ndarray | float) -> np.ndarray:
     """Wrap longitudes into the -180 to 180 degree range.
@@ -19,6 +22,22 @@ def normalise_longitude(lon: np.ndarray | float) -> np.ndarray:
         The wrapped longitudes as a float array.
     """
     return (np.asarray(lon, dtype=float) + 180.0) % 360.0 - 180.0
+
+
+def longitude_stretch(lat: float) -> float:
+    """Return how much a degree of longitude shrinks at one latitude.
+
+    A degree of longitude covers cos(lat) of the ground a degree of latitude
+    does, so a fixed ground distance needs that many more degrees of it. The
+    cosine is floored, since near a pole the correction runs away.
+
+    Args:
+        lat: The latitude in degrees.
+
+    Returns:
+        The cosine of the latitude, never below MIN_COSINE.
+    """
+    return max(math.cos(math.radians(lat)), MIN_COSINE)
 
 
 def longitude_span(west_lon: float, east_lon: float) -> float:

@@ -30,8 +30,9 @@ def measure_set(
 
     Note:
         The union runs tile by tile so each insert touches a small shape and
-        the tiles run in parallel; the cost is rounding at the tile seams,
-        measured across every artifact as under 2 square millimetres per set.
+        the tiles run in parallel; the cost is rounding where a footprint
+        crosses a seam, which leaves the ground it is credited with within a
+        part in 10^10 of the ground it actually covers.
     """
     feature, observations = loaded.feature, loaded.observations
     fresh = union.new_ground(region, [o.shape for o in observations])
@@ -46,7 +47,7 @@ def measure_set(
     return events, _set_summary_row(
         feature,
         loaded.set_key,
-        observations[0].set_key,
+        observations[0],
         region,
         cumulative,
         events,
@@ -91,7 +92,7 @@ def _observation_row(
         cum_km2=float(cumulative[position]) / 1e6,
         cum_frac=float(cumulative[position]) / region.area_m2,
         width_km=observation.width_km,
-        width_source=observation.width_source,
+        pixels=observation.shape.area / 1e6 / observation.pixel_km2,
         mask=grid.burn(observation.shape),
     )
 
@@ -99,7 +100,7 @@ def _observation_row(
 def _set_summary_row(
     feature: Feature,
     set_key: str,
-    key: tuple[str, str, str],
+    observation: ProjectedObservation,
     region: FeatureRegion,
     cumulative: np.ndarray,
     events: Sequence[Event],
@@ -110,7 +111,8 @@ def _set_summary_row(
     Args:
         feature: The feature the coverage was measured against.
         set_key: The instrument set identifier the records were asked for by.
-        key: The instrument host, instrument, and product type.
+        observation: Any of the set's observations, which all name the same
+            instrument host, instrument, and product type.
         region: That feature projected into equal-area metres.
         cumulative: The running total behind every observation.
         events: The set's event rows, in chronological order.
@@ -125,9 +127,9 @@ def _set_summary_row(
         feature_class=feature.feature_class,
         feature_name=feature.name,
         set_key=set_key,
-        ihid=key[0],
-        iid=key[1],
-        pt=key[2],
+        ihid=observation.ihid,
+        iid=observation.iid,
+        pt=observation.pt,
         feature_area_km2=region.area_m2 / 1e6,
         covered_km2=covered_m2 / 1e6,
         covered_frac=covered_m2 / region.area_m2,
@@ -136,4 +138,5 @@ def _set_summary_row(
         t_last=last,
         span_days=(last - first).total_seconds() / 86400.0,
         mask_cells=cells,
+        pixels=sum(event.pixels for event in events),
     )
