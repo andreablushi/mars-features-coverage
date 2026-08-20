@@ -94,12 +94,3 @@ class ProjectedObservation:
     shape: BaseGeometry
     width_km: float | None
     width_source: str | None
-
-    @property
-    def set_key(self) -> tuple[str, str, str]:
-        """Return the instrument set this observation belongs to.
-
-        Returns:
-            The instrument host, instrument, and product type.
-        """
-        return (self.ihid, self.iid, self.pt)
