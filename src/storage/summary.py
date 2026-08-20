@@ -205,6 +205,11 @@ def _load_set(events_path: Path) -> SetCoverage | None:
     )
     if not summary_path.exists():
         return None
+    if "width_source" in pq.read_schema(events_path).names:
+        raise ValueError(
+            f"{events_path} was written before the cell masks changed shape "
+            "and cannot be read; recompute it."
+        )
     summary = _summary_table(summary_path).to_pylist()
     events = pq.read_table(events_path, schema=EVENTS).to_pylist()
     return SetCoverage(

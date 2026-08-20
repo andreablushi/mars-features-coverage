@@ -39,5 +39,12 @@ MAX_SEGMENT_DEG = 0.25
 # Segments per quarter circle when a track is buffered to its swath.
 BUFFER_QUAD_SEGMENTS = 16
 
-# Cells across the feature's grid, which every footprint is burned into
-RASTER_SIDE = 64
+# Cells across a feature's grid scale with the cube root of its width, so a
+# crater keeps sub-kilometre cells and a continent does not need millions.
+# The factor puts a feature of a few tens of km at about 64 cells a side.
+RASTER_CELL_FACTOR = 18.0
+RASTER_CELL_EXPONENT = 1.0 / 3.0
+
+# A footprint smaller than this share of one cell is given no cell at all,
+# since a whole cell would credit it with ground it never reached
+MIN_CELL_SHARE = 0.5

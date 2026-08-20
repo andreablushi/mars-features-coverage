@@ -28,8 +28,9 @@ class Event:
             or None when the run kept no running union.
         cum_frac: The same as a share of the feature, or None.
         width_km: The swath width used, or None when the footprint had area.
-        mask: The feature's cells this footprint fills, one bit each, so any
-            set of observations can be unioned by folding their bits together.
+        mask: The feature's cells this footprint fills, packed as a bitmap or
+            as a list of cells, whichever is smaller, so any set of
+            observations can be unioned by merging their cells.
     """
 
     feature_class: str

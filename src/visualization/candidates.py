@@ -9,10 +9,9 @@ import numpy as np
 from matplotlib.dates import date2num
 
 from models.results import Event, SetCoverage
+from utils import mask as packing
 from visualization import configs
 from visualization.selectors.window import Window
-
-_BITS = np.unpackbits(np.arange(256, dtype=np.uint8)[:, None], axis=1).sum(axis=1)
 
 
 @dataclass(frozen=True, slots=True)
@@ -138,11 +137,11 @@ def _covered(
     Returns:
         The share of the feature it covers, one value per width and centre.
     """
-    masks = np.array([np.frombuffer(event.mask, dtype=np.uint8) for event in events])
+    starts, previous = _sightings(events)
     moments = _moments(events)
     filled = [
         [
-            _folded(masks[first:last])
+            int((previous[starts[first] : starts[last]] < first).sum())
             for first, last in zip(*_reaching(moments, centres, width), strict=True)
         ]
         for width in widths
@@ -150,18 +149,38 @@ def _covered(
     return np.array(filled) / cells
 
 
-def _folded(masks: np.ndarray) -> int:
-    """Count the cells at least one of a run of footprints fills.
+def _sightings(events: Sequence[Event]) -> tuple[np.ndarray, np.ndarray]:
+    """Flatten the set's masks and say where each cell was last seen before.
+
+    A window covers a cell exactly once: at the first entry inside the window
+    whose previous sighting falls before it. Counting those entries therefore
+    counts distinct cells, which turns every window into one comparison over a
+    contiguous slice rather than a fresh union of whole bitmaps.
 
     Args:
-        masks: The packed cells of the observations inside one window.
+        events: The set's observations, in chronological order.
 
     Returns:
-        How many cells they fill between them.
+        Where each observation's cells begin in the flat list, one entry longer
+        than there are observations, and for every cell in that list the
+        observation that last filled the same cell, or -1 when none did.
     """
-    if not masks.size:
-        return 0
-    return int(_BITS[np.bitwise_or.reduce(masks, axis=0)].sum())
+    per = [packing.cells_of(event.mask) for event in events]
+    counts = np.fromiter((cells.size for cells in per), dtype=np.int64, count=len(per))
+    starts = np.zeros(len(per) + 1, dtype=np.int64)
+    np.cumsum(counts, out=starts[1:])
+    if not starts[-1]:
+        return starts, np.zeros(0, dtype=np.int64)
+    flat = np.concatenate(per)
+    owner = np.repeat(np.arange(len(per), dtype=np.int64), counts)
+    order = np.lexsort((owner, flat))
+    ranked_cells, ranked_owner = flat[order], owner[order]
+    ranked = np.empty(flat.size, dtype=np.int64)
+    ranked[0] = -1
+    ranked[1:] = np.where(ranked_cells[1:] == ranked_cells[:-1], ranked_owner[:-1], -1)
+    previous = np.empty(flat.size, dtype=np.int64)
+    previous[order] = ranked
+    return starts, previous
 
 
 def _counts(

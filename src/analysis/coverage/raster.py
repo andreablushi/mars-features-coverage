@@ -2,12 +2,36 @@
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 from shapely import contains_xy, prepare
 from shapely.geometry.base import BaseGeometry
 
 from analysis import configs
 from analysis.geometry.region import FeatureRegion
+from utils import mask as packing
+
+
+def side_for(area_m2: float) -> int:
+    """Choose how many cells a feature's grid gets along each axis.
+
+    The count follows the cube root of the feature's width, which is the
+    compromise between a fixed cell count, that leaves a continent's cells
+    hundreds of kilometres across, and a fixed cell size, that would ask a
+    continent for millions of them.
+
+    Args:
+        area_m2: The feature's area in square metres.
+
+    Returns:
+        The number of cells along each axis, never fewer than two.
+    """
+    width_km = math.sqrt(max(area_m2, 0.0)) / 1000.0
+    if width_km <= 0.0:
+        return 2
+    side = configs.RASTER_CELL_FACTOR * width_km**configs.RASTER_CELL_EXPONENT
+    return max(2, round(side))
 
 
 class FeatureRaster:
@@ -27,11 +51,12 @@ class FeatureRaster:
         Returns:
             None.
         """
-        side = configs.RASTER_SIDE
+        side = side_for(region.area_m2)
         west, south, east, north = region.shape.bounds
         self._side = side
         self._eastings = west + (np.arange(side) + 0.5) * (east - west) / side
         self._northings = south + (np.arange(side) + 0.5) * (north - south) / side
+        self._cell_area = (east - west) * (north - south) / side**2
         self.cells = int(self._filled(region.shape).sum())
 
     def burn(self, shape: BaseGeometry) -> bytes:
@@ -41,9 +66,9 @@ class FeatureRaster:
             shape: The projected footprint, already cut to the feature.
 
         Returns:
-            The cells it fills, one bit each, packed row by row.
+            The cells it fills, packed as whichever form is smaller.
         """
-        return np.packbits(self._filled(shape)).tobytes()
+        return packing.encode(self._filled(shape))
 
     def _filled(self, shape: BaseGeometry) -> np.ndarray:
         """Find the cells whose centre a shape covers.
@@ -66,12 +91,16 @@ class FeatureRaster:
             )
             prepare(shape)
             grid[np.ix_(rows, columns)] = contains_xy(shape, eastings, northings)
-        if not grid.any():
+        if not grid.any() and shape.area >= self._cell_area * configs.MIN_CELL_SHARE:
             self._nearest(grid, shape)
         return grid.ravel()
 
     def _nearest(self, grid: np.ndarray, shape: BaseGeometry) -> None:
-        """Give a footprint holding no cell centre the cell it sits in.
+        """Give a footprint holding no cell centre the one cell it sits in.
+
+        Only a footprint worth about a cell is given one. On a feature whose
+        cells still dwarf it, crediting it with a whole cell would claim far
+        more ground than it reached, so it is left holding none.
 
         Args:
             grid: The cells found so far, written in place.
