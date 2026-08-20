@@ -9,9 +9,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 
-from campaign.algorithm import find_best_time_window
 from models.results import SetCoverage
-from visualization import configs, panels
+from visualization import campaigns, configs, panels
 from visualization.selectors.window import Window
 
 
@@ -27,7 +26,7 @@ def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
     """
     if not coverage:
         return panels.unavailable()
-    picked = find_best_time_window(coverage, window.visible)
+    picked = campaigns.picked(coverage, window)
     colours = panels.colours(coverage)
     area_km2 = coverage[0].summary.feature_area_km2
     figure, axes = plt.subplots(

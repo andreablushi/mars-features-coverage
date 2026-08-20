@@ -54,6 +54,8 @@ WINDOW_MAX_DAYS = 365.0
 WINDOW_FIGURE_SIZE = (12, 6)
 
 # The window the search picked, marked at either end of the time panels.
+# How many searches are kept, so every panel of a feature shares one.
+CAMPAIGN_CACHE = 8
 CAMPAIGN_LINE = "#1a1a1a"
 CAMPAIGN_STYLE = (0, (6, 3))
 CAMPAIGN_WIDTH = 1.2
