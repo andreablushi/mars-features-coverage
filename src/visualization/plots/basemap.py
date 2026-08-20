@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 import threading
 from collections.abc import Sequence
 from functools import lru_cache
@@ -141,7 +140,7 @@ def _window(feature: Feature) -> tuple[float, float, float, float]:
         The west, south, east, and north bounds, inside the globe.
     """
     centre_lat = (feature.min_lat + feature.max_lat) / 2.0
-    shrink = max(math.cos(math.radians(centre_lat)), 0.05)
+    shrink = geodesy.longitude_stretch(centre_lat)
     if feature.has_longitude_extent:
         centre_lon = geodesy.bbox_centre(
             feature.min_lat, feature.max_lat, feature.west_lon, feature.east_lon
