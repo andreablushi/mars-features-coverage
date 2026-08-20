@@ -66,7 +66,7 @@ class Observation:
 
         Returns:
             The elapsed time in seconds, or zero when no stop was published,
-            which leaves a track to take the fallback swath width.
+            which leaves a track without a width and drops it as unmeasurable.
         """
         return (self.stop - self.start).total_seconds() if self.stop else 0.0
 

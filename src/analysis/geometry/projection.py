@@ -17,19 +17,16 @@ from storage import records
 
 def load_projected(
     job: Job,
-) -> tuple[LoadedSet[ProjectedObservation], FeatureRegion] | None:
+) -> tuple[LoadedSet[ProjectedObservation], FeatureRegion]:
     """Project one set's stored footprints onto its feature.
 
     Args:
         job: The instrument set being computed.
 
     Returns:
-        The projected set and the region it was measured against, or None when
-        the set holds no records.
+        The projected set and the region it was measured against.
     """
     loaded = records.load_set(job.source)
-    if loaded is None:
-        return None
     region = FeatureRegion(loaded.feature)
     projected, missed = project(region, loaded.observations, loaded.set_key)
     return (

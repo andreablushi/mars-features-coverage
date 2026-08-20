@@ -66,13 +66,9 @@ def set_key_of(item: dict[str, Any]) -> str:
         item: One stored observation record.
 
     Returns:
-        The set identifier from provenance, falling back to the record's own
-        product type for metadata written before provenance carried one.
+        The set identifier stamped on the record when it was downloaded.
     """
-    stored = item.get("instrument_set")
-    if stored:
-        return str(stored)
-    return f"{item['ihid']}/{item['iid']}/{item['pt']}"
+    return str(item["instrument_set"])
 
 
 def as_utc(text: str) -> datetime:

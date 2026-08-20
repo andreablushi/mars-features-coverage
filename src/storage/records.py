@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from itertools import chain
 from pathlib import Path
 from typing import Any
 
@@ -10,29 +11,30 @@ from models.observation import LoadedSet, Observation
 from storage.disk import read_jsonl
 
 
-def load_set(path: Path) -> LoadedSet[Observation] | None:
+def load_set(path: Path) -> LoadedSet[Observation]:
     """Read the observations stored for one feature and instrument set.
+
+    Only a file holding at least one record is ever measured, since both the
+    backlog and the freshly downloaded sets are filtered on size before a
+    coverage job is built, so the first record always carries the provenance.
 
     Args:
         path: The JSONL file holding the set's observations.
 
     Returns:
-        The set as stored, or None when the file held no records at all.
+        The set as stored.
     """
-    box = None
-    set_key = ""
+    stored = read_jsonl(path)
+    first = next(stored)
+    box, set_key = provenance.feature_of(first), provenance.set_key_of(first)
     observations: list[Observation] = []
     discarded = 0
-    for item in read_jsonl(path):
-        if box is None:
-            box, set_key = provenance.feature_of(item), provenance.set_key_of(item)
+    for item in chain([first], stored):
         observation = _observation(item)
         if observation is None:
             discarded += 1
         else:
             observations.append(observation)
-    if box is None:
-        return None
     observations.sort(key=lambda observation: (observation.start, observation.pdsid))
     return LoadedSet(
         feature=box, set_key=set_key, observations=observations, discarded=discarded

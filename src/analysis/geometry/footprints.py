@@ -93,8 +93,8 @@ def single_parts(geoms: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
     parts = np.asarray(geoms, dtype=object)
     owners = np.arange(parts.size)
-    while parts.size and (get_type_id(parts) >= _FIRST_MULTIPART).any():
+    while (get_type_id(parts) >= _FIRST_MULTIPART).any():
         parts, index = get_parts(parts, return_index=True)
         owners = owners[index]
-    alive = ~is_empty(parts) if parts.size else np.zeros(0, dtype=bool)
+    alive = ~is_empty(parts)
     return parts[alive], owners[alive]

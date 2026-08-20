@@ -154,9 +154,8 @@ def load_feature(
         artifacts_root: The artifacts root holding the catalogue index.
 
     Returns:
-        One entry per instrument set, widest coverage first. A run that kept no
-        union measured no coverage to rank by, so those sets fall back to the
-        busiest first.
+        One entry per instrument set, widest coverage first, and the busiest
+        first among the sets that reached the same share of it.
     """
     directory = feature_artifacts_dir(root, feature_class, name)
     measured = [
@@ -166,8 +165,30 @@ def load_feature(
     ]
     return sorted(
         measured + _unobserved(measured, catalogued_sets(artifacts_root), directory),
-        key=lambda entry: (-(entry.summary.covered_frac or 0.0), -entry.summary.n_obs),
+        key=lambda entry: (-entry.summary.covered_frac, -entry.summary.n_obs),
     )
+
+
+def _require_current(path: Path, schema: pa.Schema) -> None:
+    """Refuse an artifact written before the current schema.
+
+    Args:
+        path: The parquet file about to be read.
+        schema: The schema it is about to be read under.
+
+    Returns:
+        None.
+
+    Raises:
+        ValueError: When the file is missing any of the schema's columns.
+    """
+    held = set(pq.read_schema(path).names)
+    missing = [name for name in schema.names if name not in held]
+    if missing:
+        raise ValueError(
+            f"{path} was written by an older pipeline and carries no "
+            f"{', '.join(missing)}; recompute it before reading."
+        )
 
 
 def _summary_table(path: Path) -> pa.Table:
@@ -182,11 +203,7 @@ def _summary_table(path: Path) -> pa.Table:
     Raises:
         ValueError: When the file predates the current schema.
     """
-    if "set_key" not in pq.read_schema(path).names:
-        raise ValueError(
-            f"{path} was written by an older pipeline and its coverage figures "
-            "are superseded; recompute it before reading."
-        )
+    _require_current(path, SUMMARY)
     return pq.read_table(path, schema=SUMMARY)
 
 
@@ -199,17 +216,16 @@ def _load_set(events_path: Path) -> SetCoverage | None:
     Returns:
         The set's coverage, or None when its summary is missing, which marks a
         set whose computation never finished.
+
+    Raises:
+        ValueError: When either artifact predates the current schema.
     """
     summary_path = events_path.with_name(
         events_path.name.replace(paths.EVENTS_SUFFIX, paths.SET_SUMMARY_SUFFIX)
     )
     if not summary_path.exists():
         return None
-    if "width_source" in pq.read_schema(events_path).names:
-        raise ValueError(
-            f"{events_path} was written before the cell masks changed shape "
-            "and cannot be read; recompute it."
-        )
+    _require_current(events_path, EVENTS)
     summary = _summary_table(summary_path).to_pylist()
     events = pq.read_table(events_path, schema=EVENTS).to_pylist()
     return SetCoverage(

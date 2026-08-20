@@ -22,11 +22,9 @@ class Event:
         t_start: When the observation started.
         t_stop: When the observation finished, or None when none was published.
         own_km2: Ground this footprint covers inside the feature.
-        new_km2: Ground its instrument set had not covered before, or None
-            when the run kept no running union.
-        cum_km2: Ground its instrument set has covered including this one,
-            or None when the run kept no running union.
-        cum_frac: The same as a share of the feature, or None.
+        new_km2: Ground its instrument set had not covered before.
+        cum_km2: Ground its instrument set has covered including this one.
+        cum_frac: The same as a share of the feature.
         width_km: The swath width used, or None when the footprint had area.
         pixels: How many of the instrument's pixels landed inside the feature.
         mask: The feature's cells this footprint fills, packed as a bitmap or
@@ -43,9 +41,9 @@ class Event:
     t_start: datetime
     t_stop: datetime | None
     own_km2: float
-    new_km2: float | None
-    cum_km2: float | None
-    cum_frac: float | None
+    new_km2: float
+    cum_km2: float
+    cum_frac: float
     width_km: float | None
     pixels: float
     mask: bytes
@@ -64,9 +62,8 @@ class Summary:
         iid: The instrument identifier.
         pt: The product type.
         feature_area_km2: The area of the feature's bounding box.
-        covered_km2: How much of it the set reached, or None when the run
-            kept no running union.
-        covered_frac: The same as a share of the feature, or None.
+        covered_km2: How much of it the set reached.
+        covered_frac: The same as a share of the feature.
         n_obs: How many observations the row covers.
         t_first: When the earliest of them started.
         t_last: When the latest of them started.
@@ -84,8 +81,8 @@ class Summary:
     iid: str
     pt: str
     feature_area_km2: float
-    covered_km2: float | None
-    covered_frac: float | None
+    covered_km2: float
+    covered_frac: float
     n_obs: int
     t_first: datetime
     t_last: datetime
