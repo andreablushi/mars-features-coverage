@@ -85,9 +85,10 @@ def _sounder(events: Sequence[Event]) -> bool:
         events: One instrument set's observations of the feature.
 
     Returns:
-        True when the set's footprints were widened from a bare line.
+        True when the set's footprints were widened from a bare line, which is
+        the only way an observation carries a swath width.
     """
-    return any(event.width_source for event in events)
+    return any(event.width_km for event in events)
 
 
 def _qualified(

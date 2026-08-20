@@ -91,7 +91,6 @@ def _observation_row(
         cum_km2=float(cumulative[position]) / 1e6,
         cum_frac=float(cumulative[position]) / region.area_m2,
         width_km=observation.width_km,
-        width_source=observation.width_source,
         mask=grid.burn(observation.shape),
     )
 

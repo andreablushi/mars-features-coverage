@@ -82,7 +82,6 @@ class ProjectedObservation:
         stop: When the observation finished, or None when none was published.
         shape: The projected footprint, clipped to the feature.
         width_km: The swath width used, or None when the footprint had area.
-        width_source: Where the swath width came from, or None.
     """
 
     pdsid: str
@@ -93,4 +92,3 @@ class ProjectedObservation:
     stop: datetime | None
     shape: BaseGeometry
     width_km: float | None
-    width_source: str | None

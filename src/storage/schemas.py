@@ -21,7 +21,6 @@ EVENTS = pa.schema(
         ("cum_km2", pa.float64()),
         ("cum_frac", pa.float64()),
         ("width_km", pa.float64()),
-        ("width_source", pa.string()),
         ("mask", pa.binary()),
     ]
 )

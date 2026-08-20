@@ -61,13 +61,11 @@ def project(
         from_wkt(
             np.asarray([observation.wkt for observation in observations], dtype=object)
         ),
-        np.asarray([width for width, _ in resolved], dtype=float),
+        np.asarray([width or 0.0 for width in resolved], dtype=float),
     )
     projected = []
     missed = 0
-    for observation, (width_m, source), shape in zip(
-        observations, resolved, shapes, strict=True
-    ):
+    for observation, width_m, shape in zip(observations, resolved, shapes, strict=True):
         if shape.is_empty:
             missed += 1
             continue
@@ -80,42 +78,33 @@ def project(
                 start=observation.start,
                 stop=observation.stop,
                 shape=shape,
-                width_km=width_m / 1000.0 if source else None,
-                width_source=source,
+                width_km=width_m / 1000.0 if width_m is not None else None,
             )
         )
     return projected, missed
 
 
-def _track_widths(
-    observations: Sequence[Observation],
-) -> list[tuple[float, str | None]]:
+def _track_widths(observations: Sequence[Observation]) -> list[float | None]:
     """Derive a swath width for every ground track among the observations.
+
+    A track implies a swath only through the speed its length and its elapsed
+    time give, so one carrying neither cannot be widened and is left without a
+    width, which drops it as unmeasurable rather than guessing one for it.
 
     Args:
         observations: The observations to inspect.
 
     Returns:
-        One (width in metres, source) pair per observation, in the order they
-        were given, carrying no width and no source for the footprints that
-        already enclose area.
+        One width in metres per observation, in the order they were given, and
+        None for the footprints that already enclose area.
     """
-    tracks = [
-        position
-        for position, observation in enumerate(observations)
-        if observation.is_track
-    ]
-    widths: list[tuple[float, str | None]] = [(0.0, None)] * len(observations)
-    if not tracks:
-        return widths
-    resolved = swath.resolve_widths(
-        [
-            (_track_length(observations[at].wkt), observations[at].duration_s)
-            for at in tracks
-        ]
-    )
-    for position, width in zip(tracks, resolved, strict=True):
-        widths[position] = width
+    widths: list[float | None] = [None] * len(observations)
+    for position, observation in enumerate(observations):
+        if not observation.is_track or observation.duration_s <= 0.0:
+            continue
+        length = _track_length(observation.wkt)
+        if length > 0.0:
+            widths[position] = swath.track_width(length, observation.duration_s)
     return widths
 
 

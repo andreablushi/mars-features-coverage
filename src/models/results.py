@@ -28,7 +28,6 @@ class Event:
             or None when the run kept no running union.
         cum_frac: The same as a share of the feature, or None.
         width_km: The swath width used, or None when the footprint had area.
-        width_source: Where the swath width came from, or None.
         mask: The feature's cells this footprint fills, one bit each, so any
             set of observations can be unioned by folding their bits together.
     """
@@ -46,7 +45,6 @@ class Event:
     cum_km2: float | None
     cum_frac: float | None
     width_km: float | None
-    width_source: str | None
     mask: bytes
 
 
