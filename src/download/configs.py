@@ -40,5 +40,4 @@ RETAINED_FIELDS = (
     "Westernmost_longitude",
     "Easternmost_longitude",
     "Footprint_C0_geometry",
-    "Map_scale",
 )
