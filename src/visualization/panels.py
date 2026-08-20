@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 from collections.abc import Sequence
+from datetime import datetime
 from html import escape
 from itertools import cycle
 
@@ -48,6 +49,27 @@ def tidy(axis: Axes, percent: str, grid: str) -> None:
     target.set_major_formatter(formatter)
     axis.grid(axis=grid, alpha=0.25, linewidth=0.5)
     axis.spines[["top", "right"]].set_visible(False)
+
+
+def bracket(axis: Axes, start: datetime, end: datetime) -> None:
+    """Mark a stretch of time on a panel with a line at either end of it.
+
+    Args:
+        axis: The panel to draw on, whose x axis carries time.
+        start: When the stretch opens.
+        end: When it closes.
+
+    Returns:
+        None.
+    """
+    for edge in (start, end):
+        axis.axvline(
+            edge,
+            color=configs.CAMPAIGN_LINE,
+            linestyle=configs.CAMPAIGN_STYLE,
+            linewidth=configs.CAMPAIGN_WIDTH,
+            zorder=4,
+        )
 
 
 def rendered(figure: Figure) -> widgets.Image:

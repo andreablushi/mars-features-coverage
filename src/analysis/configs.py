@@ -39,7 +39,9 @@ SHARAD_ALONG_TRACK_M = 460.0
 
 # Ground pixel size for the sets ODE publishes no map scale for, in metres.
 # CRISM's survey modes are binned about ten times coarser than its targeted one.
-FALLBACK_PIXEL_M = {"MRO/CRISM/TRDR:[mh]sp*": 180.0}
+# CTX publishes one for all but a handful of its records, and theirs is the
+# median of the 497,279 that do.
+FALLBACK_PIXEL_M = {"MRO/CRISM/TRDR:[mh]sp*": 180.0, "MRO/CTX/EDR": 5.4}
 
 # Straight lon/lat edges curve once projected, so resample below this step
 MAX_SEGMENT_DEG = 0.25
