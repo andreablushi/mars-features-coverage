@@ -7,7 +7,7 @@ from campaign.results import Span
 from campaign.timeline import Track
 
 
-def widen(track: Track, span: Span) -> Span:
+def widen(track: Track, span: Span, wanted: int = 0) -> Span:
     """Take in every observation sharing an instant with either end.
 
     A window is a stretch of time, so anything taken at the very moment it
@@ -18,6 +18,8 @@ def widen(track: Track, span: Span) -> Span:
     Args:
         track: The feature's observations on one time axis.
         span: The window the sweep settled on.
+        wanted: How many instrument sets the search is insisting on, which is
+            how many its score is taken over. Nought for all of them.
 
     Returns:
         The same stretch of time, holding everything taken during it.
@@ -29,22 +31,24 @@ def widen(track: Track, span: Span) -> Span:
         last += 1
     if (first, last) == (span.first, span.last):
         return span
-    held = measure(track, first, last)
+    held = measure(track, first, last, wanted)
     return Span(first, last, span.days, held.mean, held.instruments)
 
 
-def measure(track: Track, first: int, last: int) -> Reach:
+def measure(track: Track, first: int, last: int, wanted: int = 0) -> Reach:
     """Fill a fresh tally with everything one window holds.
 
     Args:
         track: The feature's observations on one time axis.
         first: The index of the earliest observation it holds.
         last: The index of the latest one.
+        wanted: How many instrument sets the score is taken over. Nought for
+            all of them.
 
     Returns:
         The tally, holding that window and nothing else.
     """
-    held = Reach(track.totals, track.grid)
+    held = Reach(track.totals, track.grid, wanted)
     for index in range(first, last + 1):
         held.hold(track.owners[index], track.cells[index])
     return held

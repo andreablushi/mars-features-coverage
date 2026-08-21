@@ -14,8 +14,9 @@ class Span:
         first: The index of the earliest observation the window holds.
         last: The index of the latest one.
         days: How long it lasts, from the first start time to the last.
-        reach: The average share of its own ground each instrument set reaches
-            inside it.
+        reach: How much ground it reaches, as the shares of their own records
+            the instrument sets reach inside it, multiplied and rooted so that
+            one set cannot carry the window alone.
         instruments: How many sets have an observation inside it.
     """
 
@@ -34,10 +35,16 @@ class Campaign:
         start: When the earliest observation inside it was taken.
         end: When the latest one was taken.
         days: How long it lasts.
-        reach: The average share of its own ground each instrument set reaches
-            inside it, counting a set that never appears as nothing.
+        reach: How much ground it reaches, as the shares of their own records
+            the instrument sets reach inside it, multiplied and rooted so that
+            one set cannot carry the window alone, and counting a set that
+            never appears as nothing.
         instruments: How many sets have an observation inside it.
         observations: How many observations it holds in total.
+        core: How many of them brought ground nothing before them in the window
+            had already brought.
+        knee: Whether the curve bent, and the window is the bend in it, rather
+            than the longest window the curve reached.
         shares: What share of its own ground each set reaches, by set name.
         frontier: Every window this one was chosen from, shortest first.
     """
@@ -48,8 +55,19 @@ class Campaign:
     reach: float
     instruments: int
     observations: int
+    core: int
+    knee: bool
     shares: dict[str, float]
     frontier: list[Span]
+
+    @property
+    def redundant(self) -> int:
+        """Count the observations the window would reach the same ground without.
+
+        Returns:
+            How many of its observations brought no ground of their own.
+        """
+        return self.observations - self.core
 
     @property
     def length(self) -> str:
@@ -69,10 +87,9 @@ class Campaign:
         """Sum the window up in one line, for a legend or a title.
 
         Returns:
-            Its length, how many instruments it holds, and how much of their
-            ground it reaches.
+            Its length, how many instruments it holds, and what it scores.
         """
         return (
             f"best window: {self.length}, {self.instruments} instruments, "
-            f"{self.reach:.0%} of their ground"
+            f"scoring {self.reach:.0%}"
         )

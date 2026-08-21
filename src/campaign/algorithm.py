@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from campaign import configs, curve, measuring, timeline
+from campaign import configs, curve, measuring, timeline, trimming
 from campaign.reach import Reach
 from campaign.results import Campaign, Span
-from campaign.timeline import Filter
+from campaign.timeline import Filter, Track
 from models.results import SetCoverage
 
 
@@ -50,7 +50,20 @@ def find_best_time_window(
     """
     # 1. One time axis, and nothing to choose from unless a sounder flew here.
     track = timeline.build(coverage, visible)
-    if track is None or not any(track.sounder):
+    return search(track) if track else None
+
+
+def search(track: Track) -> Campaign | None:
+    """Run the search over a timeline that has already been built.
+
+    Args:
+        track: The feature's admissible observations on one time axis.
+
+    Returns:
+        The chosen window, or None when no window inside the allowed span holds
+        a sounder track at all.
+    """
+    if not any(track.sounder):
         return None
     times, owners = track.times, track.owners
     sounder, cells = track.sounder, track.cells
@@ -59,13 +72,16 @@ def find_best_time_window(
     # 2. Every instrument first, dropping to fewer only when none of them fit.
     for wanted in range(track.sets, 0, -1):
         frontier, seen = [], set()
+        # Rungs climb towards what the whole record reaches rather than towards
+        # one, so the curve is sampled evenly whatever the feature can offer.
+        ceiling = measuring.measure(track, 0, track.size - 1, wanted).mean
         for step in range(configs.LEVELS + 1):
             level = (
-                step / configs.LEVELS
+                ceiling * step / configs.LEVELS
             )  # the first rung asks for the instruments alone
 
             # 3. Slide a window along the axis: widen right, then tighten left.
-            held = Reach(track.totals, track.grid)
+            held = Reach(track.totals, track.grid, wanted)
             found: Span | None = None
             sounders, left = 0, 0
             for right in range(track.size):
@@ -85,7 +101,7 @@ def find_best_time_window(
 
             if found is None or found.days > configs.MAX_SPAN_DAYS:
                 break  # asking for more ground can only ever ask for more days
-            found = measuring.widen(track, found)  # a tie in time is ground for free
+            found = measuring.widen(track, found, wanted)  # a tie in time is free
             if (found.first, found.last) not in seen:
                 seen.add((found.first, found.last))
                 frontier.append(found)
@@ -103,7 +119,8 @@ def find_best_time_window(
     # Nothing above the diagonal means ground is speeding up rather than
     # running out, so there is no knee to find and nothing to gain by stopping
     # early: take every day the cap allows.
-    picked = frontier[turn] if lift[turn] > 0.0 else frontier[-1]
+    knee = lift[turn] > 0.0
+    picked = frontier[turn] if knee else frontier[-1]
 
     return Campaign(
         start=track.moments[picked.first],
@@ -112,6 +129,8 @@ def find_best_time_window(
         reach=picked.reach,
         instruments=picked.instruments,
         observations=picked.last - picked.first + 1,
+        core=trimming.core(track, picked),
+        knee=knee,
         shares=measuring.shares(track, picked),
         frontier=frontier,
     )

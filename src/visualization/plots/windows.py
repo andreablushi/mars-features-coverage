@@ -9,11 +9,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.colors import PowerNorm
+from matplotlib.dates import date2num
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
+from campaign.results import Campaign
 from models.results import SetCoverage
-from visualization import candidates, configs, panels
+from visualization import campaigns, candidates, configs, panels
 from visualization.candidates import Grid
 from visualization.selectors.window import Window
 
@@ -21,6 +23,15 @@ _TOO_SHORT = "This feature's record is too short to hold a choice of windows."
 _UNSOUNDED = "no sounder track in the window"
 _SILENT = "no sounder reached this feature at all"
 _INSTRUMENTS = "{count} instruments in the window"
+_PICK = {
+    "marker": "o",
+    "linestyle": "none",
+    "color": configs.WINDOW_PICKED,
+    "markersize": configs.WINDOW_PICKED_SIZE,
+    "markeredgecolor": configs.WINDOW_PICKED_EDGE,
+    "markeredgewidth": 1.0,
+    "zorder": 5,
+}
 
 
 def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
@@ -40,24 +51,27 @@ def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
     if grid is None:
         return panels.unavailable(_TOO_SHORT)
     figure, axis = plt.subplots(figsize=configs.WINDOW_FIGURE_SIZE)
-    mesh = _field(axis, grid)
+    mesh = _field(axis, grid, campaigns.picked(coverage, window))
     axis.set_title(
         f"{panels.title(coverage)}  -  candidate time windows", fontsize=12, loc="left"
     )
     axis.set_xlim(grid.centres[0], grid.centres[-1])
     bar = figure.colorbar(mesh, ax=axis, pad=0.01)
-    bar.set_label("Share of the feature reached, averaged over instruments", fontsize=9)
+    bar.set_label(
+        "Share of the feature reached, counted evenly over instruments", fontsize=9
+    )
     bar.ax.tick_params(labelsize=8)
     figure.tight_layout()
     return panels.rendered(figure)
 
 
-def _field(axis: Axes, grid: Grid):
+def _field(axis: Axes, grid: Grid, picked: Campaign | None):
     """Draw what every candidate window reaches, by when it opens and how long.
 
     Args:
         axis: The panel to draw on.
         grid: The scored candidate windows.
+        picked: The window the search chose, or None when it found none.
 
     Returns:
         The mesh, for the colour bar to read its colours from.
@@ -74,8 +88,9 @@ def _field(axis: Axes, grid: Grid):
     )
     _contours(axis, grid)
     _silent(axis, grid)
+    _marked(axis, grid, picked)
     axis.legend(
-        handles=_keys(grid),
+        handles=_keys(grid, picked),
         fontsize=8,
         loc="lower right",
         framealpha=0.85,
@@ -135,16 +150,51 @@ def _rings(grid: Grid) -> list[tuple[int, str, float]]:
     ]
 
 
-def _keys(grid: Grid) -> list:
-    """Name every ring the panel draws, and the grey it leaves behind.
+def _marked(axis: Axes, grid: Grid, picked: Campaign | None) -> None:
+    """Mark the window the search picked on the grid it was chosen from.
+
+    Args:
+        axis: The panel to draw on.
+        grid: The scored candidate windows.
+        picked: The window the search chose, or None when it found none.
+
+    Returns:
+        None.
+    """
+    if picked is None:
+        return
+    centre, length = _at(grid, picked)
+    axis.plot([centre], [length], **_PICK)
+
+
+def _at(grid: Grid, picked: Campaign) -> tuple[float, float]:
+    """Place the chosen window on the two axes the candidates are drawn on.
+
+    A window shorter than the shortest length drawn is marked on the bottom
+    row, which is as close to it as the panel reaches.
 
     Args:
         grid: The scored candidate windows.
+        picked: The window the search chose.
+
+    Returns:
+        What it is centred on, as a date number, and how long it lasts in days.
+    """
+    opened, closed = date2num(picked.start), date2num(picked.end)
+    return (opened + closed) / 2.0, max(closed - opened, float(grid.widths[0]))
+
+
+def _keys(grid: Grid, picked: Campaign | None) -> list:
+    """Name every ring the panel draws, the window it marks, and the grey it leaves.
+
+    Args:
+        grid: The scored candidate windows.
+        picked: The window the search chose, or None when it found none.
 
     Returns:
         The legend handles, in the order they read.
     """
-    return [
+    rings = [
         Line2D(
             [],
             [],
@@ -154,7 +204,11 @@ def _keys(grid: Grid) -> list:
             label=_INSTRUMENTS.format(count=count),
         )
         for count, style, width in _rings(grid)
-    ] + [Patch(facecolor=configs.WINDOW_UNSOUNDED, label=_UNSOUNDED)]
+    ]
+    grey = Patch(facecolor=configs.WINDOW_UNSOUNDED, label=_UNSOUNDED)
+    if picked is None:
+        return rings + [grey]
+    return [Line2D([], [], label=picked.caption, **_PICK)] + rings + [grey]
 
 
 def _held(grid: Grid) -> np.ma.MaskedArray:

@@ -23,9 +23,9 @@ class Grid:
             numbers. A window reaches half its length either side of it.
         widths: How long each row's window lasts, in days, up to the longest
             a cluster is allowed to span.
-        reached: The share of the feature's cells a window covers, averaged
-            over the instruments that observed it, one value per width and
-            centre.
+        reached: The share of the feature's cells a window covers, counted
+            evenly over the instruments that observed it as the search counts
+            it, one value per width and centre.
         instruments: How many instruments observed the feature inside every
             window, shaped as reached.
         sounded: Whether every window holds a sounder track, which a cluster
@@ -71,10 +71,23 @@ def build(coverage: Sequence[SetCoverage], window: Window) -> Grid | None:
     return Grid(
         centres=centres,
         widths=widths,
-        reached=np.mean(covered, axis=0),
+        reached=_evenly(covered),
         instruments=np.sum(present, axis=0),
         sounded=_qualified(sounders, centres, widths),
     )
+
+
+def _evenly(covered: Sequence[np.ndarray]) -> np.ndarray:
+    """Count what the instruments cover the way the search counts it.
+
+    Args:
+        covered: What share of the feature each set covers, one array per set.
+
+    Returns:
+        The shares multiplied and rooted, so that a window one instrument
+        misses reads as the poor window the search takes it for.
+    """
+    return np.prod(covered, axis=0) ** (1.0 / len(covered))
 
 
 def _sounder(events: Sequence[Event]) -> bool:

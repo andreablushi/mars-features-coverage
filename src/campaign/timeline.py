@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
-from campaign import configs
+from campaign import configs, filtering
 from models.results import Event, SetCoverage
 from utils import mask as packing
 
@@ -24,22 +25,34 @@ class Track:
         owners: The instrument set each observation belongs to, as its index
             into labels.
         cells: The feature's cells each observation fills, in the same order.
+        grounds: How much of the feature each observation covers, in square
+            kilometres, in the same order.
+        pixels: How many of the instrument's own pixels each of them landed
+            inside the feature, in the same order.
         sounder: Whether each observation is a sounder track, one of which a
             campaign is required to hold.
         totals: How many cells each set fills across the whole record, which is
             what its reach inside a window is a share of.
         labels: The name of each set, in the order owners index them.
         grid: How many cells the feature's grid holds.
+        refused: When each observation left off the axis was taken, oldest
+            first, so that a window can say how many fell inside it.
+        sounded: How many of those were sounder tracks, which a campaign
+            cannot be found without.
     """
 
     moments: list[datetime]
     times: list[float]
     owners: list[int]
     cells: list[list[int]]
+    grounds: list[float]
+    pixels: list[float | None]
     sounder: list[bool]
     totals: list[int]
     labels: list[str]
     grid: int
+    refused: list[datetime]
+    sounded: int
 
     @property
     def size(self) -> int:
@@ -65,6 +78,12 @@ def build(
 ) -> Track | None:
     """Merge a feature's instrument sets into one timeline the search can walk.
 
+    An observation too small to say anything about the feature is left off the
+    axis here, before anything is counted, so that the ground a set is scored
+    against is the ground its admissible observations reached. Filtering later
+    would score every window against ground the dataset has already decided
+    does not exist.
+
     A set that observed the feature but filled none of its cells carries no
     ground to be found, so it is left out rather than dragging every average it
     appears in down to nothing.
@@ -78,8 +97,13 @@ def build(
         The timeline, or None when no set left anything measurable behind.
     """
     keep = visible or list
-    sets = [(entry, _burned(keep(entry.events))) for entry in coverage]
-    sets = [(entry, burned) for entry, burned in sets if burned]
+    sets: list[tuple[SetCoverage, Burned]] = []
+    refused: list[Event] = []
+    for entry in coverage:
+        burned, missed = _burned(keep(entry.events), _width(entry))
+        refused.extend(missed)
+        if burned:
+            sets.append((entry, burned))
     if not sets:
         return None
     merged = [
@@ -95,24 +119,62 @@ def build(
         ],
         owners=[owner for _, _, owner in merged],
         cells=[filled for _, filled, _ in merged],
+        grounds=[event.own_km2 for event, _, _ in merged],
+        pixels=[event.pixels for event, _, _ in merged],
         sounder=[bool(event.width_km) for event, _, _ in merged],
         totals=[_total(burned) for _, burned in sets],
         labels=[entry.label for entry, _ in sets],
         grid=_grid(coverage, sets),
+        refused=sorted(event.t_start for event in refused),
+        sounded=_sounders(refused),
     )
 
 
-def _burned(events: Sequence[Event]) -> Burned:
-    """Unpack each observation's cells once, keeping those that filled any.
+def _width(entry: SetCoverage) -> float:
+    """Return how wide the feature is, which a sounder track is measured against.
+
+    Args:
+        entry: One instrument set, which carries the feature's area.
+
+    Returns:
+        The side of a square of that area, in kilometres.
+    """
+    return math.sqrt(max(entry.summary.feature_area_km2, 0.0))
+
+
+def _burned(events: Sequence[Event], width_km: float) -> tuple[Burned, list[Event]]:
+    """Unpack each observation's cells once and sort the looks from the grazes.
 
     Args:
         events: One set's observations.
+        width_km: How wide the feature is.
 
     Returns:
-        Every observation carrying ground, beside the cells it fills.
+        Every observation that is a look at the feature, beside the cells it
+        fills, and then the ones that said too little to be counted.
     """
-    filled = ((event, packing.cells_of(event.mask).tolist()) for event in events)
-    return [(event, cells) for event, cells in filled if cells]
+    kept: Burned = []
+    refused: list[Event] = []
+    for event in events:
+        cells = packing.cells_of(event.mask).tolist()
+        if filtering.admissible(event, cells, width_km):
+            kept.append((event, cells))
+        else:
+            refused.append(event)
+    return kept, refused
+
+
+def _sounders(events: Sequence[Event]) -> int:
+    """Count the sounder tracks among a run of observations.
+
+    Args:
+        events: The observations to look through.
+
+    Returns:
+        How many of them were widened from a bare line, which is the only way
+        an observation carries a swath width.
+    """
+    return sum(bool(event.width_km) for event in events)
 
 
 def _total(burned: Burned) -> int:

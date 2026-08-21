@@ -50,7 +50,7 @@ CUMULATIVE_WIDTH_RATIOS = [3, 1]
 WINDOW_COLUMNS = 240
 WINDOW_WIDTHS = 64
 WINDOW_MIN_DAYS = 1.0
-WINDOW_MAX_DAYS = 365.0
+WINDOW_MAX_DAYS = 687.0
 WINDOW_FIGURE_SIZE = (12, 6)
 
 # The window the search picked, marked at either end of the time panels.
@@ -58,11 +58,22 @@ WINDOW_FIGURE_SIZE = (12, 6)
 CAMPAIGN_CACHE = 8
 CAMPAIGN_LINE = "#1a1a1a"
 CAMPAIGN_STYLE = (0, (6, 3))
-CAMPAIGN_WIDTH = 1.2
+CAMPAIGN_WIDTH = 0.8
+
+# How a feature that belongs in the dataset is marked, and one that does not.
+VERDICT_PASS = "#2e7d32"
+VERDICT_FAIL = "#c62828"
+VERDICT_KEPT = "In the dataset"
+VERDICT_LEFT = "Left out of the dataset"
 
 # How a window holding no sounder track is drawn, and how the counts are traced.
 WINDOW_UNSOUNDED = "#d9d9d9"
 WINDOW_CONTOUR = "#4d4d4d"
+
+# The window the search picked, marked on the grid of candidates it was chosen from.
+WINDOW_PICKED = "#d62728"
+WINDOW_PICKED_EDGE = "#ffffff"
+WINDOW_PICKED_SIZE = 6.0
 
 # How hard the colours lean towards the low shares a short window reaches.
 WINDOW_GAMMA = 0.5
@@ -77,6 +88,7 @@ WINDOW_TICKS = [
     (91.0, "3 months"),
     (183.0, "6 months"),
     (365.0, "1 year"),
+    (687.0, "1 Mars year"),
     (730.0, "2 years"),
     (1826.0, "5 years"),
     (3652.0, "10 years"),

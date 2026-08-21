@@ -17,13 +17,15 @@ class Reach:
     observations.
     """
 
-    def __init__(self, totals: Sequence[int], grid: int) -> None:
+    def __init__(self, totals: Sequence[int], grid: int, wanted: int = 0) -> None:
         """Open an empty window over one feature.
 
         Args:
             totals: How many cells each instrument set fills across its whole
                 record, which its reach inside the window is a share of.
             grid: How many cells the feature's grid holds.
+            wanted: How many instrument sets the search is insisting on, which
+                is how many the score is taken over. Nought for all of them.
 
         Returns:
             None.
@@ -31,9 +33,8 @@ class Reach:
         self._totals = list(totals)
         self._tally = [[0] * grid for _ in self._totals]
         self._seen = [0] * len(self._totals)
-        self._worth = [1.0 / total for total in self._totals]  # one cell's share
         self._held = [0] * len(self._totals)
-        self._score = 0.0
+        self._wanted = wanted or len(self._totals)
         self._present = 0
 
     def hold(self, owner: int, cells: Sequence[int]) -> None:
@@ -53,7 +54,6 @@ class Reach:
                 fresh += 1  # ground the window did not hold a moment ago
             tally[cell] += 1
         self._seen[owner] += fresh
-        self._score += fresh * self._worth[owner]
         if not self._held[owner]:
             self._present += 1
         self._held[owner] += 1
@@ -75,7 +75,6 @@ class Reach:
             if not tally[cell]:
                 lost += 1  # ground nothing else left in the window reaches
         self._seen[owner] -= lost
-        self._score -= lost * self._worth[owner]
         self._held[owner] -= 1
         if not self._held[owner]:
             self._present -= 1
@@ -93,17 +92,37 @@ class Reach:
 
     @property
     def mean(self) -> float:
-        """Return the average share, over every set that observed the feature.
+        """Return how much ground the window reaches, counting it evenly out.
 
-        A set absent from the window counts as zero rather than being left out
-        of the average. Were it left out, taking an instrument in could lower
-        the mean, the window would stop improving as it grows, and the sweep
-        could no longer trust that widening only ever helps.
+        The shares are multiplied and rooted rather than added and divided. An
+        average would let one instrument carry a window on its own: a hundred
+        percent beside two ones averages a third, which is what a window
+        serving every instrument evenly also scores. Multiplying refuses that.
+        The same three shares come to five percent, and only a window that
+        brings every instrument along scores well.
+
+        A set absent from the window counts as zero rather than being left out.
+        Were it left out, taking an instrument in could lower the score, the
+        window would stop improving as it grows, and the sweep could no longer
+        trust that widening only ever helps. Every step of the way this score
+        rises when any instrument gains ground and never falls, which is what
+        the sweep rests on.
+
+        When the search has settled for fewer instruments than the feature has,
+        the score is taken over that many, best first. Otherwise a set the
+        search is not asking for would sit at zero and take every window down
+        with it.
 
         Returns:
-            The mean share, between zero and one.
+            The score, between zero and one.
         """
-        return self._score / len(self._held)
+        shares = self.shares
+        if self._wanted < len(shares):
+            shares = sorted(shares, reverse=True)[: self._wanted]
+        product = 1.0
+        for share in shares:
+            product *= share
+        return product ** (1.0 / len(shares))
 
     @property
     def instruments(self) -> int:
