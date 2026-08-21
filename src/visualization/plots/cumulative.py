@@ -19,14 +19,11 @@ CUMULATIVE_FIGURE_SIZE = (13, 5)
 CUMULATIVE_WIDTH_RATIOS = [3, 1]
 
 
-def plot(coverage: Sequence[SetCoverage], _window) -> widgets.Widget:
+def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     """Draw the running coverage per instrument beside its final total.
 
     Args:
         coverage: The feature's instrument sets, widest coverage first.
-        _window: The picked date range, ignored: a running total only reads
-            straight against the whole record, so this panel always shows it
-            however far the ones above are zoomed in.
 
     Returns:
         The figure as a widget, or the grey panel when nothing is loaded.

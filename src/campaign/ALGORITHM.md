@@ -13,6 +13,76 @@ A good stretch is one where:
 
 ---
 
+## The steps, end to end
+
+Before the reasoning behind any of it, here is everything the code does, in
+order. The whole of it is `find_best_time_window` (`algorithm.py:14`), which
+builds the timeline and hands it to `search` (`algorithm.py:52`).
+
+1. **Take each instrument set's observations**, every one the pipeline
+   computed for the feature (`timeline.py:97`).
+2. **Throw away the grazes.** An observation is kept only when it fills at
+   least 2 cells of the feature's grid and covers at least 1 km2 of it. A
+   sounder track has to cross at least a tenth of the feature's width as well
+   (`filtering.py:11`).
+3. **Throw away the empty sets.** A set that observed the feature but filled
+   none of its cells is dropped whole, rather than dragging every score it
+   appears in down to nothing (`timeline.py:99`).
+4. **Merge what is left onto one axis**, sorted by start time, oldest first
+   (`timeline.py:108`). If nothing survives, the feature has no campaign and
+   the search stops here (`timeline.py:101`).
+5. **Count what each set holds in total**, meaning the different cells it fills
+   across its whole record (`timeline.py:174`). Every share later is measured
+   against this.
+6. **Check a sounder survived** (`algorithm.py:62`). With no admissible sounder
+   track left anywhere, there is no campaign and the search stops.
+7. **Insist on every instrument the feature has** (`algorithm.py:69`).
+8. **Work out the ceiling**, the score the whole record reaches from its first
+   observation to its last (`algorithm.py:69`). The rungs climb towards this,
+   not towards a perfect score.
+9. **Climb 49 rungs**, from nothing up to that ceiling (`algorithm.py:74`). At
+   each rung, slide a window along the axis and keep the shortest one clearing
+   that rung while holding a sounder track and the instruments being insisted
+   on (`algorithm.py:83` to `algorithm.py:92`).
+10. **Stop climbing** at the first rung where nothing qualifies, or where the
+    shortest window that does runs longer than a Mars year
+    (`algorithm.py:98`).
+11. **If the ladder produced nothing at all**, insist on one fewer instrument
+    and go back to step 8 (`algorithm.py:92`). When even one instrument
+    produces nothing, give up (`algorithm.py:106`).
+12. **Take the bend.** Rescale both axes of the curve those windows trace to
+    0..1 (`curve.py:8`) and take the window furthest above the diagonal
+    (`algorithm.py:106` to `algorithm.py:119`). When none sits above it, take
+    the longest window on the curve instead.
+13. **Pull in the ties.** Anything sharing an exact timestamp with either end
+    of the chosen window joins it and the window is rescored
+    (`measuring.py:10`, called at `algorithm.py:92`). It does not get a second
+    longer.
+14. **Mark the redundant observations** inside it (`trimming.py:10`, called at
+    `algorithm.py:128`).
+15. **Fill in the scorecard** and decide whether the feature is kept at all
+    (`verdict.py:61`).
+
+---
+
+## Every number the search uses
+
+All of them live in `configs.py`, and nothing else about the search is tunable.
+
+| Name | Value | Where | What it decides |
+|---|---|---|---|
+| `MIN_AREA_KM2` | 1.0 | `configs.py:22` | An observation has to cover at least a square kilometre of the feature (`filtering.py:49`). |
+| `MIN_CELLS` | 2 | `configs.py:23` | It also has to fill more than a single cell of the feature's grid (`filtering.py:47`). |
+| `MIN_CROSSING` | 0.10 | `configs.py:27` | A sounder track has to cross at least a tenth of the feature's width (`filtering.py:69`). |
+| `MIN_GAIN_CELLS` | 1 | `configs.py:33` | How many cells an observation must add that its own set did not already hold, to count as bringing ground of its own (`trimming.py:37`). |
+| `MIN_SETS` | 2 | `configs.py:30` | A feature is kept only when its window holds at least two instruments (`verdict.py:137`). |
+| `MAX_SPAN_DAYS` | 687.0 | `configs.py:7` | No window may run longer than one Mars year, which is every season the feature has (`algorithm.py:98`). |
+| `LEVELS` | 48 | `configs.py:11` | How many steps the ladder has, so 49 rungs counting the one asking for nothing (`algorithm.py:74`). |
+| `ROUNDING` | 1e-9 | `configs.py:14` | A share is added cell by cell, so a window landing a rounding error under a rung is let through anyway (`algorithm.py:85`). |
+| `DAY_SECONDS` | 86400.0 | `configs.py:17` | Every timestamp is divided by this, so a span is a number of days (`timeline.py:112`). |
+
+---
+
 ## What counts as an observation
 
 Not every footprint that touches the feature is a look at it. A strip can pass
@@ -72,6 +142,8 @@ window lost it, and 132 of them settle on the same stretch of time either way.
 The 15 that move do so by half a day at the median, though the one that moves
 most stretches by 370 days once the tracks that only grazed it stop counting.
 
+*Code: the three floors are `filtering.py:11`, the crossing rule `filtering.py:54`, and they are applied on the way onto the timeline at `timeline.py:139`.*
+
 ---
 
 ## What "ground" means here
@@ -90,6 +162,44 @@ So `1.0` means "this window gives you everything that instrument ever gave you f
 
 A window's score is those instrument scores **multiplied together and rooted**,
 not averaged. The next section is about why.
+
+*Code: a set's share is `reach.py:83`, its total across the record `timeline.py:174`.*
+
+---
+
+## How the grid and the totals are built
+
+Everything here is done once, on the way onto the timeline (`timeline.py:75`),
+and the result is the `Track` the search walks (`timeline.py:18`).
+
+**The cells.** The analysis stage cuts the feature into a grid of small squares
+and hands every observation a bitmask of the cells it fills. The search never
+touches geometry. It unpacks that mask into a list of cell numbers once
+(`timeline.py:153`), and from then on an observation is a list of numbers and a
+timestamp.
+
+**How many cells there are.** The analysis stage reports how many cells fall
+inside the feature, which on a feature whose outline curves is fewer than the
+rectangle the grid was cut from. The search takes whichever is larger, that
+count or the highest cell number anything actually filled plus one
+(`timeline.py:186`), so there is always room for everything that arrived.
+
+**The totals.** A set's total is the number of different cells its admissible
+observations fill across the whole record (`timeline.py:174`). This is the
+bottom of its share (`reach.py:83`), so every set is scored against itself and
+never against the feature. A set filling 40 cells in total and 10 inside the
+window reaches 25%, whether the feature has 50 cells or 50,000.
+
+**The width a sounder is measured against.** The feature's width is the side of
+a square of the same area, so the square root of its area in square kilometres
+(`timeline.py:127`). A track's length inside the feature is the ground it laid
+there divided by the swath it sounds (`filtering.py:68`), which gives the
+length back with no track geometry to carry around.
+
+**What is remembered about the rejects.** The timestamps of the observations
+turned away are kept, and so is how many of them were sounder tracks
+(`timeline.py:122`). That is what lets the scorecard tell a feature no sounder
+ever flew over from one whose only tracks grazed its edge (`verdict.py:89`).
 
 ---
 
@@ -134,6 +244,8 @@ evenly sampled. And when the search settles for fewer instruments than the
 feature has, the score is taken over that many, best first, since a set nobody
 is asking for would otherwise sit at zero and take every window down with it.
 
+*Code: `reach.py:94`.*
+
 ---
 
 ## The trick that makes it fast and exact
@@ -148,6 +260,40 @@ worth looking at are the ones that begin and end on an observation.
 ground, never lose an instrument, never lose your SHARAD track.
 The moment the window is good enough, stop growing it and start pulling the **left** edge in, as far as it will go.
 
+*Code: the sweep is `algorithm.py:83` to `algorithm.py:92`.*
+
+---
+
+## Inside the sliding window
+
+The tally is the `Reach` class (`reach.py:8`). It keeps one counter per cell
+per instrument set.
+
+- Taking an observation in raises the counter of each cell it fills
+  (`reach.py:40`). A counter rising from zero is new ground for that set.
+- Dropping the oldest observation out lowers those counters again
+  (`reach.py:61`). A counter falling back to zero is ground the window no
+  longer reaches.
+- How many cells a set holds is kept as a running number, so nothing is ever
+  recounted.
+
+That is what makes both ends of the window cheap, and it is why a feature
+holding 63,442 observations is still a few seconds of work.
+
+Two more things move with the window:
+
+- **How many instruments are present** (`reach.py:128`), which rises when a
+  set's first observation enters and falls when its last one leaves.
+- **How many sounder tracks are inside**, kept as a plain counter in the sweep
+  itself (`algorithm.py:85`), because a window holding none is not a campaign
+  at all.
+
+The score is the geometric mean of the sets' shares: multiply them, take the
+root (`reach.py:94`). A set with nothing in the window counts as zero rather
+than being left out. Were it left out, taking an instrument in could lower the
+score, and the sweep could no longer trust that a bigger window is never worse.
+When the search has settled for fewer instruments than the feature has, only
+that many shares are used, the best ones first (`reach.py:121`).
 
 ---
 
@@ -218,6 +364,44 @@ Two small honesty fixes are in the real code:
   chosen, anything sharing an instant with either end is pulled in too. It is
   ground for free: the window does not get one second longer.
 
+*Code: the whole of it is `search` (`algorithm.py:52`).*
+
+---
+
+## The small print the pseudocode leaves out
+
+**A window is measured start to start.** Its length is the start time of its
+last observation minus the start time of its first (`algorithm.py:91`). How
+long each observation itself ran plays no part.
+
+**The rungs climb towards the record, not towards perfection.** Before the
+climb begins, the whole record from first observation to last is scored, and
+that score is the top of the ladder (`algorithm.py:69`). Rung `k` of 48 asks
+for `k/48` of it (`algorithm.py:75`). The first rung asks for nothing, which
+finds the shortest window holding the instruments and a sounder track, whatever
+ground it happens to reach.
+
+**Shortest wins, and ground breaks the tie.** As the left edge is pulled in,
+every qualifying window is compared on days first and ground second
+(`algorithm.py:92`), so between two windows of exactly the same length the one
+reaching more ground is kept.
+
+**The same window is kept only once.** Neighbouring rungs often settle on the
+identical stretch of time. The curve keeps one copy (`algorithm.py:101`), so
+the bend is not dragged towards a window that happened to satisfy five rungs in
+a row.
+
+**The climb stops early on purpose.** The moment a rung has no qualifying
+window inside a Mars year, every rung above it is skipped untried
+(`algorithm.py:98`), because asking for more ground can only ever ask for more
+days.
+
+**Settling for fewer instruments is all or nothing.** The search tries every
+instrument the feature has, and only when that produces no curve at all does it
+try one fewer (`algorithm.py:69` and `algorithm.py:92`). It never mixes: a
+curve is built entirely at one instrument count, and the score is taken over
+that count, best sets first.
+
 ---
 
 ## Why the instrument count comes first
@@ -233,6 +417,8 @@ when no window inside a Mars year holds that many does it settle for fewer, and
 score the window on that many, best first. That is what makes a two instrument
 answer mean something. It means "there is genuinely no Mars year in the whole
 record where all three were here", not "two was shorter".
+
+*Code: `algorithm.py:69`, and the score over that count `reach.py:121`.*
 
 ---
 
@@ -262,6 +448,8 @@ data says so plainly: on a log axis these curves bend the *other* way, so the
 "knee" collapses onto the shortest, emptiest window on the curve. Ground
 saturates against elapsed days, so plain days is the axis it bends on.
 
+*Code: the rescaling is `curve.py:8`, the bend `algorithm.py:106` to `algorithm.py:119`.*
+
 ---
 
 ## What the window did not need
@@ -287,6 +475,8 @@ the observations inside them bring nothing new. Half the features have none at
 all, and the redundancy piles up in the crowded ones: 2,656 of the 7,543
 observations in the Noachis Terra window, 2,169 of the 6,520 in Terra
 Cimmeria.
+
+*Code: `trimming.py:10`.*
 
 ---
 
@@ -343,6 +533,59 @@ Every corpus this was modelled on ends with a quota, whether over ecoregions or
 over the 44 units of the geologic map of Mars, and a quota can only be filled
 once every feature has been judged. This scores them one at a time. The
 choosing between them belongs to the stage that builds the dataset.
+
+*Code: `verdict.py:61`, with the card built at `verdict.py:112`.*
+
+---
+
+## The scorecard, row by row
+
+Every feature gets the same card, built in `_checks` (`verdict.py:112`). Each
+row is a `Check` (`verdict.py:19`) carrying what was asked, what the feature
+answered, and whether the row has a say. Two rows decide, and the rest are
+there to be read. A feature is kept when every deciding row passes
+(`verdict.py:51`).
+
+| Row | Decides | What it says | Code |
+|---|---|---|---|
+| A window holding a sounder track | yes | `found`, or `none`, or `none, N tracks were too small to count` when the feature had tracks but every one of them grazed it. | `verdict.py:89` |
+| Instruments in the window | yes | How many sets have an observation inside, against the 2 required. | `verdict.py:134` |
+| Observations bringing ground of their own | no | The core count against the total, such as `18 of 27`. | `verdict.py:140` |
+| Ground the window reaches, counted evenly | no | The score and the length, such as `31% over 105 days`. | `verdict.py:147` |
+| Smallest observation from each set | no | One row per instrument in the window, thinnest first, giving the least ground a single observation of that set covers inside it, in square kilometres and in that instrument's own pixels. | `verdict.py:176` |
+| Observations too small to count | no | How many were turned away out of everything taken during the window. On a feature with no window, the count is over its whole record instead, which is the only span it has. | `verdict.py:229` |
+
+The reading rows never keep a feature out, however poor they look.
+
+A feature that filled no cells at all never reaches this card. It gets a single
+row, `Ground on the feature: no cells filled`, and is left out on it
+(`verdict.py:84`).
+
+---
+
+## What the search returns
+
+One `Campaign` (`results.py:31`), holding:
+
+| Field | What it is |
+|---|---|
+| `start`, `end` | When the first and last observations inside the window were taken. |
+| `days` | How long it lasts, start to start. |
+| `reach` | Its score, the geometric mean of the sets' shares. |
+| `instruments` | How many sets have an observation inside it. |
+| `observations` | How many observations it holds. |
+| `core` | How many of them brought ground nothing before them from their own set had already brought. |
+| `redundant` | The rest, which is `observations` minus `core` (`results.py:64`). |
+| `knee` | Whether the curve bent and this is the bend, or whether it never did and this is simply the longest window on the curve. |
+| `shares` | What each named set reaches, one number per instrument (`measuring.py:57`). |
+| `frontier` | Every window it was chosen from, shortest first, as `Span` records (`results.py:10`), so what a longer stretch would have bought can always be read off. |
+
+It also writes its own one line summary for a legend or a title
+(`results.py:86`), and its length in units that read well (`results.py:73`).
+
+Nothing comes back at all when no set left anything measurable behind
+(`timeline.py:101`), or when no admissible sounder track exists anywhere in the
+record (`algorithm.py:62`).
 
 ---
 
@@ -418,3 +661,25 @@ shortest window runs past a Mars year. Those thin curves belong to features
 whose window holds four observations at the median, where there is little for a
 bend to be found in and the answer sits near the shortest window that
 qualifies at all.
+
+*Code: the incremental tally is `reach.py:40` and `reach.py:61`.*
+
+---
+
+## Where each step lives
+
+| File | What it does |
+|---|---|
+| `filtering.py` | Decides whether one observation is a look at the feature or a graze of its edge. |
+| `timeline.py` | Applies that decision, merges every set onto one axis, and works out the totals, the grid size and the feature's width. |
+| `reach.py` | The sliding window's tally: what each set holds, how many instruments are present, and the score. |
+| `measuring.py` | Scores a fixed window, and pulls in the observations tied at either end of it. |
+| `curve.py` | Rescales one axis of the curve to run from nought to one. |
+| `algorithm.py` | The search itself: the instrument count, the ladder of rungs, the sweep, and the bend. |
+| `trimming.py` | Marks the observations inside the chosen window that brought nothing of their own. |
+| `results.py` | The span and the campaign the search returns. |
+| `verdict.py` | Asks the feature everything the dataset asks of it, and returns the scorecard. |
+| `configs.py` | Every number in the table above. |
+
+Line numbers here are from the code as it stands. If one has drifted, the
+function names beside it have not.

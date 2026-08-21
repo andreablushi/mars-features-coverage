@@ -17,7 +17,6 @@ from campaign.results import Campaign
 from models.results import SetCoverage
 from visualization import campaigns, candidates, panels
 from visualization.candidates import Grid
-from visualization.selectors.window import Window
 
 # How large the grid of candidates is drawn.
 WINDOW_FIGURE_SIZE = (12, 6)
@@ -67,12 +66,11 @@ _PICK = {
 }
 
 
-def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
+def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     """Draw every window the feature could be clustered into, and what it reaches.
 
     Args:
         coverage: The feature's instrument sets, in the order the config names them.
-        window: The date range to look for windows inside.
 
     Returns:
         The figure as a widget, or the grey panel when there is nothing to
@@ -80,11 +78,11 @@ def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
     """
     if not coverage:
         return panels.unavailable()
-    grid = candidates.build(coverage, window)
+    grid = candidates.build(coverage)
     if grid is None:
         return panels.unavailable(_TOO_SHORT)
     figure, axis = plt.subplots(figsize=WINDOW_FIGURE_SIZE)
-    mesh = _field(axis, grid, campaigns.picked(coverage, window))
+    mesh = _field(axis, grid, campaigns.picked(coverage))
     axis.set_title(
         f"{panels.title(coverage)}  -  candidate time windows", fontsize=12, loc="left"
     )

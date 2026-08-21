@@ -12,7 +12,6 @@ from models.results import Event, SetCoverage
 from utils import mask as packing
 from utils import quantities
 from visualization import campaigns, panels
-from visualization.selectors.window import Window
 
 _NO_WINDOW = "No stretch of time here holds a sounder track, so there is none to fill."
 _UNMEASURED = "not measured"
@@ -25,7 +24,7 @@ _HEADINGS = (
 )
 
 
-def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
+def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     """Tabulate what each instrument gathered inside the chosen window.
 
     A set that took nothing during the window is still given a row, at zero,
@@ -33,14 +32,13 @@ def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
 
     Args:
         coverage: The feature's instrument sets, widest coverage first.
-        window: The date range the panels are shown over.
 
     Returns:
         The table as a widget, or the grey panel when there is none to draw.
     """
     if not coverage:
         return panels.unavailable()
-    picked = campaigns.picked(coverage, window)
+    picked = campaigns.picked(coverage)
     if picked is None:
         return panels.unavailable(_NO_WINDOW)
     rows = "".join(_row(entry, picked) for entry in coverage)

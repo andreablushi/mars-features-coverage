@@ -11,25 +11,23 @@ from matplotlib.lines import Line2D
 
 from models.results import SetCoverage
 from visualization import campaigns, panels
-from visualization.selectors.window import Window
 
 # One stacked panel per instrument set, so the height is per panel
 PANEL_HEIGHT = 2.5
 
 
-def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
+def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     """Draw one stacked panel per instrument set, sharing both axes.
 
     Args:
         coverage: The feature's instrument sets, widest coverage first.
-        window: The date range the panels are shown over.
 
     Returns:
         The figure as a widget, or the grey panel when nothing is loaded.
     """
     if not coverage:
         return panels.unavailable()
-    picked = campaigns.picked(coverage, window)
+    picked = campaigns.picked(coverage)
     colours = panels.colours(coverage)
     area_km2 = coverage[0].summary.feature_area_km2
     figure, axes = plt.subplots(
@@ -46,7 +44,6 @@ def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
             panels.bracket(axis, picked.start, picked.end)
     _key(axes[0], picked)
     axes[0].set_ylim(-0.05, 1.05)
-    axes[0].set_xlim(left=window.start, right=window.end)
     axes[0].set_title(
         f"{panels.title(coverage)}  -  coverage per observation",
         fontsize=12,

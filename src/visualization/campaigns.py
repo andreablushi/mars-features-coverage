@@ -8,7 +8,6 @@ from campaign import verdict
 from campaign.results import Campaign
 from campaign.verdict import Verdict
 from models.results import SetCoverage
-from visualization.selectors.window import Window
 
 # How many searches are kept, so every panel of a feature shares one.
 CAMPAIGN_CACHE = 8
@@ -17,43 +16,41 @@ CAMPAIGN_CACHE = 8
 _found: dict[tuple, Verdict] = {}
 
 
-def assessed(coverage: Sequence[SetCoverage], window: Window) -> Verdict:
+def assessed(coverage: Sequence[SetCoverage]) -> Verdict:
     """Judge one feature, searching it only once however many panels ask.
 
     Every panel that marks the window or reads the verdict asks for the same
     search, and confirming a feature draws them all, so what it found is kept
     rather than repeated. What a feature is measured against decides it
-    entirely: which sets are on show, and the date range they are limited to.
+    entirely, which is the sets on show and what each of them holds.
 
     Args:
         coverage: The feature's instrument sets, in the order they are drawn.
-        window: The date range the panels are shown over.
 
     Returns:
         The verdict, holding the chosen window and every check behind it.
     """
-    key = _key(coverage, window)
+    key = _key(coverage)
     if key not in _found:
         if len(_found) >= CAMPAIGN_CACHE:
             _found.clear()
-        _found[key] = verdict.assess(coverage, window.visible)
+        _found[key] = verdict.assess(coverage)
     return _found[key]
 
 
-def picked(coverage: Sequence[SetCoverage], window: Window) -> Campaign | None:
+def picked(coverage: Sequence[SetCoverage]) -> Campaign | None:
     """Return the best window for one feature.
 
     Args:
         coverage: The feature's instrument sets, in the order they are drawn.
-        window: The date range the panels are shown over.
 
     Returns:
         The chosen window, or None when the feature has none.
     """
-    return assessed(coverage, window).campaign
+    return assessed(coverage).campaign
 
 
-def _key(coverage: Sequence[SetCoverage], window: Window) -> tuple:
+def _key(coverage: Sequence[SetCoverage]) -> tuple:
     """Name what a search was run over, so the same run is recognised.
 
     The sets are named by what they measured and not by name alone, so a
@@ -62,10 +59,9 @@ def _key(coverage: Sequence[SetCoverage], window: Window) -> tuple:
 
     Args:
         coverage: The feature's instrument sets, in the order they are drawn.
-        window: The date range the panels are shown over.
 
     Returns:
-        The feature, what each set holds, and the range, as one hashable value.
+        The feature and what each set holds, as one hashable value.
     """
     first = coverage[0].summary
     measured = tuple(
@@ -78,4 +74,4 @@ def _key(coverage: Sequence[SetCoverage], window: Window) -> tuple:
         )
         for entry in coverage
     )
-    return (first.feature_class, first.feature_name, measured, window.start, window.end)
+    return (first.feature_class, first.feature_name, measured)

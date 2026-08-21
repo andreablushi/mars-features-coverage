@@ -10,7 +10,6 @@ from matplotlib.dates import date2num
 
 from models.results import Event, SetCoverage
 from utils import mask as packing
-from visualization.selectors.window import Window
 
 # The grid of candidate windows a feature's record is scored on.
 WINDOW_COLUMNS = 240
@@ -44,19 +43,17 @@ class Grid:
     sounded: np.ndarray
 
 
-def build(coverage: Sequence[SetCoverage], window: Window) -> Grid | None:
+def build(coverage: Sequence[SetCoverage]) -> Grid | None:
     """Score every window the feature's observations could be clustered into.
 
     Args:
         coverage: The feature's instrument sets, in the order the config names them.
-        window: The date range to score inside, which excludes the rest.
 
     Returns:
         The scored grid, or None when the record is too short to hold a choice
         of windows at all.
     """
-    observed = [window.visible(entry.events) for entry in coverage]
-    observed = [events for events in observed if events]
+    observed = [entry.events for entry in coverage if entry.events]
     if not observed:
         return None
     moments = np.sort(np.concatenate([_moments(events) for events in observed]))

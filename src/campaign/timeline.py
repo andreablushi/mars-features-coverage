@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -11,7 +11,6 @@ from campaign import configs, filtering
 from models.results import Event, SetCoverage
 from utils import mask as packing
 
-Filter = Callable[[Sequence[Event]], list[Event]]
 Burned = list[tuple[Event, list[int]]]
 
 
@@ -73,9 +72,7 @@ class Track:
         return len(self.labels)
 
 
-def build(
-    coverage: Sequence[SetCoverage], visible: Filter | None = None
-) -> Track | None:
+def build(coverage: Sequence[SetCoverage]) -> Track | None:
     """Merge a feature's instrument sets into one timeline the search can walk.
 
     An observation too small to say anything about the feature is left off the
@@ -90,17 +87,14 @@ def build(
 
     Args:
         coverage: The feature's instrument sets, in any order.
-        visible: A filter narrowing each set to the observations to consider,
-            or None to take the whole record.
 
     Returns:
         The timeline, or None when no set left anything measurable behind.
     """
-    keep = visible or list
     sets: list[tuple[SetCoverage, Burned]] = []
     refused: list[Event] = []
     for entry in coverage:
-        burned, missed = _burned(keep(entry.events), _width(entry))
+        burned, missed = _burned(entry.events, _width(entry))
         refused.extend(missed)
         if burned:
             sets.append((entry, burned))

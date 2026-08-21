@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from campaign import algorithm, configs, timeline
 from campaign.results import Campaign
-from campaign.timeline import Filter, Track
+from campaign.timeline import Track
 from models.results import SetCoverage
 from utils import quantities
 
@@ -58,7 +58,7 @@ class Verdict:
         return all(check.passed for check in self.checks if check.required)
 
 
-def assess(coverage: Sequence[SetCoverage], visible: Filter | None = None) -> Verdict:
+def assess(coverage: Sequence[SetCoverage]) -> Verdict:
     """Search one feature for a window, and judge whether it is worth keeping.
 
     A feature is not kept or dropped on the window alone. A window can be
@@ -74,14 +74,12 @@ def assess(coverage: Sequence[SetCoverage], visible: Filter | None = None) -> Ve
 
     Args:
         coverage: The feature's instrument sets, in any order.
-        visible: A filter narrowing each set to the observations to consider,
-            or None to judge it on the whole record.
 
     Returns:
         The verdict, holding the window, every check, and the counts behind
         them.
     """
-    track = timeline.build(coverage, visible)
+    track = timeline.build(coverage)
     if track is None:
         return Verdict(None, [Check("Ground on the feature", _NOTHING, "any", False)])
     picked = algorithm.search(track)

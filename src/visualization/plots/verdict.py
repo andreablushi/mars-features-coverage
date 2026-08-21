@@ -10,7 +10,6 @@ import ipywidgets as widgets
 from campaign.verdict import Check, Verdict
 from models.results import SetCoverage
 from visualization import campaigns, panels
-from visualization.selectors.window import Window
 
 # How a feature that belongs in the dataset is marked, and one that does not.
 VERDICT_PASS = "#2e7d32"
@@ -26,19 +25,18 @@ _ADVISORY = "Rows with nothing in the third column are there to be read. They "
 _ADVISORY += "have no say in the verdict."
 
 
-def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
+def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     """Report whether the feature is worth putting in the dataset, and why.
 
     Args:
         coverage: The feature's instrument sets, widest coverage first.
-        window: The date range the panels are shown over.
 
     Returns:
         The scorecard as a widget, or the grey panel when nothing is loaded.
     """
     if not coverage:
         return panels.unavailable()
-    verdict = campaigns.assessed(coverage, window)
+    verdict = campaigns.assessed(coverage)
     rows = "".join(_row(check) for check in verdict.checks)
     return widgets.HTML(
         f"""<div style="font-family: sans-serif; font-size: 13px;">

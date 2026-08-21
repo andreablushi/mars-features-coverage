@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import UTC, date, datetime, time
 
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
@@ -13,7 +13,6 @@ from matplotlib.dates import date2num
 
 from models.results import SetCoverage
 from visualization import panels
-from visualization.selectors.window import Window, month_edges
 
 # How many months one density column covers, however long the range is.
 DENSITY_BIN_MONTHS = 1
@@ -22,20 +21,19 @@ DENSITY_EMPTY = "#ffffff"
 DENSITY_ROW_EDGE = "#cccccc"
 
 
-def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
+def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     """Draw how many observations each instrument set took in each time bin.
 
     Args:
         coverage: The feature's instrument sets, widest coverage first.
-        window: The date range to bin over, one column per bin of it.
 
     Returns:
         The figure as a widget, or the grey panel when nothing is loaded.
     """
     if not coverage:
         return panels.unavailable()
-    edges = date2num(_bins(coverage, window))
-    counts = np.array([_counts(entry, window, edges) for entry in coverage])
+    edges = date2num(_bins(coverage))
+    counts = np.array([_counts(entry, edges) for entry in coverage])
     binned = _bin_name()
     figure, axis = plt.subplots(
         figsize=(
@@ -76,34 +74,79 @@ def _bin_name() -> str:
     return "month" if months == 1 else f"{months} months"
 
 
-def _bins(coverage: Sequence[SetCoverage], window: Window) -> list[datetime]:
+def _bins(coverage: Sequence[SetCoverage]) -> list[datetime]:
     """Return the bin edges the panel covers, at the configured width.
 
     Args:
         coverage: The feature's instrument sets, widest coverage first.
-        window: The date range to bin over, open at either end to take the
-            record's own extent there.
 
     Returns:
         The edges in order, one more than there are bins.
     """
-    first = window.start or min(entry.summary.t_first for entry in coverage)
-    last = window.end or max(entry.summary.t_last for entry in coverage)
-    return month_edges(first, last, DENSITY_BIN_MONTHS)
+    first = min(entry.summary.t_first for entry in coverage)
+    last = max(entry.summary.t_last for entry in coverage)
+    return _month_edges(first, last, DENSITY_BIN_MONTHS)
 
 
-def _counts(entry: SetCoverage, window: Window, edges: np.ndarray) -> np.ndarray:
+def _month_edges(first: datetime, last: datetime, step: int) -> list[datetime]:
+    """Return bin edges every step months, covering a period whole.
+
+    The last edge always sits past the end of the period, so the final bin is
+    closed and the month holding last is counted in it.
+
+    Args:
+        first: The earliest moment the bins must cover.
+        last: The latest moment they must cover.
+        step: How many months one bin spans.
+
+    Returns:
+        The edges in UTC, in order, one more than there are bins.
+    """
+    cursor, stop = _first_of(first), _first_of(last)
+    edges = []
+    while cursor <= stop:
+        edges.append(datetime.combine(cursor, time.min, UTC))
+        for _ in range(step):
+            cursor = _first_of_next(cursor)
+    edges.append(datetime.combine(cursor, time.min, UTC))
+    return edges
+
+
+def _first_of(moment: datetime) -> date:
+    """Return the first day of a moment's own month.
+
+    Args:
+        moment: The moment to place.
+
+    Returns:
+        The first day of the month it falls in.
+    """
+    return date(moment.year, moment.month, 1)
+
+
+def _first_of_next(day: date) -> date:
+    """Return the first day of the month after a day's own.
+
+    Args:
+        day: The day to step on from.
+
+    Returns:
+        The first day of the following month.
+    """
+    return date(day.year + day.month // 12, day.month % 12 + 1, 1)
+
+
+def _counts(entry: SetCoverage, edges: np.ndarray) -> np.ndarray:
     """Count one instrument set's observations in each time bin.
 
     Args:
         entry: The instrument set being counted.
-        window: The date range, which excludes what falls outside it.
         edges: The bin edges as matplotlib date numbers, in order.
 
     Returns:
         One count per bin, in the same order.
     """
-    times = [date2num(event.t_start) for event in window.visible(entry.events)]
+    times = [date2num(event.t_start) for event in entry.events]
     counts, _ = np.histogram(times, bins=edges)
     return counts
 

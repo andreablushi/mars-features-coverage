@@ -32,12 +32,11 @@ BASEMAP_CACHE = 32
 BASEMAP_MIN_SPAN_DEG = 0.5
 
 
-def plot(coverage: Sequence[SetCoverage], _window=None) -> widgets.Widget:
+def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     """Show how much ground the feature covers, and a view of it.
 
     Args:
         coverage: The feature's instrument sets, widest coverage first.
-        _window: The date range, ignored: the ground does not move.
 
     Returns:
         The report beside the basemap view, or the grey panel when nothing is

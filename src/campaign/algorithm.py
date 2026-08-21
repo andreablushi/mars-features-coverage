@@ -7,13 +7,11 @@ from collections.abc import Sequence
 from campaign import configs, curve, measuring, timeline, trimming
 from campaign.reach import Reach
 from campaign.results import Campaign, Span
-from campaign.timeline import Filter, Track
+from campaign.timeline import Track
 from models.results import SetCoverage
 
 
-def find_best_time_window(
-    coverage: Sequence[SetCoverage], visible: Filter | None = None
-) -> Campaign | None:
+def find_best_time_window(coverage: Sequence[SetCoverage]) -> Campaign | None:
     """Find the shortest window holding most of what every instrument saw.
 
     Two aims pull against each other: a window should be short, and it should
@@ -41,15 +39,13 @@ def find_best_time_window(
 
     Args:
         coverage: The feature's instrument sets, in any order.
-        visible: A filter narrowing each set to the observations to consider,
-            or None to search the whole record.
 
     Returns:
         The chosen window, or None when the feature was never sounded, or when
         no window inside the allowed span holds a sounder track at all.
     """
     # 1. One time axis, and nothing to choose from unless a sounder flew here.
-    track = timeline.build(coverage, visible)
+    track = timeline.build(coverage)
     return search(track) if track else None
 
 
