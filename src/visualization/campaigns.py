@@ -8,8 +8,11 @@ from campaign import verdict
 from campaign.results import Campaign
 from campaign.verdict import Verdict
 from models.results import SetCoverage
-from visualization import configs
 from visualization.selectors.window import Window
+
+# How many searches are kept, so every panel of a feature shares one.
+CAMPAIGN_CACHE = 8
+
 
 _found: dict[tuple, Verdict] = {}
 
@@ -31,7 +34,7 @@ def assessed(coverage: Sequence[SetCoverage], window: Window) -> Verdict:
     """
     key = _key(coverage, window)
     if key not in _found:
-        if len(_found) >= configs.CAMPAIGN_CACHE:
+        if len(_found) >= CAMPAIGN_CACHE:
             _found.clear()
         _found[key] = verdict.assess(coverage, window.visible)
     return _found[key]

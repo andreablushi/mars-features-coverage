@@ -15,7 +15,20 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import PercentFormatter
 
 from models.results import SetCoverage
-from visualization import configs
+
+GREY = "#8a8a8a"
+
+# How wide every stacked figure is drawn.
+FIGURE_WIDTH = 11
+
+# The ramp a heat panel is coloured by.
+COLORMAP = "YlGnBu"
+
+# The window the search picked, marked at either end of the time panels.
+CAMPAIGN_LINE = "#1a1a1a"
+CAMPAIGN_STYLE = (0, (6, 3))
+CAMPAIGN_WIDTH = 0.8
+
 
 Colour = tuple[float, float, float]
 
@@ -65,9 +78,9 @@ def bracket(axis: Axes, start: datetime, end: datetime) -> None:
     for edge in (start, end):
         axis.axvline(
             edge,
-            color=configs.CAMPAIGN_LINE,
-            linestyle=configs.CAMPAIGN_STYLE,
-            linewidth=configs.CAMPAIGN_WIDTH,
+            color=CAMPAIGN_LINE,
+            linestyle=CAMPAIGN_STYLE,
+            linewidth=CAMPAIGN_WIDTH,
             zorder=4,
         )
 
@@ -106,7 +119,7 @@ def unavailable(
         f"""<div style="
             background: repeating-linear-gradient(45deg,
                 #ebebeb, #ebebeb 10px, #e0e0e0 10px, #e0e0e0 20px);
-            border: 1px solid #c4c4c4; border-radius: 6px; color: {configs.GREY};
+            border: 1px solid #c4c4c4; border-radius: 6px; color: {GREY};
             font-family: sans-serif; padding: 28px; text-align: center;">
           <div style="font-size: 15px; font-weight: 600;">No local data</div>
           <div style="font-size: 13px; margin-top: 6px;">{escape(message)}</div>

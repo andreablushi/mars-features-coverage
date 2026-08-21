@@ -15,9 +15,42 @@ from matplotlib.patches import Patch
 
 from campaign.results import Campaign
 from models.results import SetCoverage
-from visualization import campaigns, candidates, configs, panels
+from visualization import campaigns, candidates, panels
 from visualization.candidates import Grid
 from visualization.selectors.window import Window
+
+# How large the grid of candidates is drawn.
+WINDOW_FIGURE_SIZE = (12, 6)
+
+# How a window holding no sounder track is drawn, and how the counts are traced.
+WINDOW_UNSOUNDED = "#d9d9d9"
+WINDOW_CONTOUR = "#4d4d4d"
+
+# The window the search picked, marked on the grid of candidates it was chosen from.
+WINDOW_PICKED = "#d62728"
+WINDOW_PICKED_EDGE = "#ffffff"
+WINDOW_PICKED_SIZE = 6.0
+
+# How hard the colours lean towards the low shares a short window reaches.
+WINDOW_GAMMA = 0.5
+
+# How the instrument count rings are drawn, the ring holding every one of them last.
+WINDOW_RING = 0.7
+WINDOW_RING_ALL = 1.5
+WINDOW_TICKS = [
+    (1.0, "1 day"),
+    (7.0, "1 week"),
+    (30.0, "1 month"),
+    (91.0, "3 months"),
+    (183.0, "6 months"),
+    (365.0, "1 year"),
+    (687.0, "1 Mars year"),
+    (730.0, "2 years"),
+    (1826.0, "5 years"),
+    (3652.0, "10 years"),
+    (7305.0, "20 years"),
+]
+
 
 _TOO_SHORT = "This feature's record is too short to hold a choice of windows."
 _UNSOUNDED = "no sounder track in the window"
@@ -26,9 +59,9 @@ _INSTRUMENTS = "{count} instruments in the window"
 _PICK = {
     "marker": "o",
     "linestyle": "none",
-    "color": configs.WINDOW_PICKED,
-    "markersize": configs.WINDOW_PICKED_SIZE,
-    "markeredgecolor": configs.WINDOW_PICKED_EDGE,
+    "color": WINDOW_PICKED,
+    "markersize": WINDOW_PICKED_SIZE,
+    "markeredgecolor": WINDOW_PICKED_EDGE,
     "markeredgewidth": 1.0,
     "zorder": 5,
 }
@@ -50,7 +83,7 @@ def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
     grid = candidates.build(coverage, window)
     if grid is None:
         return panels.unavailable(_TOO_SHORT)
-    figure, axis = plt.subplots(figsize=configs.WINDOW_FIGURE_SIZE)
+    figure, axis = plt.subplots(figsize=WINDOW_FIGURE_SIZE)
     mesh = _field(axis, grid, campaigns.picked(coverage, window))
     axis.set_title(
         f"{panels.title(coverage)}  -  candidate time windows", fontsize=12, loc="left"
@@ -76,15 +109,13 @@ def _field(axis: Axes, grid: Grid, picked: Campaign | None):
     Returns:
         The mesh, for the colour bar to read its colours from.
     """
-    colours = plt.get_cmap(configs.DENSITY_COLORMAP).with_extremes(
-        bad=configs.WINDOW_UNSOUNDED
-    )
+    colours = plt.get_cmap(panels.COLORMAP).with_extremes(bad=WINDOW_UNSOUNDED)
     mesh = axis.pcolormesh(
         _steps(grid.centres),
         _steps(grid.widths, log=True),
         _held(grid),
         cmap=colours,
-        norm=PowerNorm(configs.WINDOW_GAMMA, vmin=0.0, vmax=1.0),
+        norm=PowerNorm(WINDOW_GAMMA, vmin=0.0, vmax=1.0),
     )
     _contours(axis, grid)
     _silent(axis, grid)
@@ -123,7 +154,7 @@ def _contours(axis: Axes, grid: Grid) -> None:
         grid.widths,
         grid.instruments,
         levels=[count - 0.5 for count, _, _ in rings],
-        colors=configs.WINDOW_CONTOUR,
+        colors=WINDOW_CONTOUR,
         linestyles=[style for _, style, _ in rings],
         linewidths=[width for _, _, width in rings],
     )
@@ -144,7 +175,7 @@ def _rings(grid: Grid) -> list[tuple[int, str, float]]:
         (
             count,
             "solid" if count == most else "dotted",
-            configs.WINDOW_RING_ALL if count == most else configs.WINDOW_RING,
+            WINDOW_RING_ALL if count == most else WINDOW_RING,
         )
         for count in range(2, most + 1)
     ]
@@ -198,14 +229,14 @@ def _keys(grid: Grid, picked: Campaign | None) -> list:
         Line2D(
             [],
             [],
-            color=configs.WINDOW_CONTOUR,
+            color=WINDOW_CONTOUR,
             linestyle=style,
             linewidth=width,
             label=_INSTRUMENTS.format(count=count),
         )
         for count, style, width in _rings(grid)
     ]
-    grey = Patch(facecolor=configs.WINDOW_UNSOUNDED, label=_UNSOUNDED)
+    grey = Patch(facecolor=WINDOW_UNSOUNDED, label=_UNSOUNDED)
     if picked is None:
         return rings + [grey]
     return [Line2D([], [], label=picked.caption, **_PICK)] + rings + [grey]
@@ -243,7 +274,7 @@ def _silent(axis: Axes, grid: Grid) -> None:
         ha="center",
         va="center",
         fontsize=10,
-        color=configs.GREY,
+        color=panels.GREY,
     )
 
 
@@ -258,9 +289,7 @@ def _ladder(axis: Axes, widths: np.ndarray) -> None:
         None.
     """
     marks = [
-        (days, name)
-        for days, name in configs.WINDOW_TICKS
-        if widths[0] <= days <= widths[-1]
+        (days, name) for days, name in WINDOW_TICKS if widths[0] <= days <= widths[-1]
     ]
     axis.set_yticks([days for days, _ in marks], [name for _, name in marks])
     axis.set_yticks([], minor=True)

@@ -11,8 +11,18 @@ from IPython.display import display
 from models.results import SetCoverage
 from storage import catalog, summary
 from utils.slugify import slugify
-from visualization import configs, panels, sets
+from visualization import panels, sets
 from visualization.selectors.window import Window, month_options
+
+# The feature class the picker opens on
+DEFAULT_CLASS = "Crater"
+NO_DATA_SUFFIX = "  (no data)"
+DROPDOWN_WIDTH = "340px"
+MONTH_DROPDOWN_WIDTH = "190px"
+
+# The blank first month, which leaves that end of the range open.
+OPEN_END_LABEL = ""
+
 
 Render = Callable[[Sequence[SetCoverage], Window], widgets.Widget]
 
@@ -48,13 +58,11 @@ class FeatureSelector:
         self._class = widgets.Dropdown(
             options=sorted(self._names),
             description="Type:",
-            value=configs.DEFAULT_CLASS
-            if configs.DEFAULT_CLASS in self._names
-            else None,
-            layout=widgets.Layout(width=configs.DROPDOWN_WIDTH),
+            value=DEFAULT_CLASS if DEFAULT_CLASS in self._names else None,
+            layout=widgets.Layout(width=DROPDOWN_WIDTH),
         )
         self._name = widgets.Dropdown(
-            description="Name:", layout=widgets.Layout(width=configs.DROPDOWN_WIDTH)
+            description="Name:", layout=widgets.Layout(width=DROPDOWN_WIDTH)
         )
         self._confirm = widgets.Button(
             description="Confirm", button_style="primary", icon="check"
@@ -63,12 +71,12 @@ class FeatureSelector:
         self._from = widgets.Dropdown(
             options=months,
             description="From:",
-            layout=widgets.Layout(width=configs.MONTH_DROPDOWN_WIDTH),
+            layout=widgets.Layout(width=MONTH_DROPDOWN_WIDTH),
         )
         self._to = widgets.Dropdown(
             options=months,
             description="To:",
-            layout=widgets.Layout(width=configs.MONTH_DROPDOWN_WIDTH),
+            layout=widgets.Layout(width=MONTH_DROPDOWN_WIDTH),
         )
         self._reset = widgets.Button(description="Reset", icon="times")
         self._status = widgets.VBox()
@@ -92,7 +100,7 @@ class FeatureSelector:
         dates = widgets.HBox(
             [
                 widgets.HTML(
-                    f"<div style='color: {configs.GREY}; padding: 4px 8px 0 0'>"
+                    f"<div style='color: {panels.GREY}; padding: 4px 8px 0 0'>"
                     f"Month range (optional):</div>"
                 ),
                 self._from,
@@ -129,7 +137,7 @@ class FeatureSelector:
             when nothing has been computed yet.
         """
         span = summary.catalogued_span()
-        return [(configs.OPEN_END_LABEL, None)] + (month_options(*span) if span else [])
+        return [(OPEN_END_LABEL, None)] + (month_options(*span) if span else [])
 
     def _has_data(self, feature_class: str, name: str) -> bool:
         """Report whether a feature has computed coverage on disk.
@@ -155,9 +163,7 @@ class FeatureSelector:
         feature_class = self._class.value
         self._name.options = [
             (
-                name
-                if self._has_data(feature_class, name)
-                else name + configs.NO_DATA_SUFFIX,
+                name if self._has_data(feature_class, name) else name + NO_DATA_SUFFIX,
                 name,
             )
             for name in self._names[feature_class]

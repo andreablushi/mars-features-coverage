@@ -11,7 +11,7 @@ from campaign.results import Campaign
 from models.results import Event, SetCoverage
 from utils import mask as packing
 from utils import quantities
-from visualization import campaigns, configs, panels
+from visualization import campaigns, panels
 from visualization.selectors.window import Window
 
 _NO_WINDOW = "No stretch of time here holds a sounder track, so there is none to fill."
@@ -49,7 +49,7 @@ def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
           <div style="font-weight: 600; margin-bottom: 2px;">
             {escape(panels.title(coverage))}  -  pixels inside the best window
           </div>
-          <div style="color: {configs.GREY}; font-size: 12px; font-weight: 600;
+          <div style="color: {panels.GREY}; font-size: 12px; font-weight: 600;
                       margin-bottom: 8px;">
             {picked.start:%Y-%m-%d} to {picked.end:%Y-%m-%d},
             {escape(picked.length)}, {picked.observations:,} observations

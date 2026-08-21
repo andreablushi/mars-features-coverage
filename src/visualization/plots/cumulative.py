@@ -9,7 +9,14 @@ import ipywidgets as widgets
 import matplotlib.pyplot as plt
 
 from models.results import SetCoverage
-from visualization import configs, panels
+from visualization import panels
+
+# How an instrument set with nothing to draw is drawn anyway.
+UNOBSERVED_LINESTYLE = (0, (1, 3))
+
+# The running curve beside the totals, and how the width is split between them
+CUMULATIVE_FIGURE_SIZE = (13, 5)
+CUMULATIVE_WIDTH_RATIOS = [3, 1]
 
 
 def plot(coverage: Sequence[SetCoverage], _window) -> widgets.Widget:
@@ -30,8 +37,8 @@ def plot(coverage: Sequence[SetCoverage], _window) -> widgets.Widget:
     figure, (running, bars) = plt.subplots(
         1,
         2,
-        figsize=configs.CUMULATIVE_FIGURE_SIZE,
-        gridspec_kw={"width_ratios": configs.CUMULATIVE_WIDTH_RATIOS},
+        figsize=CUMULATIVE_FIGURE_SIZE,
+        gridspec_kw={"width_ratios": CUMULATIVE_WIDTH_RATIOS},
     )
     last = max(entry.summary.t_last for entry in coverage)
     for entry in coverage:
@@ -40,7 +47,7 @@ def plot(coverage: Sequence[SetCoverage], _window) -> widgets.Widget:
             times,
             fractions,
             linewidth=1.8,
-            linestyle="-" if entry.observed else configs.UNOBSERVED_LINESTYLE,
+            linestyle="-" if entry.observed else UNOBSERVED_LINESTYLE,
             color=colours[entry.label],
             label=(
                 f"{entry.label}  ({entry.summary.covered_frac:.1%})"

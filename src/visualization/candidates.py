@@ -10,8 +10,13 @@ from matplotlib.dates import date2num
 
 from models.results import Event, SetCoverage
 from utils import mask as packing
-from visualization import configs
 from visualization.selectors.window import Window
+
+# The grid of candidate windows a feature's record is scored on.
+WINDOW_COLUMNS = 240
+WINDOW_WIDTHS = 64
+WINDOW_MIN_DAYS = 1.0
+WINDOW_MAX_DAYS = 687.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,13 +61,13 @@ def build(coverage: Sequence[SetCoverage], window: Window) -> Grid | None:
         return None
     moments = np.sort(np.concatenate([_moments(events) for events in observed]))
     span = float(moments[-1] - moments[0])
-    if span < configs.WINDOW_MIN_DAYS:
+    if span < WINDOW_MIN_DAYS:
         return None
-    centres = np.linspace(moments[0], moments[-1], configs.WINDOW_COLUMNS)
+    centres = np.linspace(moments[0], moments[-1], WINDOW_COLUMNS)
     widths = np.geomspace(
-        configs.WINDOW_MIN_DAYS,
-        min(span, configs.WINDOW_MAX_DAYS),
-        configs.WINDOW_WIDTHS,
+        WINDOW_MIN_DAYS,
+        min(span, WINDOW_MAX_DAYS),
+        WINDOW_WIDTHS,
     )
     cells = coverage[0].summary.mask_cells
     covered = [_covered(events, cells, centres, widths) for events in observed]

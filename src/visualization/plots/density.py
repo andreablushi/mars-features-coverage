@@ -12,8 +12,14 @@ from matplotlib.colors import LogNorm
 from matplotlib.dates import date2num
 
 from models.results import SetCoverage
-from visualization import configs, panels
+from visualization import panels
 from visualization.selectors.window import Window, month_edges
+
+# How many months one density column covers, however long the range is.
+DENSITY_BIN_MONTHS = 1
+DENSITY_ROW_HEIGHT = 0.5
+DENSITY_EMPTY = "#ffffff"
+DENSITY_ROW_EDGE = "#cccccc"
 
 
 def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
@@ -33,13 +39,11 @@ def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
     binned = _bin_name()
     figure, axis = plt.subplots(
         figsize=(
-            configs.FIGURE_WIDTH,
-            configs.DENSITY_ROW_HEIGHT * len(coverage) + 1.8,
+            panels.FIGURE_WIDTH,
+            DENSITY_ROW_HEIGHT * len(coverage) + 1.8,
         )
     )
-    colours = plt.get_cmap(configs.DENSITY_COLORMAP).with_extremes(
-        bad=configs.DENSITY_EMPTY
-    )
+    colours = plt.get_cmap(panels.COLORMAP).with_extremes(bad=DENSITY_EMPTY)
     mesh = axis.pcolormesh(
         edges,
         np.arange(len(coverage) + 1),
@@ -68,7 +72,7 @@ def _bin_name() -> str:
         The bin width as it reads in a sentence, such as "month" or
         "3 months".
     """
-    months = configs.DENSITY_BIN_MONTHS
+    months = DENSITY_BIN_MONTHS
     return "month" if months == 1 else f"{months} months"
 
 
@@ -85,7 +89,7 @@ def _bins(coverage: Sequence[SetCoverage], window: Window) -> list[datetime]:
     """
     first = window.start or min(entry.summary.t_first for entry in coverage)
     last = window.end or max(entry.summary.t_last for entry in coverage)
-    return month_edges(first, last, configs.DENSITY_BIN_MONTHS)
+    return month_edges(first, last, DENSITY_BIN_MONTHS)
 
 
 def _counts(entry: SetCoverage, window: Window, edges: np.ndarray) -> np.ndarray:
@@ -118,7 +122,7 @@ def _label(axis, coverage: Sequence[SetCoverage], edges: np.ndarray) -> None:
     axis.set_yticks(np.arange(len(coverage)) + 0.5)
     axis.set_yticklabels([entry.label for entry in coverage], fontsize=9)
     for boundary in range(1, len(coverage)):
-        axis.axhline(boundary, color=configs.DENSITY_ROW_EDGE, linewidth=0.6)
+        axis.axhline(boundary, color=DENSITY_ROW_EDGE, linewidth=0.6)
     axis.invert_yaxis()
     axis.xaxis_date()
     axis.tick_params(labelsize=8, length=0)
@@ -132,5 +136,5 @@ def _label(axis, coverage: Sequence[SetCoverage], edges: np.ndarray) -> None:
                 ha="center",
                 va="center",
                 fontsize=8,
-                color=configs.GREY,
+                color=panels.GREY,
             )

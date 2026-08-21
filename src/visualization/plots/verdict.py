@@ -9,8 +9,15 @@ import ipywidgets as widgets
 
 from campaign.verdict import Check, Verdict
 from models.results import SetCoverage
-from visualization import campaigns, configs, panels
+from visualization import campaigns, panels
 from visualization.selectors.window import Window
+
+# How a feature that belongs in the dataset is marked, and one that does not.
+VERDICT_PASS = "#2e7d32"
+VERDICT_FAIL = "#c62828"
+VERDICT_KEPT = "In the dataset"
+VERDICT_LEFT = "Left out of the dataset"
+
 
 _HEADINGS = ("Asked of the feature", "What it holds", "Least it can hold", "")
 _MARKS = {True: "PASS", False: "FAIL"}
@@ -43,7 +50,7 @@ def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
             <tr>{"".join(_heading(name) for name in _HEADINGS)}</tr>
             {rows}
           </table>
-          <div style="color: {configs.GREY}; font-size: 12px; margin-top: 8px;">
+          <div style="color: {panels.GREY}; font-size: 12px; margin-top: 8px;">
             {escape(_ADVISORY)}
           </div>
         </div>"""
@@ -59,8 +66,8 @@ def _headline(verdict: Verdict) -> str:
     Returns:
         The banner, coloured by which way it went.
     """
-    colour = configs.VERDICT_PASS if verdict.kept else configs.VERDICT_FAIL
-    said = configs.VERDICT_KEPT if verdict.kept else configs.VERDICT_LEFT
+    colour = VERDICT_PASS if verdict.kept else VERDICT_FAIL
+    said = VERDICT_KEPT if verdict.kept else VERDICT_LEFT
     return (
         f'<div style="color: {colour}; font-size: 15px; font-weight: 600;'
         f' margin: 6px 0 8px 0;">{escape(said)}</div>'
@@ -93,9 +100,9 @@ def _row(check: Check) -> str:
         The row, its mark coloured only where the mark decides something.
     """
     if not check.required:
-        colour, mark = configs.GREY, _NOTE
+        colour, mark = panels.GREY, _NOTE
     else:
-        colour = configs.VERDICT_PASS if check.passed else configs.VERDICT_FAIL
+        colour = VERDICT_PASS if check.passed else VERDICT_FAIL
         mark = _MARKS[check.passed]
     return (
         f"<tr>{_cell(check.name, left=True)}{_cell(check.value)}"

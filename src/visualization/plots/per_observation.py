@@ -10,8 +10,11 @@ import numpy as np
 from matplotlib.lines import Line2D
 
 from models.results import SetCoverage
-from visualization import campaigns, configs, panels
+from visualization import campaigns, panels
 from visualization.selectors.window import Window
+
+# One stacked panel per instrument set, so the height is per panel
+PANEL_HEIGHT = 2.5
 
 
 def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
@@ -32,7 +35,7 @@ def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
     figure, axes = plt.subplots(
         len(coverage),
         1,
-        figsize=(configs.FIGURE_WIDTH, configs.PANEL_HEIGHT * len(coverage)),
+        figsize=(panels.FIGURE_WIDTH, PANEL_HEIGHT * len(coverage)),
         sharex=True,
         sharey=True,
     )
@@ -82,7 +85,7 @@ def _panel(axis, entry: SetCoverage, colour, area_km2: float) -> None:
             ha="center",
             va="center",
             fontsize=9,
-            color=configs.GREY,
+            color=panels.GREY,
         )
     axis.set_ylabel(entry.label, rotation=0, ha="right", va="center", fontsize=9)
     panels.tidy(axis, percent="y", grid="y")
@@ -103,9 +106,9 @@ def _key(axis, picked) -> None:
     marker = Line2D(
         [],
         [],
-        color=configs.CAMPAIGN_LINE,
-        linestyle=configs.CAMPAIGN_STYLE,
-        linewidth=configs.CAMPAIGN_WIDTH,
+        color=panels.CAMPAIGN_LINE,
+        linestyle=panels.CAMPAIGN_STYLE,
+        linewidth=panels.CAMPAIGN_WIDTH,
         label=picked.caption,
     )
     axis.legend(handles=[marker], fontsize=8, loc="upper right", frameon=False)
