@@ -7,7 +7,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from models.results import Event, SetCoverage
-from survey import configs, filtering
+from survey import configs
+from survey.filters import admissible
 from utils import mask as packing
 
 Burned = list[tuple[Event, list[int]]]
@@ -62,7 +63,7 @@ def build(coverage: Sequence[SetCoverage]) -> Track | None:
             # Gather the cells the observation fills
             cells = packing.cells_of(observation.mask).tolist()
             # Filter out not admissible observations, and keep the rest
-            if filtering.admissible(observation, cells, width_km):
+            if admissible.admissible(observation, cells, width_km):
                 # Keep track for future cumulation and search
                 burned.append((observation, cells))
             else:

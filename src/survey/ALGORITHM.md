@@ -16,24 +16,24 @@ A good stretch is one where:
 ## The steps, end to end
 
 Before the reasoning behind any of it, here is everything the code does, in
-order. Steps 1 to 6 build the timeline (`timeline.py:47`) and the rest is
+order. Steps 1 to 6 build the timeline (`models/track.py:47`) and the rest is
 the search over it (`algorithm.py:11`). `verdict.assess` (`verdict.py:61`) is
 what calls both.
 
 1. **Take each instrument set's observations**, every one the pipeline
-   computed for the feature (`timeline.py:62`).
+   computed for the feature (`models/track.py:61`).
 2. **Throw away the grazes.** An observation is kept only when it fills at
    least 2 cells of the feature's grid and covers at least 1 km2 of it. A
    sounder track has to cross at least a tenth of the feature's width as well
    (`filtering.py:11`).
 3. **Throw away the empty sets.** A set that observed the feature but filled
    none of its cells is dropped whole, rather than dragging every score it
-   appears in down to nothing (`timeline.py:68`).
+   appears in down to nothing (`models/track.py:70`).
 4. **Merge what is left onto one axis**, sorted by start time, oldest first
-   (`timeline.py:77`). If nothing survives, the feature has no survey and
-   the search stops here (`timeline.py:70`).
+   (`models/track.py:80`). If nothing survives, the feature has no survey and
+   the search stops here (`models/track.py:72`).
 5. **Count what each set holds in total**, meaning the different cells it fills
-   across its whole record (`timeline.py:89`). Every share later is measured
+   across its whole record (`models/track.py:93`). Every share later is measured
    against this.
 6. **Check a sounder survived** (`algorithm.py:21`). With no admissible sounder
    track left anywhere, there is no survey and the search stops.
@@ -72,15 +72,15 @@ All of them live in `configs.py`, and nothing else about the search is tunable.
 
 | Name | Value | Where | What it decides |
 |---|---|---|---|
-| `MIN_AREA_KM2` | 1.0 | `configs.py:22` | An observation has to cover at least a square kilometre of the feature (`filtering.py:49`). |
-| `MIN_CELLS` | 2 | `configs.py:23` | It also has to fill more than a single cell of the feature's grid (`filtering.py:47`). |
-| `MIN_CROSSING` | 0.10 | `configs.py:27` | A sounder track has to cross at least a tenth of the feature's width (`filtering.py:69`). |
+| `MIN_AREA_KM2` | 1.0 | `configs.py:22` | An observation has to cover at least a square kilometre of the feature (`filtering.py:27`). |
+| `MIN_CELLS` | 2 | `configs.py:23` | It also has to fill more than a single cell of the feature's grid (`filtering.py:24`). |
+| `MIN_CROSSING` | 0.10 | `configs.py:27` | A sounder track has to cross at least a tenth of the feature's width (`filtering.py:35`). |
 | `MIN_GAIN_CELLS` | 1 | `configs.py:33` | How many cells an observation must add that its own set did not already hold, to count as bringing ground of its own (`trimming.py:37`). |
 | `MIN_SETS` | 2 | `configs.py:30` | A feature is kept only when its window holds at least two instruments (`verdict.py:138`). |
 | `MAX_SPAN_DAYS` | 687.0 | `configs.py:7` | No window may run longer than one Mars year, which is every season the feature has (`algorithm.py:57`). |
 | `LEVELS` | 48 | `configs.py:11` | How many steps the ladder has, so 49 rungs counting the one asking for nothing (`algorithm.py:33`). |
 | `ROUNDING` | 1e-9 | `configs.py:14` | A share is added cell by cell, so a window landing a rounding error under a rung is let through anyway (`algorithm.py:48`). |
-| `DAY_SECONDS` | 86400.0 | `configs.py:17` | Every timestamp is divided by this, so a span is a number of days (`timeline.py:82`). |
+| `DAY_SECONDS` | 86400.0 | `configs.py:17` | Every timestamp is divided by this, so a span is a number of days (`models/track.py:86`). |
 
 ---
 
@@ -143,7 +143,7 @@ window lost it, and 132 of them settle on the same stretch of time either way.
 The 15 that move do so by half a day at the median, though the one that moves
 most stretches by 370 days once the tracks that only grazed it stop counting.
 
-*Code: the three floors are `filtering.py:11`, the crossing rule `filtering.py:54`, and they are applied on the way onto the timeline at `timeline.py:64`.*
+*Code: all three floors are one function, `admissible` (`filtering.py:11`), with the crossing rule at `filtering.py:35`, applied on the way onto the timeline at `models/track.py:65`.*
 
 ---
 
@@ -164,42 +164,42 @@ So `1.0` means "this window gives you everything that instrument ever gave you f
 A window's score is those instrument scores **multiplied together and rooted**,
 not averaged. The next section is about why.
 
-*Code: a set's share is `reach.py:83`, its total across the record `timeline.py:89`.*
+*Code: a set's share is `reach.py:83`, its total across the record `models/track.py:93`.*
 
 ---
 
 ## How the grid and the totals are built
 
-Everything here is done once, on the way onto the timeline (`timeline.py:47`),
-and the result is the `Track` the search walks (`timeline.py:17`).
+Everything here is done once, on the way onto the timeline (`models/track.py:47`),
+and the result is the `Track` the search walks (`models/track.py:17`).
 
 **The cells.** The analysis stage cuts the feature into a grid of small squares
 and hands every observation a bitmask of the cells it fills. The search never
 touches geometry. It unpacks that mask into a list of cell numbers once
-(`timeline.py:63`), and from then on an observation is a list of numbers and a
+(`models/track.py:63`), and from then on an observation is a list of numbers and a
 timestamp.
 
 **How many cells there are.** The analysis stage reports how many cells fall
 inside the feature, which on a feature whose outline curves is fewer than the
 rectangle the grid was cut from. The search takes whichever is larger, that
 count or the highest cell number anything actually filled plus one
-(`timeline.py:92`), so there is always room for everything that arrived.
+(`models/track.py:96`), so there is always room for everything that arrived.
 
 **The totals.** A set's total is the number of different cells its admissible
-observations fill across the whole record (`timeline.py:89`). This is the
+observations fill across the whole record (`models/track.py:93`). This is the
 bottom of its share (`reach.py:83`), so every set is scored against itself and
 never against the feature. A set filling 40 cells in total and 10 inside the
 window reaches 25%, whether the feature has 50 cells or 50,000.
 
 **The width a sounder is measured against.** The feature's width is the side of
 a square of the same area, so the square root of its area in square kilometres
-(`timeline.py:60`). A track's length inside the feature is the ground it laid
-there divided by the swath it sounds (`filtering.py:68`), which gives the
+(`models/track.py:59`). A track's length inside the feature is the ground it laid
+there divided by the swath it sounds (`filtering.py:33`), which gives the
 length back with no track geometry to carry around.
 
 **What is remembered about the rejects.** The timestamps of the observations
 turned away are kept, and so is how many of them were sounder tracks
-(`timeline.py:93`). That is what lets the scorecard tell a feature no sounder
+(`models/track.py:97`). That is what lets the scorecard tell a feature no sounder
 ever flew over from one whose only tracks grazed its edge (`verdict.py:89`).
 
 ---
@@ -585,7 +585,7 @@ It also writes its own one line summary for a legend or a title
 (`results.py:86`), and its length in units that read well (`results.py:73`).
 
 Nothing comes back at all when no set left anything measurable behind
-(`timeline.py:70`), or when no admissible sounder track exists anywhere in the
+(`models/track.py:72`), or when no admissible sounder track exists anywhere in the
 record (`algorithm.py:21`).
 
 ---
