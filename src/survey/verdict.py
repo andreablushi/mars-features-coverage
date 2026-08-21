@@ -6,9 +6,9 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from models.results import SetCoverage
-from survey import algorithm, configs, timeline
+from survey import algorithm, configs
+from survey.models.track import Track, build
 from survey.results import Survey
-from survey.timeline import Track
 from utils import quantities
 
 _NOTHING = "no cells filled"
@@ -79,7 +79,7 @@ def assess(coverage: Sequence[SetCoverage]) -> Verdict:
         The verdict, holding the window, every check, and the counts behind
         them.
     """
-    track = timeline.build(coverage)
+    track = build(coverage)
     if track is None:
         return Verdict(None, [Check("Ground on the feature", _NOTHING, "any", False)])
     picked = algorithm.search(track)
@@ -104,8 +104,9 @@ def _sounding(track: Track, picked: Survey | None) -> str:
     """
     if picked is not None:
         return "found"
-    if track.sounded:
-        return f"none, {track.sounded:,} tracks were too small to count"
+    sounded = sum(bool(observation.width_km) for observation in track.refused)
+    if sounded:
+        return f"none, {sounded:,} tracks were too small to count"
     return "none"
 
 
@@ -198,12 +199,11 @@ def _smallest(track: Track, picked: Survey) -> list[tuple[float, str, str]]:
         first, so that whatever the window is thinnest on is read first.
     """
     least: dict[int, tuple[float, float | None]] = {}
-    inside = zip(track.owners, track.moments, track.grounds, track.pixels, strict=True)
-    for owner, taken, ground, pixels in inside:
-        if picked.start <= taken <= picked.end:
+    for owner, observation in zip(track.owners, track.observations, strict=True):
+        if picked.start <= observation.t_start <= picked.end:
             held = least.get(owner)
-            if held is None or ground < held[0]:
-                least[owner] = (ground, pixels)
+            if held is None or observation.own_km2 < held[0]:
+                least[owner] = (observation.own_km2, observation.pixels)
     return sorted(
         (ground, _measured(ground, pixels), track.labels[owner])
         for owner, (ground, pixels) in least.items()
@@ -242,6 +242,11 @@ def _refused(track: Track, picked: Survey | None) -> str:
         How many were turned away, out of how many were taken.
     """
     if picked is None:
-        return f"{len(track.refused):,} of {len(track.refused) + track.size:,}"
-    inside = sum(1 for taken in track.refused if picked.start <= taken <= picked.end)
+        turned, taken = len(track.refused), len(track.observations)
+        return f"{turned:,} of {turned + taken:,}"
+    inside = sum(
+        1
+        for observation in track.refused
+        if picked.start <= observation.t_start <= picked.end
+    )
     return f"{inside:,} of {inside + picked.observations:,}"

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from survey.models.track import Track
 from survey.reach import Reach
 from survey.results import Span
-from survey.timeline import Track
 
 
 def widen(track: Track, span: Span, wanted: int = 0) -> Span:
@@ -27,7 +27,10 @@ def widen(track: Track, span: Span, wanted: int = 0) -> Span:
     first, last = span.first, span.last
     while first and track.times[first - 1] == track.times[first]:
         first -= 1
-    while last + 1 < track.size and track.times[last + 1] == track.times[last]:
+    while (
+        last + 1 < len(track.observations)
+        and track.times[last + 1] == track.times[last]
+    ):
         last += 1
     if (first, last) == (span.first, span.last):
         return span

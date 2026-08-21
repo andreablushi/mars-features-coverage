@@ -69,9 +69,9 @@ def _report(coverage: Sequence[SetCoverage], feature: Feature) -> widgets.HTML:
     lon = f"{feature.west_lon:.3f} to {feature.east_lon:.3f} lon"
     body = escape(
         "\n".join(
-            f"{entry.label:16s} {entry.summary.n_obs:6,d} observations"
-            f"{f'  ({entry.reason})' if entry.reason else ''}"
-            for entry in coverage
+            f"{instrument.label:16s} {instrument.summary.n_obs:6,d} observations"
+            f"{f'  ({instrument.reason})' if instrument.reason else ''}"
+            for instrument in coverage
         )
     )
     return widgets.HTML(

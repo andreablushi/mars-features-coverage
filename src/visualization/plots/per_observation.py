@@ -38,8 +38,8 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
         sharey=True,
     )
     axes = np.atleast_1d(axes)
-    for axis, entry in zip(axes, coverage, strict=True):
-        _panel(axis, entry, colours[entry.label], area_km2)
+    for axis, instrument in zip(axes, coverage, strict=True):
+        _panel(axis, instrument, colours[instrument.label], area_km2)
         if picked:
             panels.bracket(axis, picked.start, picked.end)
     _key(axes[0], picked)
@@ -55,36 +55,36 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     return panels.rendered(figure)
 
 
-def _panel(axis, entry: SetCoverage, colour, area_km2: float) -> None:
+def _panel(axis, instrument: SetCoverage, colour, area_km2: float) -> None:
     """Draw one instrument set's observations on its own panel.
 
     Args:
         axis: The panel to draw on.
-        entry: The instrument set being drawn.
+        instrument: The instrument set being drawn.
         colour: The colour the set is drawn in.
         area_km2: The feature's bounding box area, which the heights are a share of.
 
     Returns:
         None.
     """
-    times = [event.t_start for event in entry.events]
-    shares = [event.own_km2 / area_km2 for event in entry.events]
+    times = [observation.t_start for observation in instrument.events]
+    shares = [observation.own_km2 / area_km2 for observation in instrument.events]
     axis.vlines(times, 0.0, shares, color=colour, alpha=0.35, linewidth=0.7)
     axis.scatter(
         times, shares, s=12, alpha=0.65, color=colour, edgecolors="none", zorder=3
     )
-    if not entry.observed:
+    if not instrument.observed:
         axis.text(
             0.5,
             0.5,
-            entry.reason,
+            instrument.reason,
             transform=axis.transAxes,
             ha="center",
             va="center",
             fontsize=9,
             color=panels.GREY,
         )
-    axis.set_ylabel(entry.label, rotation=0, ha="right", va="center", fontsize=9)
+    axis.set_ylabel(instrument.label, rotation=0, ha="right", va="center", fontsize=9)
     panels.tidy(axis, percent="y", grid="y")
 
 

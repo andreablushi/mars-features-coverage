@@ -33,7 +33,7 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     if not coverage:
         return panels.unavailable()
     edges = date2num(_bins(coverage))
-    counts = np.array([_counts(entry, edges) for entry in coverage])
+    counts = np.array([_counts(instrument, edges) for instrument in coverage])
     binned = _bin_name()
     figure, axis = plt.subplots(
         figsize=(
@@ -83,8 +83,8 @@ def _bins(coverage: Sequence[SetCoverage]) -> list[datetime]:
     Returns:
         The edges in order, one more than there are bins.
     """
-    first = min(entry.summary.t_first for entry in coverage)
-    last = max(entry.summary.t_last for entry in coverage)
+    first = min(instrument.summary.t_first for instrument in coverage)
+    last = max(instrument.summary.t_last for instrument in coverage)
     return _month_edges(first, last, DENSITY_BIN_MONTHS)
 
 
@@ -136,17 +136,17 @@ def _first_of_next(day: date) -> date:
     return date(day.year + day.month // 12, day.month % 12 + 1, 1)
 
 
-def _counts(entry: SetCoverage, edges: np.ndarray) -> np.ndarray:
+def _counts(instrument: SetCoverage, edges: np.ndarray) -> np.ndarray:
     """Count one instrument set's observations in each time bin.
 
     Args:
-        entry: The instrument set being counted.
+        instrument: The instrument set being counted.
         edges: The bin edges as matplotlib date numbers, in order.
 
     Returns:
         One count per bin, in the same order.
     """
-    times = [date2num(event.t_start) for event in entry.events]
+    times = [date2num(observation.t_start) for observation in instrument.events]
     counts, _ = np.histogram(times, bins=edges)
     return counts
 
@@ -163,19 +163,19 @@ def _label(axis, coverage: Sequence[SetCoverage], edges: np.ndarray) -> None:
         None.
     """
     axis.set_yticks(np.arange(len(coverage)) + 0.5)
-    axis.set_yticklabels([entry.label for entry in coverage], fontsize=9)
+    axis.set_yticklabels([instrument.label for instrument in coverage], fontsize=9)
     for boundary in range(1, len(coverage)):
         axis.axhline(boundary, color=DENSITY_ROW_EDGE, linewidth=0.6)
     axis.invert_yaxis()
     axis.xaxis_date()
     axis.tick_params(labelsize=8, length=0)
     axis.spines[:].set_visible(False)
-    for row, entry in enumerate(coverage):
-        if not entry.observed:
+    for row, instrument in enumerate(coverage):
+        if not instrument.observed:
             axis.text(
                 (edges[0] + edges[-1]) / 2,
                 row + 0.5,
-                entry.reason,
+                instrument.reason,
                 ha="center",
                 va="center",
                 fontsize=8,

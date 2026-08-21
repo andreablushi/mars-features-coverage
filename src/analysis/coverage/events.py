@@ -26,7 +26,7 @@ def measure_set(
         region: That feature projected into equal-area metres.
 
     Returns:
-        One event row per observation and the summary row for the set.
+        One observation row per observation and the summary row for the set.
 
     Note:
         The union runs tile by tile so each insert touches a small shape and
@@ -38,19 +38,19 @@ def measure_set(
     fresh = union.new_ground(region, [o.shape for o in observations])
     cumulative = np.cumsum(fresh)
     grid = FeatureRaster(region)
-    events = [
+    observations = [
         _observation_row(
             feature, observation, region, fresh, cumulative, position, grid
         )
         for position, observation in enumerate(observations)
     ]
-    return events, _set_summary_row(
+    return observations, _set_summary_row(
         feature,
         loaded.set_key,
         observations[0],
         region,
         cumulative,
-        events,
+        observations,
         grid.cells,
     )
 
@@ -76,7 +76,7 @@ def _observation_row(
         grid: The feature's cells, which the footprint is burned into.
 
     Returns:
-        The event row.
+        The observation row.
     """
     return Event(
         feature_class=feature.feature_class,
@@ -103,7 +103,7 @@ def _set_summary_row(
     observation: ProjectedObservation,
     region: FeatureRegion,
     cumulative: np.ndarray,
-    events: Sequence[Event],
+    observations: Sequence[Event],
     cells: int,
 ) -> Summary:
     """Build the one row describing a finished instrument set.
@@ -115,14 +115,14 @@ def _set_summary_row(
             instrument host, instrument, and product type.
         region: That feature projected into equal-area metres.
         cumulative: The running total behind every observation.
-        events: The set's event rows, in chronological order.
+        observations: The set's observation rows, in chronological order.
         cells: How many of the feature's grid cells fall inside it.
 
     Returns:
         The summary row.
     """
     covered_m2 = float(cumulative[-1])
-    first, last = events[0].t_start, events[-1].t_start
+    first, last = observations[0].t_start, observations[-1].t_start
     return Summary(
         feature_class=feature.feature_class,
         feature_name=feature.name,
@@ -133,10 +133,10 @@ def _set_summary_row(
         feature_area_km2=region.area_m2 / 1e6,
         covered_km2=covered_m2 / 1e6,
         covered_frac=covered_m2 / region.area_m2,
-        n_obs=len(events),
+        n_obs=len(observations),
         t_first=first,
         t_last=last,
         span_days=(last - first).total_seconds() / 86400.0,
         mask_cells=cells,
-        pixels=sum(event.pixels for event in events),
+        pixels=sum(observation.pixels for observation in observations),
     )

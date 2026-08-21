@@ -37,19 +37,19 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
         figsize=CUMULATIVE_FIGURE_SIZE,
         gridspec_kw={"width_ratios": CUMULATIVE_WIDTH_RATIOS},
     )
-    last = max(entry.summary.t_last for entry in coverage)
-    for entry in coverage:
-        times, fractions = _points(entry, last)
+    last = max(instrument.summary.t_last for instrument in coverage)
+    for instrument in coverage:
+        times, fractions = _points(instrument, last)
         running.plot(
             times,
             fractions,
             linewidth=1.8,
-            linestyle="-" if entry.observed else UNOBSERVED_LINESTYLE,
-            color=colours[entry.label],
+            linestyle="-" if instrument.observed else UNOBSERVED_LINESTYLE,
+            color=colours[instrument.label],
             label=(
-                f"{entry.label}  ({entry.summary.covered_frac:.1%})"
-                if entry.observed
-                else f"{entry.label}  ({entry.reason})"
+                f"{instrument.label}  ({instrument.summary.covered_frac:.1%})"
+                if instrument.observed
+                else f"{instrument.label}  ({instrument.reason})"
             ),
         )
     running.set_title(
@@ -66,21 +66,21 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     return panels.rendered(figure)
 
 
-def _points(entry: SetCoverage, last: datetime) -> tuple[list, list[float]]:
+def _points(instrument: SetCoverage, last: datetime) -> tuple[list, list[float]]:
     """Return one instrument set's running coverage, rooted at zero.
 
     Args:
-        entry: The instrument set being drawn.
+        instrument: The instrument set being drawn.
         last: When the latest observation on the panel was taken.
 
     Returns:
         The times and the share covered by then, in chronological order.
     """
-    if not entry.observed:
-        return [entry.summary.t_first, last], [0.0, 0.0]
-    first = entry.events[0].t_start
-    times = [first] + [event.t_start for event in entry.events]
-    fractions = [0.0] + [event.cum_frac for event in entry.events]
+    if not instrument.observed:
+        return [instrument.summary.t_first, last], [0.0, 0.0]
+    first = instrument.events[0].t_start
+    times = [first] + [observation.t_start for observation in instrument.events]
+    fractions = [0.0] + [observation.cum_frac for observation in instrument.events]
     if times[-1] < last:
         times.append(last)
         fractions.append(fractions[-1])
@@ -100,9 +100,9 @@ def _totals(axis, coverage: Sequence[SetCoverage], colours: dict) -> None:
     """
     ranked = list(coverage)[::-1]
     axis.barh(
-        [entry.label for entry in ranked],
-        [entry.summary.covered_frac for entry in ranked],
-        color=[colours[entry.label] for entry in ranked],
+        [instrument.label for instrument in ranked],
+        [instrument.summary.covered_frac for instrument in ranked],
+        color=[colours[instrument.label] for instrument in ranked],
     )
     axis.set_title("Total covered", fontsize=11, loc="left")
     axis.set_xlim(0, 1.05)

@@ -66,12 +66,12 @@ def _key(coverage: Sequence[SetCoverage]) -> tuple:
     first = coverage[0].summary
     measured = tuple(
         (
-            entry.summary.set_key,
-            entry.summary.n_obs,
-            entry.summary.t_last,
-            entry.summary.covered_km2,
-            entry.summary.mask_cells,
+            instrument.summary.set_key,
+            instrument.summary.n_obs,
+            instrument.summary.t_last,
+            instrument.summary.covered_km2,
+            instrument.summary.mask_cells,
         )
-        for entry in coverage
+        for instrument in coverage
     )
     return (first.feature_class, first.feature_name, measured)

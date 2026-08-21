@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from survey import configs
+from survey.models.track import Track
 from survey.results import Span
-from survey.timeline import Track
 
 
 def core(track: Track, span: Span) -> int:

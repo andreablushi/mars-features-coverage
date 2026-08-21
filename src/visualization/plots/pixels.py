@@ -41,7 +41,7 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     picked = surveys.picked(coverage)
     if picked is None:
         return panels.unavailable(_NO_WINDOW)
-    rows = "".join(_row(entry, picked) for entry in coverage)
+    rows = "".join(_row(instrument, picked) for instrument in coverage)
     return widgets.HTML(
         f"""<div style="font-family: sans-serif; font-size: 13px;">
           <div style="font-weight: 600; margin-bottom: 2px;">
@@ -76,21 +76,23 @@ def _heading(name: str) -> str:
     )
 
 
-def _row(entry: SetCoverage, picked: Survey) -> str:
+def _row(instrument: SetCoverage, picked: Survey) -> str:
     """Build one instrument set's row of the table.
 
     Args:
-        entry: The instrument set the row describes.
+        instrument: The instrument set the row describes.
         picked: The window its observations are counted inside.
 
     Returns:
         The row, saying so where the artifacts carry no pixel count at all.
     """
     held = [
-        event for event in entry.events if picked.start <= event.t_start <= picked.end
+        observation
+        for observation in instrument.events
+        if picked.start <= observation.t_start <= picked.end
     ]
-    inside, total = _pixels(held), entry.summary.pixels
-    ground = _ground(held, entry.summary.mask_cells)
+    inside, total = _pixels(held), instrument.summary.pixels
+    ground = _ground(held, instrument.summary.mask_cells)
     if inside is None or total is None:
         cells = [f"{len(held):,}", _UNMEASURED, _UNMEASURED, ground]
     else:
@@ -101,7 +103,7 @@ def _row(entry: SetCoverage, picked: Survey) -> str:
             ground,
         ]
     return (
-        f"<tr>{_cell(entry.label, left=True)}"
+        f"<tr>{_cell(instrument.label, left=True)}"
         f"{''.join(_cell(value) for value in cells)}</tr>"
     )
 
@@ -123,7 +125,7 @@ def _cell(value: str, left: bool = False) -> str:
     )
 
 
-def _ground(events: Sequence[Event], cells: int) -> str:
+def _ground(observations: Sequence[Event], cells: int) -> str:
     """Work out how much of the feature a run of observations covers.
 
     The cells are unioned rather than added up, so a set that images the same
@@ -132,7 +134,7 @@ def _ground(events: Sequence[Event], cells: int) -> str:
     a revisit.
 
     Args:
-        events: The observations to measure, from one instrument set.
+        observations: The observations to measure, from one instrument set.
         cells: How many cells of the feature's grid fall inside it.
 
     Returns:
@@ -141,20 +143,24 @@ def _ground(events: Sequence[Event], cells: int) -> str:
     if not cells:
         return _UNMEASURED
     covered: set[int] = set()
-    for event in events:
-        covered.update(packing.cells_of(event.mask).tolist())
+    for observation in observations:
+        covered.update(packing.cells_of(observation.mask).tolist())
     return f"{len(covered) / cells:.1%}"
 
 
-def _pixels(events: Sequence[Event]) -> float | None:
+def _pixels(observations: Sequence[Event]) -> float | None:
     """Add up the pixels a run of observations landed inside the feature.
 
     Args:
-        events: The observations to count, which may predate the measurement.
+        observations: The observations to count, which may predate the measurement.
 
     Returns:
         The total, counting a revisited patch again as the pipeline does, or
         None when any of them was written before pixels were computed.
     """
-    counted = [event.pixels for event in events if event.pixels is not None]
-    return sum(counted) if len(counted) == len(events) else None
+    counted = [
+        observation.pixels
+        for observation in observations
+        if observation.pixels is not None
+    ]
+    return sum(counted) if len(counted) == len(observations) else None

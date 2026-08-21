@@ -8,7 +8,7 @@ from models.results import Event
 from survey import configs
 
 
-def admissible(event: Event, cells: Sequence[int], width_km: float) -> bool:
+def admissible(observation: Event, cells: Sequence[int], width_km: float) -> bool:
     """Report whether one observation says enough about a feature to be counted.
 
     A footprint that grazes a feature reports the edge it clipped rather than
@@ -36,7 +36,7 @@ def admissible(event: Event, cells: Sequence[int], width_km: float) -> bool:
     ground it covers.
 
     Args:
-        event: The observation, carrying the ground it landed in the feature.
+        observation: The observation, carrying the ground it landed in the feature.
         cells: The feature's cells its footprint fills.
         width_km: How wide the feature is, which only a sounder is measured
             against.
@@ -46,12 +46,12 @@ def admissible(event: Event, cells: Sequence[int], width_km: float) -> bool:
     """
     if len(cells) < configs.MIN_CELLS:
         return False
-    if event.own_km2 < configs.MIN_AREA_KM2:
+    if observation.own_km2 < configs.MIN_AREA_KM2:
         return False
-    return not event.width_km or _crosses(event, width_km)
+    return not observation.width_km or _crosses(observation, width_km)
 
 
-def _crosses(event: Event, width_km: float) -> bool:
+def _crosses(observation: Event, width_km: float) -> bool:
     """Report whether a sounder track runs far enough across the feature.
 
     The ground a track lays inside the feature is its length there times the
@@ -59,11 +59,11 @@ def _crosses(event: Event, width_km: float) -> bool:
     with no track geometry to carry around.
 
     Args:
-        event: The track, carrying the ground it laid and the swath it sounds.
+        observation: The track, carrying the ground it laid and the swath it sounds.
         width_km: How wide the feature is.
 
     Returns:
         True when it ran at least the required share of that width.
     """
-    crossed = event.own_km2 / event.width_km
+    crossed = observation.own_km2 / observation.width_km
     return crossed >= configs.MIN_CROSSING * width_km

@@ -24,7 +24,9 @@ def plotted(coverage: Sequence[SetCoverage]) -> list[SetCoverage]:
     ranks = {
         chosen.key: rank for rank, chosen in enumerate(wanted or config.instrument_sets)
     }
-    return sorted(drawn, key=lambda entry: ranks.get(entry.summary.set_key, len(ranks)))
+    return sorted(
+        drawn, key=lambda instrument: ranks.get(instrument.summary.set_key, len(ranks))
+    )
 
 
 def _named(
@@ -40,4 +42,4 @@ def _named(
         Those of them the feature holds, in the order they came in.
     """
     keys = {chosen.key for chosen in wanted}
-    return [entry for entry in coverage if entry.summary.set_key in keys]
+    return [instrument for instrument in coverage if instrument.summary.set_key in keys]

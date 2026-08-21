@@ -134,13 +134,16 @@ def load_feature(
     """
     directory = feature_artifacts_dir(root, feature_class, name)
     measured = [
-        entry
+        instrument
         for path in sorted(directory.glob(f"*{paths.EVENTS_SUFFIX}"))
-        if (entry := _load_set(path))
+        if (instrument := _load_set(path))
     ]
     return sorted(
         measured + _unobserved(measured, catalogued_sets(artifacts_root), directory),
-        key=lambda entry: (-entry.summary.covered_frac, -entry.summary.n_obs),
+        key=lambda instrument: (
+            -instrument.summary.covered_frac,
+            -instrument.summary.n_obs,
+        ),
     )
 
 
@@ -185,7 +188,7 @@ def _load_set(events_path: Path) -> SetCoverage | None:
 def _unobserved(
     measured: Sequence[SetCoverage], catalogued: Sequence[str], directory: Path
 ) -> list[SetCoverage]:
-    """Build an empty entry for every set with no measurement of this feature.
+    """Build an empty instrument for every set with no measurement of this feature.
 
     A set with records downloaded but no artifact beside them was never
     measured, and saying it observed nothing would be as misleading as leaving
@@ -203,15 +206,15 @@ def _unobserved(
     """
     if not measured:
         return []
-    known = {entry.summary.set_key for entry in measured}
+    known = {instrument.summary.set_key for instrument in measured}
     reference = replace(
         measured[0].summary,
         covered_km2=0.0,
         covered_frac=0.0,
         n_obs=0,
         pixels=0.0,
-        t_first=min(entry.summary.t_first for entry in measured),
-        t_last=max(entry.summary.t_last for entry in measured),
+        t_first=min(instrument.summary.t_first for instrument in measured),
+        t_last=max(instrument.summary.t_last for instrument in measured),
         span_days=0.0,
     )
     missing = [InstrumentSet.from_key(key) for key in catalogued if key not in known]

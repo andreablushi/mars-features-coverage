@@ -1,12 +1,4 @@
-"""How a footprint's cells are packed, written once and read back.
-
-A footprint is recorded as the cells of its feature that it fills. On a small
-feature it fills most of them, and a bit per cell is the compact form. On a
-feature so large that a footprint covers one cell in ten thousand, the same
-bitmap is almost entirely zeros, and listing the few cells outright is far
-smaller. Both forms are written here, tagged by a leading byte, so a reader
-never has to know which one it is looking at.
-"""
+"""How a footprint's cells are packed, written once and read back."""
 
 from __future__ import annotations
 

@@ -43,7 +43,10 @@ def colours(coverage: Sequence[SetCoverage]) -> dict[str, Colour]:
         One colour per instrument set label.
     """
     wheel = cycle(plt.cm.tab10.colors)
-    return {entry.label: colour for entry, colour in zip(coverage, wheel, strict=False)}
+    return {
+        instrument.label: colour
+        for instrument, colour in zip(coverage, wheel, strict=False)
+    }
 
 
 def tidy(axis: Axes, percent: str, grid: str) -> None:

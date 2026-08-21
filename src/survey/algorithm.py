@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from survey import configs, curve, measuring, trimming
+from survey.models.track import Track
 from survey.reach import Reach
 from survey.results import Span, Survey
-from survey.timeline import Track
 
 
 def search(track: Track) -> Survey | None:
@@ -25,11 +25,11 @@ def search(track: Track) -> Survey | None:
 
     frontier: list[Span] = []
     # 2. Every instrument first, dropping to fewer only when none of them fit.
-    for wanted in range(track.sets, 0, -1):
+    for wanted in range(len(track.labels), 0, -1):
         frontier, seen = [], set()
         # Rungs climb towards what the whole record reaches rather than towards
         # one, so the curve is sampled evenly whatever the feature can offer.
-        ceiling = measuring.measure(track, 0, track.size - 1, wanted).mean
+        ceiling = measuring.measure(track, 0, len(track.observations) - 1, wanted).mean
         for step in range(configs.LEVELS + 1):
             level = (
                 ceiling * step / configs.LEVELS
@@ -39,7 +39,7 @@ def search(track: Track) -> Survey | None:
             held = Reach(track.totals, track.grid, wanted)
             found: Span | None = None
             sounders, left = 0, 0
-            for right in range(track.size):
+            for right in range(len(track.observations)):
                 held.hold(owners[right], cells[right])  # take the next one in
                 sounders += sounder[right]
                 while (
@@ -78,8 +78,8 @@ def search(track: Track) -> Survey | None:
     picked = frontier[turn] if knee else frontier[-1]
 
     return Survey(
-        start=track.moments[picked.first],
-        end=track.moments[picked.last],
+        start=track.observations[picked.first].t_start,
+        end=track.observations[picked.last].t_start,
         days=picked.days,
         reach=picked.reach,
         instruments=picked.instruments,
