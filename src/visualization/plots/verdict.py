@@ -8,7 +8,8 @@ from html import escape
 import ipywidgets as widgets
 
 from models.results import SetCoverage
-from survey.verdict import Check, Verdict
+from survey.filters.verdict import kept
+from survey.models.verdict import Row, Verdict
 from visualization import panels, surveys
 
 # How a feature that belongs in the dataset is marked, and one that does not.
@@ -64,8 +65,9 @@ def _headline(verdict: Verdict) -> str:
     Returns:
         The banner, coloured by which way it went.
     """
-    colour = VERDICT_PASS if verdict.kept else VERDICT_FAIL
-    said = VERDICT_KEPT if verdict.kept else VERDICT_LEFT
+    held = kept(verdict.checks)
+    colour = VERDICT_PASS if held else VERDICT_FAIL
+    said = VERDICT_KEPT if held else VERDICT_LEFT
     return (
         f'<div style="color: {colour}; font-size: 15px; font-weight: 600;'
         f' margin: 6px 0 8px 0;">{escape(said)}</div>'
@@ -88,7 +90,7 @@ def _heading(name: str) -> str:
     )
 
 
-def _row(check: Check) -> str:
+def _row(check: Row) -> str:
     """Build one requirement's row of the scorecard.
 
     Args:
@@ -97,14 +99,15 @@ def _row(check: Check) -> str:
     Returns:
         The row, its mark coloured only where the mark decides something.
     """
-    if not check.required:
+    name, value, wanted, passed = check
+    if passed is None:
         colour, mark = panels.GREY, _NOTE
     else:
-        colour = VERDICT_PASS if check.passed else VERDICT_FAIL
-        mark = _MARKS[check.passed]
+        colour = VERDICT_PASS if passed else VERDICT_FAIL
+        mark = _MARKS[passed]
     return (
-        f"<tr>{_cell(check.name, left=True)}{_cell(check.value)}"
-        f"{_cell(check.wanted)}{_cell(mark, colour=colour)}</tr>"
+        f"<tr>{_cell(name, left=True)}{_cell(value)}"
+        f"{_cell(wanted)}{_cell(mark, colour=colour)}</tr>"
     )
 
 

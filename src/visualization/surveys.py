@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from models.results import SetCoverage
-from survey import verdict
+from survey.filters import verdict
 from survey.models.survey import Survey
-from survey.verdict import Verdict
+from survey.models.verdict import Verdict
 
 # How many searches are kept, so every panel of a feature shares one.
 SURVEY_CACHE = 8

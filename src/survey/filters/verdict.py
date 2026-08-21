@@ -1,61 +1,31 @@
-"""Whether a feature earns a place in the dataset, and what decided it."""
+"""Asking a feature everything the dataset asks of it."""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
 
 from models.results import SetCoverage
 from survey import algorithm, configs
 from survey.models.survey import Survey
 from survey.models.track import Track, build
+from survey.models.verdict import Row, Verdict
 from utils.maths import quantities
 
 _NOTHING = "no cells filled"
 _UNCOUNTED = "not counted"
 
 
-@dataclass(frozen=True, slots=True)
-class Check:
-    """One thing asked of a feature, and what the feature answered.
+def kept(checks: Sequence[Row]) -> bool:
+    """Report whether the feature belongs in the dataset.
 
-    Attributes:
-        name: What is being asked of it.
-        value: What it holds, written to be read.
-        wanted: The least it can hold and still pass, or an empty string when
-            the row is there to be read rather than to be met.
-        passed: Whether it holds it.
-        required: Whether failing this alone keeps the feature out.
+    Args:
+        checks: Everything asked of it.
+
+    Returns:
+        True when everything required of it holds. A row there to be read has
+        no say in this.
     """
-
-    name: str
-    value: str
-    wanted: str
-    passed: bool
-    required: bool = True
-
-
-@dataclass(frozen=True, slots=True)
-class Verdict:
-    """Whether one feature belongs in the dataset, and everything behind it.
-
-    Attributes:
-        survey: The window the search picked, or None when it found none.
-        checks: Everything asked of the feature, in the order they read.
-    """
-
-    survey: Survey | None
-    checks: list[Check]
-
-    @property
-    def kept(self) -> bool:
-        """Report whether the feature belongs in the dataset.
-
-        Returns:
-            True when everything required of it holds. A row that is there to
-            be read has no say in this.
-        """
-        return all(check.passed for check in self.checks if check.required)
+    return all(passed for _, _, _, passed in checks if passed is not None)
 
 
 def assess(coverage: Sequence[SetCoverage]) -> Verdict:
@@ -81,7 +51,7 @@ def assess(coverage: Sequence[SetCoverage]) -> Verdict:
     """
     track = build(coverage)
     if track is None:
-        return Verdict(None, [Check("Ground on the feature", _NOTHING, "any", False)])
+        return Verdict(None, [("Ground on the feature", _NOTHING, "any", False)])
     picked = algorithm.search(track)
     return Verdict(survey=picked, checks=_checks(track, picked))
 
@@ -110,7 +80,7 @@ def _sounding(track: Track, picked: Survey | None) -> str:
     return "none"
 
 
-def _checks(track: Track, picked: Survey | None) -> list[Check]:
+def _checks(track: Track, picked: Survey | None) -> list[Row]:
     """Ask a feature everything the dataset asks of it.
 
     Args:
@@ -118,11 +88,10 @@ def _checks(track: Track, picked: Survey | None) -> list[Check]:
         picked: The window the search found, or None when it found none.
 
     Returns:
-        Every check, the required ones first and what is only worth reading
-        last.
+        Every row, the required ones first and what is only worth reading last.
     """
     rows = [
-        Check(
+        (
             "A window holding a sounder track",
             _sounding(track, picked),
             "one",
@@ -131,44 +100,40 @@ def _checks(track: Track, picked: Survey | None) -> list[Check]:
     ]
     if picked is not None:
         rows += [
-            Check(
+            (
                 "Instruments in the window",
                 f"{picked.instruments}",
                 f"{configs.MIN_SETS}",
                 picked.instruments >= configs.MIN_SETS,
             ),
-            Check(
+            (
                 "Observations bringing ground of their own",
                 f"{picked.core:,} of {picked.observations:,}",
                 "",
-                True,
-                required=False,
+                None,
             ),
-            Check(
+            (
                 "Ground the window reaches, counted evenly",
                 f"{picked.reach:.0%} over {quantities.duration(picked.days)}",
                 "",
-                True,
-                required=False,
+                None,
             ),
         ]
         rows += [
-            Check(
+            (
                 f"Smallest observation from {label}",
                 reads,
                 "",
-                True,
-                required=False,
+                None,
             )
             for _, reads, label in _smallest(track, picked)
         ]
     rows.append(
-        Check(
+        (
             "Observations too small to count",
             _refused(track, picked),
             "",
-            True,
-            required=False,
+            None,
         )
     )
     return rows

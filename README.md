@@ -117,7 +117,7 @@ src/
   storage/            # Caches and the parquet read/write helpers
   download/           # ODE metadata fetching
   analysis/           # Coverage measurement and summary generation
-  survey/             # The best time window search, see its ALGORITHM.md
+  survey/             # The best time window search, and whether a feature is kept
   visualization/      # Notebook and figure generation
 data/
   _catalog/           # Cached ODE catalogs
