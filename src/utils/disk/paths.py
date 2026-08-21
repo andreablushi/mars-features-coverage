@@ -6,9 +6,9 @@ from pathlib import Path
 
 from models.feature import Feature
 from models.instrument import InstrumentSet
-from utils.slugify import slugify
+from utils.disk.slugify import slugify
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 CONFIG_PATH = REPO_ROOT / "config.yaml"
 

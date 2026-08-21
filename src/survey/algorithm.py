@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from survey import configs, curve
+from survey import configs
 from survey.filters import redundancy
 from survey.models.track import Track
 from survey.models.window import Window
 from survey.reach import Reach
 from survey.results import Survey
+from utils.maths import quantities
 
 
 def search(track: Track) -> Survey | None:
@@ -69,8 +70,8 @@ def search(track: Track) -> Survey | None:
 
     # 4. The knee: rescale both axes to nought and one, then take the point
     #    sitting furthest above the diagonal joining the ends of the curve.
-    cost = curve.unit([span.days for span in frontier])
-    gain = curve.unit([span.reach for span in frontier])
+    cost = quantities.unit([span.days for span in frontier])
+    gain = quantities.unit([span.reach for span in frontier])
     lift = [ground - days for days, ground in zip(cost, gain, strict=True)]
     turn = max(range(len(lift)), key=lift.__getitem__)
     # Nothing above the diagonal means ground is speeding up rather than

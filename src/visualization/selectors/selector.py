@@ -9,7 +9,7 @@ from IPython.display import display
 
 from models.results import SetCoverage
 from storage import catalog, summary
-from utils.slugify import slugify
+from utils.disk.slugify import slugify
 from visualization import panels, sets
 
 # The feature class the picker opens on

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-import utils.settings as settings
+import utils.disk.settings as settings
 from models.instrument import InstrumentSet
 from models.results import SetCoverage
 

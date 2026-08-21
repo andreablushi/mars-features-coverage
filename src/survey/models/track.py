@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from models.results import Event, SetCoverage
 from survey import configs
 from survey.filters import admissible
-from utils import mask as packing
+from utils.maths import mask as packing
 
 Burned = list[tuple[Event, list[int]]]
 

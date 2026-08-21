@@ -9,8 +9,8 @@ import ipywidgets as widgets
 
 from models.results import Event, SetCoverage
 from survey.results import Survey
-from utils import mask as packing
-from utils import quantities
+from utils.maths import mask as packing
+from utils.maths import quantities
 from visualization import panels, surveys
 
 _NO_WINDOW = "No stretch of time here holds a sounder track, so there is none to fill."

@@ -9,7 +9,7 @@ import numpy as np
 from matplotlib.dates import date2num
 
 from models.results import Event, SetCoverage
-from utils import mask as packing
+from utils.maths import mask as packing
 
 # The grid of candidate windows a feature's record is scored on.
 WINDOW_COLUMNS = 240
@@ -85,6 +85,17 @@ def build(coverage: Sequence[SetCoverage]) -> Grid | None:
 
 def _evenly(covered: Sequence[np.ndarray]) -> np.ndarray:
     """Count what the instruments cover the way the search counts it.
+
+    This is the search's own geometric mean, written again over a whole grid
+    at once rather than over one sliding window, so the two are kept in step
+    by hand. It reads close to the search but not identically to it, in two
+    ways worth knowing when a square's colour is read beside the window the
+    search picked.
+
+    Each share here is of the feature, where the search takes a set's share of
+    its own whole record. And every set counts here, where the search scores
+    on the best few whenever it has settled for fewer instruments than the
+    feature has.
 
     Args:
         covered: What share of the feature each set covers, one array per set.

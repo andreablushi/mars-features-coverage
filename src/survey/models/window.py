@@ -40,7 +40,7 @@ class Window:
             The same stretch of time, holding everything taken during it.
         """
         first, last = self.first, self.last
-        # Expand the window to include any observations that share the same time as the first
+        # Expand the window to any observation sharing the same time as the first
         while first and track.times[first - 1] == track.times[first]:
             first -= 1
         while (
@@ -50,7 +50,7 @@ class Window:
             last += 1
         if (first, last) == (self.first, self.last):
             return self
-        # If the window has changed, measure the new reach and return a new Window instance
+        # If the window has changed, measure its new reach and return a new Window
         held = Window.measure(track, first, last, wanted)
         return Window(first, last, self.days, held.mean, held.instruments)
 

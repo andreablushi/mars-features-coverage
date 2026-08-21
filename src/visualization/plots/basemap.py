@@ -14,7 +14,7 @@ from analysis.utils import geodesy
 from models.feature import Feature
 from models.results import SetCoverage
 from storage import catalog
-from utils.slugify import slugify
+from utils.disk.slugify import slugify
 from visualization import panels
 
 # The global mosaic a feature is drawn on, served as WMS by the USGS.

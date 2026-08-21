@@ -9,7 +9,7 @@ from models.results import SetCoverage
 from survey import algorithm, configs
 from survey.models.track import Track, build
 from survey.results import Survey
-from utils import quantities
+from utils.maths import quantities
 
 _NOTHING = "no cells filled"
 _UNCOUNTED = "not counted"

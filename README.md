@@ -110,12 +110,14 @@ src/
   settings.py         # The config.yaml parser and validator
   runner.py           # Orchestrates the pipeline stages
   console.py          # Progress bar for console prints
-  utils.py            # Helpers shared across the pipeline
+  utils/
+    maths/            # Scaling, formatting, and cell packing
+    disk/             # Project paths, config.yaml, slugs, record provenance
   models/             # The data model: features, instruments, coverage, geometry
   storage/            # Caches and the parquet read/write helpers
   download/           # ODE metadata fetching
   analysis/           # Coverage measurement and summary generation
-  survey/           # The best time window search, see its ALGORITHM.md
+  survey/             # The best time window search, see its ALGORITHM.md
   visualization/      # Notebook and figure generation
 data/
   _catalog/           # Cached ODE catalogs

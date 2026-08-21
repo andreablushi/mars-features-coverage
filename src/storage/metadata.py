@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from pathlib import Path
 
-import utils.paths as paths
+import utils.disk.paths as paths
 from models.instrument import InstrumentSet
 from models.job import Outcome
 
