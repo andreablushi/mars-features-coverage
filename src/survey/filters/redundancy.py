@@ -4,22 +4,22 @@ from __future__ import annotations
 
 from survey import configs
 from survey.models.track import Track
-from survey.results import Span
+from survey.models.window import Window
 
 
-def trimming(track: Track, span: Span) -> int:
+def trimming(track: Track, window: Window) -> int:
     """Separate the observations that add coverage from the ones that repeat it.
 
     Args:
         track: The feature's observations on one time axis.
-        span: The window they are counted inside.
+        window: The window they are counted inside.
 
     Returns:
         How many of its observations brought ground of their own.
     """
     seen: dict[int, set[int]] = {}
     counted = 0
-    for index in range(span.first, span.last + 1):
+    for index in range(window.first, window.last + 1):
         # Each set is scored against its own record, so each keeps its own seen cells.
         held = seen.setdefault(track.owners[index], set())
         # Ground its own set had not reached anywhere earlier in the window

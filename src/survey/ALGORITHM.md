@@ -17,7 +17,7 @@ A good stretch is one where:
 
 Before the reasoning behind any of it, here is everything the code does, in
 order. Steps 1 to 6 build the timeline (`models/track.py:48`) and the rest is
-the search over it (`algorithm.py:12`). `verdict.assess` (`verdict.py:61`) is
+the search over it (`algorithm.py:13`). `verdict.assess` (`verdict.py:61`) is
 what calls both.
 
 1. **Take each instrument set's observations**, every one the pipeline
@@ -35,32 +35,32 @@ what calls both.
 5. **Count what each set holds in total**, meaning the different cells it fills
    across its whole record (`models/track.py:93`). Every share later is measured
    against this.
-6. **Check a sounder survived** (`algorithm.py:22`). With no admissible sounder
+6. **Check a sounder survived** (`algorithm.py:23`). With no admissible sounder
    track left anywhere, there is no survey and the search stops.
-7. **Insist on every instrument the feature has** (`algorithm.py:29`).
+7. **Insist on every instrument the feature has** (`algorithm.py:30`).
 8. **Work out the ceiling**, the score the whole record reaches from its first
-   observation to its last (`algorithm.py:33`). The rungs climb towards this,
+   observation to its last (`algorithm.py:34`). The rungs climb towards this,
    not towards a perfect score.
-9. **Climb 49 rungs**, from nothing up to that ceiling (`algorithm.py:34`). At
+9. **Climb 49 rungs**, from nothing up to that ceiling (`algorithm.py:35`). At
    each rung, slide a window along the axis and keep the shortest one clearing
    that rung while holding a sounder track and the instruments being insisted
-   on (`algorithm.py:43` to `algorithm.py:56`).
+   on (`algorithm.py:44` to `algorithm.py:57`).
 10. **Stop climbing** at the first rung where nothing qualifies, or where the
     shortest window that does runs longer than a Mars year
-    (`algorithm.py:58`).
+    (`algorithm.py:59`).
 11. **If the ladder produced nothing at all**, insist on one fewer instrument
-    and go back to step 8 (`algorithm.py:64`). When even one instrument
-    produces nothing, give up (`algorithm.py:66`).
+    and go back to step 8 (`algorithm.py:65`). When even one instrument
+    produces nothing, give up (`algorithm.py:67`).
 12. **Take the bend.** Rescale both axes of the curve those windows trace to
     0..1 (`curve.py:8`) and take the window furthest above the diagonal
-    (`algorithm.py:71` to `algorithm.py:79`). When none sits above it, take
+    (`algorithm.py:72` to `algorithm.py:80`). When none sits above it, take
     the longest window on the curve instead.
 13. **Pull in the ties.** Anything sharing an exact timestamp with either end
     of the chosen window joins it and the window is rescored
-    (`measuring.py:10`, called at `algorithm.py:60`). It does not get a second
+    (`models/window.py:31`, called at `algorithm.py:62`). It does not get a second
     longer.
 14. **Mark the redundant observations** inside it (`filters/redundancy.py:10`, called at
-    `algorithm.py:88`).
+    `algorithm.py:89`).
 15. **Fill in the scorecard** and decide whether the feature is kept at all
     (`verdict.py:61`).
 
@@ -77,9 +77,9 @@ All of them live in `configs.py`, and nothing else about the search is tunable.
 | `MIN_CROSSING` | 0.10 | `configs.py:27` | A sounder track has to cross at least a tenth of the feature's width (`filters/admissible.py:34`). |
 | `MIN_GAIN_CELLS` | 1 | `configs.py:33` | How many cells an observation must add that its own set did not already hold, to count as bringing ground of its own (`filters/redundancy.py:27`). |
 | `MIN_SETS` | 2 | `configs.py:30` | A feature is kept only when its window holds at least two instruments (`verdict.py:138`). |
-| `MAX_SPAN_DAYS` | 687.0 | `configs.py:7` | No window may run longer than one Mars year, which is every season the feature has (`algorithm.py:58`). |
-| `LEVELS` | 48 | `configs.py:11` | How many steps the ladder has, so 49 rungs counting the one asking for nothing (`algorithm.py:34`). |
-| `ROUNDING` | 1e-9 | `configs.py:14` | A share is added cell by cell, so a window landing a rounding error under a rung is let through anyway (`algorithm.py:49`). |
+| `MAX_SPAN_DAYS` | 687.0 | `configs.py:7` | No window may run longer than one Mars year, which is every season the feature has (`algorithm.py:59`). |
+| `LEVELS` | 48 | `configs.py:11` | How many steps the ladder has, so 49 rungs counting the one asking for nothing (`algorithm.py:35`). |
+| `ROUNDING` | 1e-9 | `configs.py:14` | A share is added cell by cell, so a window landing a rounding error under a rung is let through anyway (`algorithm.py:50`). |
 | `DAY_SECONDS` | 86400.0 | `configs.py:17` | Every timestamp is divided by this, so a span is a number of days (`models/track.py:86`). |
 
 ---
@@ -261,7 +261,7 @@ worth looking at are the ones that begin and end on an observation.
 ground, never lose an instrument, never lose your SHARAD track.
 The moment the window is good enough, stop growing it and start pulling the **left** edge in, as far as it will go.
 
-*Code: the sweep is `algorithm.py:43` to `algorithm.py:56`.*
+*Code: the sweep is `algorithm.py:44` to `algorithm.py:57`.*
 
 ---
 
@@ -286,7 +286,7 @@ Two more things move with the window:
 - **How many instruments are present** (`reach.py:128`), which rises when a
   set's first observation enters and falls when its last one leaves.
 - **How many sounder tracks are inside**, kept as a plain counter in the sweep
-  itself (`algorithm.py:45`), because a window holding none is not a survey
+  itself (`algorithm.py:46`), because a window holding none is not a survey
   at all.
 
 The score is the geometric mean of the sets' shares: multiply them, take the
@@ -365,41 +365,41 @@ Two small honesty fixes are in the real code:
   chosen, anything sharing an instant with either end is pulled in too. It is
   ground for free: the window does not get one second longer.
 
-*Code: the whole of it is `search` (`algorithm.py:12`).*
+*Code: the whole of it is `search` (`algorithm.py:13`).*
 
 ---
 
 ## The small print the pseudocode leaves out
 
 **A window is measured start to start.** Its length is the start time of its
-last observation minus the start time of its first (`algorithm.py:51`). How
+last observation minus the start time of its first (`algorithm.py:52`). How
 long each observation itself ran plays no part.
 
 **The rungs climb towards the record, not towards perfection.** Before the
 climb begins, the whole record from first observation to last is scored, and
-that score is the top of the ladder (`algorithm.py:33`). Rung `k` of 48 asks
-for `k/48` of it (`algorithm.py:35`). The first rung asks for nothing, which
+that score is the top of the ladder (`algorithm.py:34`). Rung `k` of 48 asks
+for `k/48` of it (`algorithm.py:36`). The first rung asks for nothing, which
 finds the shortest window holding the instruments and a sounder track, whatever
 ground it happens to reach.
 
 **Shortest wins, and ground breaks the tie.** As the left edge is pulled in,
 every qualifying window is compared on days first and ground second
-(`algorithm.py:52`), so between two windows of exactly the same length the one
+(`algorithm.py:53`), so between two windows of exactly the same length the one
 reaching more ground is kept.
 
 **The same window is kept only once.** Neighbouring rungs often settle on the
-identical stretch of time. The curve keeps one copy (`algorithm.py:61`), so
+identical stretch of time. The curve keeps one copy (`algorithm.py:62`), so
 the bend is not dragged towards a window that happened to satisfy five rungs in
 a row.
 
 **The climb stops early on purpose.** The moment a rung has no qualifying
 window inside a Mars year, every rung above it is skipped untried
-(`algorithm.py:58`), because asking for more ground can only ever ask for more
+(`algorithm.py:59`), because asking for more ground can only ever ask for more
 days.
 
 **Settling for fewer instruments is all or nothing.** The search tries every
 instrument the feature has, and only when that produces no curve at all does it
-try one fewer (`algorithm.py:29` and `algorithm.py:64`). It never mixes: a
+try one fewer (`algorithm.py:30` and `algorithm.py:65`). It never mixes: a
 curve is built entirely at one instrument count, and the score is taken over
 that count, best sets first.
 
@@ -419,7 +419,7 @@ score the window on that many, best first. That is what makes a two instrument
 answer mean something. It means "there is genuinely no Mars year in the whole
 record where all three were here", not "two was shorter".
 
-*Code: `algorithm.py:29`, and the score over that count `reach.py:121`.*
+*Code: `algorithm.py:30`, and the score over that count `reach.py:121`.*
 
 ---
 
@@ -449,7 +449,7 @@ data says so plainly: on a log axis these curves bend the *other* way, so the
 "knee" collapses onto the shortest, emptiest window on the curve. Ground
 saturates against elapsed days, so plain days is the axis it bends on.
 
-*Code: the rescaling is `curve.py:8`, the bend `algorithm.py:71` to `algorithm.py:79`.*
+*Code: the rescaling is `curve.py:8`, the bend `algorithm.py:72` to `algorithm.py:80`.*
 
 ---
 
@@ -566,7 +566,7 @@ row, `Ground on the feature: no cells filled`, and is left out on it
 
 ## What the search returns
 
-One `Survey` (`results.py:31`), holding:
+One `Survey` (`results.py:12`), holding:
 
 | Field | What it is |
 |---|---|
@@ -576,17 +576,17 @@ One `Survey` (`results.py:31`), holding:
 | `instruments` | How many sets have an observation inside it. |
 | `observations` | How many observations it holds. |
 | `core` | How many of them brought ground nothing before them from their own set had already brought. |
-| `redundant` | The rest, which is `observations` minus `core` (`results.py:64`). |
+| `redundant` | The rest, which is `observations` minus `core` (`results.py:45`). |
 | `knee` | Whether the curve bent and this is the bend, or whether it never did and this is simply the longest window on the curve. |
-| `shares` | What each named set reaches, one number per instrument (`measuring.py:57`). |
-| `frontier` | Every window it was chosen from, shortest first, as `Span` records (`results.py:10`), so what a longer stretch would have bought can always be read off. |
+| `shares` | What each named set reaches, one number per instrument (`models/window.py:60`). |
+| `frontier` | Every window it was chosen from, shortest first, as `Window` records (`models/window.py:12`), so what a longer stretch would have bought can always be read off. |
 
 It also writes its own one line summary for a legend or a title
-(`results.py:86`), and its length in units that read well (`results.py:73`).
+(`results.py:67`), and its length in units that read well (`results.py:54`).
 
 Nothing comes back at all when no set left anything measurable behind
 (`models/track.py:72`), or when no admissible sounder track exists anywhere in the
-record (`algorithm.py:22`).
+record (`algorithm.py:23`).
 
 ---
 
@@ -674,11 +674,11 @@ qualifies at all.
 | `filters/admissible.py` | Decides whether one observation is a look at the feature or a graze of its edge. |
 | `timeline.py` | Applies that decision, merges every set onto one axis, and works out the totals, the grid size and the feature's width. |
 | `reach.py` | The sliding window's tally: what each set holds, how many instruments are present, and the score. |
-| `measuring.py` | Scores a fixed window, and pulls in the observations tied at either end of it. |
+| `models/window.py` | One window, what it reaches, and pulling in the observations tied at either end of it. |
 | `curve.py` | Rescales one axis of the curve to run from nought to one. |
 | `algorithm.py` | The search itself: the instrument count, the ladder of rungs, the sweep, and the bend. |
 | `filters/redundancy.py` | Marks the observations inside the chosen window that brought nothing of their own. |
-| `results.py` | The span and the survey the search returns. |
+| `results.py` | The survey the search returns. |
 | `verdict.py` | Asks the feature everything the dataset asks of it, and returns the scorecard. |
 | `configs.py` | Every number in the table above. |
 

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from survey import configs, curve, measuring
+from survey import configs, curve
 from survey.filters import redundancy
 from survey.models.track import Track
+from survey.models.window import Window
 from survey.reach import Reach
-from survey.results import Span, Survey
+from survey.results import Survey
 
 
 def search(track: Track) -> Survey | None:
@@ -24,13 +25,13 @@ def search(track: Track) -> Survey | None:
     times, owners = track.times, track.owners
     sounder, cells = track.sounder, track.cells
 
-    frontier: list[Span] = []
+    frontier: list[Window] = []
     # 2. Every instrument first, dropping to fewer only when none of them fit.
     for wanted in range(len(track.labels), 0, -1):
         frontier, seen = [], set()
         # Rungs climb towards what the whole record reaches rather than towards
         # one, so the curve is sampled evenly whatever the feature can offer.
-        ceiling = measuring.measure(track, 0, len(track.observations) - 1, wanted).mean
+        ceiling = Window.measure(track, 0, len(track.observations) - 1, wanted).mean
         for step in range(configs.LEVELS + 1):
             level = (
                 ceiling * step / configs.LEVELS
@@ -38,7 +39,7 @@ def search(track: Track) -> Survey | None:
 
             # 3. Slide a window along the axis: widen right, then tighten left.
             held = Reach(track.totals, track.grid, wanted)
-            found: Span | None = None
+            found: Window | None = None
             sounders, left = 0, 0
             for right in range(len(track.observations)):
                 held.hold(owners[right], cells[right])  # take the next one in
@@ -50,14 +51,14 @@ def search(track: Track) -> Survey | None:
                 ):
                     days = times[right] - times[left]
                     if found is None or (days, -held.mean) < (found.days, -found.reach):
-                        found = Span(left, right, days, held.mean, held.instruments)
+                        found = Window(left, right, days, held.mean, held.instruments)
                     held.release(owners[left], cells[left])  # drop the oldest
                     sounders -= sounder[left]
                     left += 1
 
             if found is None or found.days > configs.MAX_SPAN_DAYS:
                 break  # asking for more ground can only ever ask for more days
-            found = measuring.widen(track, found, wanted)  # a tie in time is free
+            found = found.widened(track, wanted)  # a tie in time is free
             if (found.first, found.last) not in seen:
                 seen.add((found.first, found.last))
                 frontier.append(found)
@@ -87,6 +88,6 @@ def search(track: Track) -> Survey | None:
         observations=picked.last - picked.first + 1,
         core=redundancy.trimming(track, picked),
         knee=knee,
-        shares=measuring.shares(track, picked),
+        shares=picked.shares(track),
         frontier=frontier,
     )

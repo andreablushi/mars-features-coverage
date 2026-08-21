@@ -5,26 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-
-@dataclass(frozen=True, slots=True)
-class Span:
-    """One window, given by the observations at either end of it.
-
-    Attributes:
-        first: The index of the earliest observation the window holds.
-        last: The index of the latest one.
-        days: How long it lasts, from the first start time to the last.
-        reach: How much ground it reaches, as the shares of their own records
-            the instrument sets reach inside it, multiplied and rooted so that
-            one set cannot carry the window alone.
-        instruments: How many sets have an observation inside it.
-    """
-
-    first: int
-    last: int
-    days: float
-    reach: float
-    instruments: int
+from survey.models.window import Window
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,7 +39,7 @@ class Survey:
     core: int
     knee: bool
     shares: dict[str, float]
-    frontier: list[Span]
+    frontier: list[Window]
 
     @property
     def redundant(self) -> int:
