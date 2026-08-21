@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import Any, TypeAlias
 
-import utils.provenance as provenance
+import utils.disk.provenance as provenance
 from download import configs
 from download.api.client import ODEClient
 from download.api.response import as_items

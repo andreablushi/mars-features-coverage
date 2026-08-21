@@ -10,7 +10,7 @@ from shapely.geometry.base import BaseGeometry
 
 from analysis import configs
 from analysis.geometry.region import FeatureRegion
-from utils import mask as packing
+from utils.maths import mask as packing
 
 
 def side_for(area_m2: float) -> int:

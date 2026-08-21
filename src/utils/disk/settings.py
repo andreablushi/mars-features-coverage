@@ -8,7 +8,7 @@ from typing import Any
 
 import yaml
 
-import utils.paths as paths
+import utils.disk.paths as paths
 from download import configs as download_configs
 from models.instrument import InstrumentSet
 from models.settings import Settings

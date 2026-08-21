@@ -5,13 +5,13 @@ from __future__ import annotations
 from dataclasses import asdict
 from pathlib import Path
 
-import utils.paths as paths
+import utils.disk.paths as paths
 from download.api import catalog as ode
 from download.api.client import ODEClient
 from models.feature import Feature
 from models.instrument import InstrumentSetInfo
 from storage.disk import read_jsonl, write_jsonl
-from utils.paths import features_path, instrument_sets_path
+from utils.disk.paths import features_path, instrument_sets_path
 
 
 def read_features(cache_dir: Path = paths.CATALOG_ROOT) -> list[Feature]:

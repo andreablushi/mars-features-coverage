@@ -15,7 +15,22 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import PercentFormatter
 
 from models.results import SetCoverage
-from visualization import configs
+from survey.models.survey import Survey
+from utils.maths import quantities
+
+GREY = "#8a8a8a"
+
+# How wide every stacked figure is drawn.
+FIGURE_WIDTH = 11
+
+# The ramp a heat panel is coloured by.
+COLORMAP = "YlGnBu"
+
+# The window the search picked, marked at either end of the time panels.
+SURVEY_LINE = "#1a1a1a"
+SURVEY_STYLE = (0, (6, 3))
+SURVEY_WIDTH = 0.8
+
 
 Colour = tuple[float, float, float]
 
@@ -30,7 +45,10 @@ def colours(coverage: Sequence[SetCoverage]) -> dict[str, Colour]:
         One colour per instrument set label.
     """
     wheel = cycle(plt.cm.tab10.colors)
-    return {entry.label: colour for entry, colour in zip(coverage, wheel, strict=False)}
+    return {
+        instrument.label: colour
+        for instrument, colour in zip(coverage, wheel, strict=False)
+    }
 
 
 def tidy(axis: Axes, percent: str, grid: str) -> None:
@@ -65,9 +83,9 @@ def bracket(axis: Axes, start: datetime, end: datetime) -> None:
     for edge in (start, end):
         axis.axvline(
             edge,
-            color=configs.CAMPAIGN_LINE,
-            linestyle=configs.CAMPAIGN_STYLE,
-            linewidth=configs.CAMPAIGN_WIDTH,
+            color=SURVEY_LINE,
+            linestyle=SURVEY_STYLE,
+            linewidth=SURVEY_WIDTH,
             zorder=4,
         )
 
@@ -106,7 +124,7 @@ def unavailable(
         f"""<div style="
             background: repeating-linear-gradient(45deg,
                 #ebebeb, #ebebeb 10px, #e0e0e0 10px, #e0e0e0 20px);
-            border: 1px solid #c4c4c4; border-radius: 6px; color: {configs.GREY};
+            border: 1px solid #c4c4c4; border-radius: 6px; color: {GREY};
             font-family: sans-serif; padding: 28px; text-align: center;">
           <div style="font-size: 15px; font-weight: 600;">No local data</div>
           <div style="font-size: 13px; margin-top: 6px;">{escape(message)}</div>
@@ -125,3 +143,18 @@ def title(coverage: Sequence[SetCoverage]) -> str:
     """
     summary = coverage[0].summary
     return f"{summary.feature_class} / {summary.feature_name}"
+
+
+def caption(survey: Survey) -> str:
+    """Sum the picked window up in one line, for a legend or a title.
+
+    Args:
+        survey: The window the search picked.
+
+    Returns:
+        Its length, how many instruments it holds, and what it scores.
+    """
+    return (
+        f"best window: {quantities.duration(survey.days)}, "
+        f"{survey.instruments} instruments, scoring {survey.reach:.0%}"
+    )

@@ -5,12 +5,12 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
 
-import utils.paths as paths
+import utils.disk.paths as paths
 from download.selection.features import select_features
 from models.feature import Feature
 from models.instrument import InstrumentSet
 from models.job import Job, Plan
-from utils.paths import events_path, metadata_file, set_summary_path
+from utils.disk.paths import events_path, metadata_file, set_summary_path
 
 
 def _outstanding[T, R](

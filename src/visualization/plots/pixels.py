@@ -7,10 +7,11 @@ from html import escape
 
 import ipywidgets as widgets
 
-from campaign.results import Campaign
 from models.results import Event, SetCoverage
-from visualization import campaigns, configs, panels
-from visualization.selectors.window import Window
+from survey.models.survey import Survey
+from utils.maths import mask as packing
+from utils.maths import quantities
+from visualization import panels, surveys
 
 _NO_WINDOW = "No stretch of time here holds a sounder track, so there is none to fill."
 _UNMEASURED = "not measured"
@@ -18,12 +19,12 @@ _HEADINGS = (
     "Instrument",
     "Observations",
     "Pixels in the window",
-    "Pixels in the record",
-    "Share of the record",
+    "Pixels in the feature",
+    "Share of the feature's ground",
 )
 
 
-def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
+def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     """Tabulate what each instrument gathered inside the chosen window.
 
     A set that took nothing during the window is still given a row, at zero,
@@ -31,25 +32,26 @@ def plot(coverage: Sequence[SetCoverage], window: Window) -> widgets.Widget:
 
     Args:
         coverage: The feature's instrument sets, widest coverage first.
-        window: The date range the panels are shown over.
 
     Returns:
         The table as a widget, or the grey panel when there is none to draw.
     """
     if not coverage:
         return panels.unavailable()
-    picked = campaigns.picked(coverage, window)
+    picked = surveys.picked(coverage)
     if picked is None:
         return panels.unavailable(_NO_WINDOW)
-    rows = "".join(_row(entry, picked) for entry in coverage)
+    lasted = quantities.duration(picked.days)
+    rows = "".join(_row(instrument, picked) for instrument in coverage)
     return widgets.HTML(
         f"""<div style="font-family: sans-serif; font-size: 13px;">
           <div style="font-weight: 600; margin-bottom: 2px;">
             {escape(panels.title(coverage))}  -  pixels inside the best window
           </div>
-          <div style="color: {configs.GREY}; font-size: 12px; margin-bottom: 8px;">
+          <div style="color: {panels.GREY}; font-size: 12px; font-weight: 600;
+                      margin-bottom: 8px;">
             {picked.start:%Y-%m-%d} to {picked.end:%Y-%m-%d},
-            {escape(picked.length)}, {picked.observations:,} observations
+            {escape(lasted)}, {picked.observations:,} observations
           </div>
           <table style="border-collapse: collapse;">
             <tr>{"".join(_heading(name) for name in _HEADINGS)}</tr>
@@ -75,27 +77,34 @@ def _heading(name: str) -> str:
     )
 
 
-def _row(entry: SetCoverage, picked: Campaign) -> str:
+def _row(instrument: SetCoverage, picked: Survey) -> str:
     """Build one instrument set's row of the table.
 
     Args:
-        entry: The instrument set the row describes.
+        instrument: The instrument set the row describes.
         picked: The window its observations are counted inside.
 
     Returns:
         The row, saying so where the artifacts carry no pixel count at all.
     """
     held = [
-        event for event in entry.events if picked.start <= event.t_start <= picked.end
+        observation
+        for observation in instrument.events
+        if picked.start <= observation.t_start <= picked.end
     ]
-    inside, total = _pixels(held), entry.summary.pixels
+    inside, total = _pixels(held), instrument.summary.pixels
+    ground = _ground(held, instrument.summary.mask_cells)
     if inside is None or total is None:
-        cells = [f"{len(held):,}", _UNMEASURED, _UNMEASURED, _UNMEASURED]
+        cells = [f"{len(held):,}", _UNMEASURED, _UNMEASURED, ground]
     else:
-        share = f"{inside / total:.1%}" if total else _UNMEASURED
-        cells = [f"{len(held):,}", _compact(inside), _compact(total), share]
+        cells = [
+            f"{len(held):,}",
+            quantities.compact(inside),
+            quantities.compact(total),
+            ground,
+        ]
     return (
-        f"<tr>{_cell(entry.label, left=True)}"
+        f"<tr>{_cell(instrument.label, left=True)}"
         f"{''.join(_cell(value) for value in cells)}</tr>"
     )
 
@@ -117,31 +126,42 @@ def _cell(value: str, left: bool = False) -> str:
     )
 
 
-def _pixels(events: Sequence[Event]) -> float | None:
+def _ground(observations: Sequence[Event], cells: int) -> str:
+    """Work out how much of the feature a run of observations covers.
+
+    The cells are unioned rather than added up, so a set that images the same
+    patch twice is credited with it once, which is how the search counts ground
+    too. That makes this the one column of the table that does not double count
+    a revisit.
+
+    Args:
+        observations: The observations to measure, from one instrument set.
+        cells: How many cells of the feature's grid fall inside it.
+
+    Returns:
+        The share of the feature they cover, or that it was never measured.
+    """
+    if not cells:
+        return _UNMEASURED
+    covered: set[int] = set()
+    for observation in observations:
+        covered.update(packing.cells_of(observation.mask).tolist())
+    return f"{len(covered) / cells:.1%}"
+
+
+def _pixels(observations: Sequence[Event]) -> float | None:
     """Add up the pixels a run of observations landed inside the feature.
 
     Args:
-        events: The observations to count, which may predate the measurement.
+        observations: The observations to count, which may predate the measurement.
 
     Returns:
         The total, counting a revisited patch again as the pipeline does, or
         None when any of them was written before pixels were computed.
     """
-    counted = [event.pixels for event in events if event.pixels is not None]
-    return sum(counted) if len(counted) == len(events) else None
-
-
-def _compact(value: float) -> str:
-    """Write a pixel count short enough to read at a glance.
-
-    Args:
-        value: The count.
-
-    Returns:
-        The count itself when it is small, and otherwise as thousands,
-        millions, or billions.
-    """
-    for limit, suffix in ((1e9, "G"), (1e6, "M"), (1e3, "k")):
-        if value >= limit:
-            return f"{value / limit:,.2f} {suffix}"
-    return f"{value:,.0f}"
+    counted = [
+        observation.pixels
+        for observation in observations
+        if observation.pixels is not None
+    ]
+    return sum(counted) if len(counted) == len(observations) else None

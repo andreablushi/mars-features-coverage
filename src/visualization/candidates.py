@@ -9,9 +9,13 @@ import numpy as np
 from matplotlib.dates import date2num
 
 from models.results import Event, SetCoverage
-from utils import mask as packing
-from visualization import configs
-from visualization.selectors.window import Window
+from utils.maths import mask as packing
+
+# The grid of candidate windows a feature's record is scored on.
+WINDOW_COLUMNS = 240
+WINDOW_WIDTHS = 64
+WINDOW_MIN_DAYS = 1.0
+WINDOW_MAX_DAYS = 687.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,9 +27,9 @@ class Grid:
             numbers. A window reaches half its length either side of it.
         widths: How long each row's window lasts, in days, up to the longest
             a cluster is allowed to span.
-        reached: The share of the feature's cells a window covers, averaged
-            over the instruments that observed it, one value per width and
-            centre.
+        reached: The share of the feature's cells a window covers, counted
+            evenly over the instruments that observed it as the search counts
+            it, one value per width and centre.
         instruments: How many instruments observed the feature inside every
             window, shaped as reached.
         sounded: Whether every window holds a sounder track, which a cluster
@@ -39,55 +43,81 @@ class Grid:
     sounded: np.ndarray
 
 
-def build(coverage: Sequence[SetCoverage], window: Window) -> Grid | None:
+def build(coverage: Sequence[SetCoverage]) -> Grid | None:
     """Score every window the feature's observations could be clustered into.
 
     Args:
         coverage: The feature's instrument sets, in the order the config names them.
-        window: The date range to score inside, which excludes the rest.
 
     Returns:
         The scored grid, or None when the record is too short to hold a choice
         of windows at all.
     """
-    observed = [window.visible(entry.events) for entry in coverage]
-    observed = [events for events in observed if events]
+    observed = [instrument.events for instrument in coverage if instrument.events]
     if not observed:
         return None
-    moments = np.sort(np.concatenate([_moments(events) for events in observed]))
+    moments = np.sort(
+        np.concatenate([_moments(observations) for observations in observed])
+    )
     span = float(moments[-1] - moments[0])
-    if span < configs.WINDOW_MIN_DAYS:
+    if span < WINDOW_MIN_DAYS:
         return None
-    centres = np.linspace(moments[0], moments[-1], configs.WINDOW_COLUMNS)
+    centres = np.linspace(moments[0], moments[-1], WINDOW_COLUMNS)
     widths = np.geomspace(
-        configs.WINDOW_MIN_DAYS,
-        min(span, configs.WINDOW_MAX_DAYS),
-        configs.WINDOW_WIDTHS,
+        WINDOW_MIN_DAYS,
+        min(span, WINDOW_MAX_DAYS),
+        WINDOW_WIDTHS,
     )
     cells = coverage[0].summary.mask_cells
-    covered = [_covered(events, cells, centres, widths) for events in observed]
-    present = [_counts(events, centres, widths) > 0 for events in observed]
-    sounders = [events for events in observed if _sounder(events)]
+    covered = [
+        _covered(observations, cells, centres, widths) for observations in observed
+    ]
+    present = [_counts(observations, centres, widths) > 0 for observations in observed]
+    sounders = [observations for observations in observed if _sounder(observations)]
     return Grid(
         centres=centres,
         widths=widths,
-        reached=np.mean(covered, axis=0),
+        reached=_evenly(covered),
         instruments=np.sum(present, axis=0),
         sounded=_qualified(sounders, centres, widths),
     )
 
 
-def _sounder(events: Sequence[Event]) -> bool:
+def _evenly(covered: Sequence[np.ndarray]) -> np.ndarray:
+    """Count what the instruments cover the way the search counts it.
+
+    This is the search's own geometric mean, written again over a whole grid
+    at once rather than over one sliding window, so the two are kept in step
+    by hand. It reads close to the search but not identically to it, in two
+    ways worth knowing when a square's colour is read beside the window the
+    search picked.
+
+    Each share here is of the feature, where the search takes a set's share of
+    its own whole record. And every set counts here, where the search scores
+    on the best few whenever it has settled for fewer instruments than the
+    feature has.
+
+    Args:
+        covered: What share of the feature each set covers, one array per set.
+
+    Returns:
+        The shares multiplied and rooted, so that a window one instrument
+        misses reads as the poor window the search takes it for.
+    """
+    return np.prod(covered, axis=0) ** (1.0 / len(covered))
+
+
+def _sounder(observations: Sequence[Event]) -> bool:
     """Report whether a set sounds a track rather than publishing an area.
 
     Args:
-        events: One instrument set's observations of the feature.
+        observations: One instrument set's observations of the feature.
 
     Returns:
         True when the set's footprints were widened from a bare line, which is
         the only way an observation carries a swath width.
     """
-    return any(event.width_km for event in events)
+    return any(observation.width_km for observation in observations)
 
 
 def _qualified(
@@ -107,29 +137,29 @@ def _qualified(
     """
     if not sets:
         return np.zeros((widths.size, centres.size), dtype=bool)
-    flown = sum(_counts(events, centres, widths) for events in sets)
+    flown = sum(_counts(observations, centres, widths) for observations in sets)
     return flown > 0
 
 
-def _moments(events: Sequence[Event]) -> np.ndarray:
+def _moments(observations: Sequence[Event]) -> np.ndarray:
     """Return when each of a set's observations started, as date numbers.
 
     Args:
-        events: One instrument set's observations, in chronological order.
+        observations: One instrument set's observations, in chronological order.
 
     Returns:
         The start times in the same order.
     """
-    return date2num([event.t_start for event in events])
+    return date2num([observation.t_start for observation in observations])
 
 
 def _covered(
-    events: Sequence[Event], cells: int, centres: np.ndarray, widths: np.ndarray
+    observations: Sequence[Event], cells: int, centres: np.ndarray, widths: np.ndarray
 ) -> np.ndarray:
     """Measure the ground one set covers inside every candidate window.
 
     Args:
-        events: The set's observations, in chronological order.
+        observations: The set's observations, in chronological order.
         cells: How many of the feature's cells fall inside it.
         centres: The moment each column's window is centred on.
         widths: How long each row's window lasts, in days.
@@ -137,8 +167,8 @@ def _covered(
     Returns:
         The share of the feature it covers, one value per width and centre.
     """
-    starts, previous = _sightings(events)
-    moments = _moments(events)
+    starts, previous = _sightings(observations)
+    moments = _moments(observations)
     filled = [
         [
             int((previous[starts[first] : starts[last]] < first).sum())
@@ -149,23 +179,23 @@ def _covered(
     return np.array(filled) / cells
 
 
-def _sightings(events: Sequence[Event]) -> tuple[np.ndarray, np.ndarray]:
+def _sightings(observations: Sequence[Event]) -> tuple[np.ndarray, np.ndarray]:
     """Flatten the set's masks and say where each cell was last seen before.
 
-    A window covers a cell exactly once: at the first entry inside the window
+    A window covers a cell exactly once: at the first instrument inside the window
     whose previous sighting falls before it. Counting those entries therefore
     counts distinct cells, which turns every window into one comparison over a
     contiguous slice rather than a fresh union of whole bitmaps.
 
     Args:
-        events: The set's observations, in chronological order.
+        observations: The set's observations, in chronological order.
 
     Returns:
-        Where each observation's cells begin in the flat list, one entry longer
+        Where each observation's cells begin in the flat list, one instrument longer
         than there are observations, and for every cell in that list the
         observation that last filled the same cell, or -1 when none did.
     """
-    per = [packing.cells_of(event.mask) for event in events]
+    per = [packing.cells_of(observation.mask) for observation in observations]
     counts = np.fromiter((cells.size for cells in per), dtype=np.int64, count=len(per))
     starts = np.zeros(len(per) + 1, dtype=np.int64)
     np.cumsum(counts, out=starts[1:])
@@ -184,19 +214,19 @@ def _sightings(events: Sequence[Event]) -> tuple[np.ndarray, np.ndarray]:
 
 
 def _counts(
-    events: Sequence[Event], centres: np.ndarray, widths: np.ndarray
+    observations: Sequence[Event], centres: np.ndarray, widths: np.ndarray
 ) -> np.ndarray:
     """Count how many of one set's observations fall inside every window.
 
     Args:
-        events: The set's observations, in chronological order.
+        observations: The set's observations, in chronological order.
         centres: The moment each column's window is centred on.
         widths: How long each row's window lasts, in days.
 
     Returns:
         The count, one value per width and centre.
     """
-    moments = _moments(events)
+    moments = _moments(observations)
     windows = [_reaching(moments, centres, width) for width in widths]
     return np.array([last - first for first, last in windows])
 
