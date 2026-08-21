@@ -53,3 +53,19 @@ def unit(values: Sequence[float]) -> list[float]:
     if high == low:
         return [0.0] * len(values)
     return [(value - low) / (high - low) for value in values]
+
+
+def duration(days: float) -> str:
+    """Write a length of time in the units it reads well in.
+
+    Args:
+        days: The length in days.
+
+    Returns:
+        The length as a phrase, such as "18 hours" or "47 days".
+    """
+    if days < 1.0:
+        return f"{days * 24.0:.0f} hours"
+    if days < 10.0:
+        return f"{days:.1f} days"
+    return f"{days:,.0f} days"

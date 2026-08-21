@@ -14,7 +14,7 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
 from models.results import SetCoverage
-from survey.results import Survey
+from survey.models.survey import Survey
 from visualization import candidates, panels, surveys
 from visualization.candidates import Grid
 
@@ -237,7 +237,7 @@ def _keys(grid: Grid, picked: Survey | None) -> list:
     grey = Patch(facecolor=WINDOW_UNSOUNDED, label=_UNSOUNDED)
     if picked is None:
         return rings + [grey]
-    return [Line2D([], [], label=picked.caption, **_PICK)] + rings + [grey]
+    return [Line2D([], [], label=panels.caption(picked), **_PICK)] + rings + [grey]
 
 
 def _held(grid: Grid) -> np.ma.MaskedArray:

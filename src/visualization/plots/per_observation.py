@@ -106,6 +106,6 @@ def _key(axis, picked) -> None:
         color=panels.SURVEY_LINE,
         linestyle=panels.SURVEY_STYLE,
         linewidth=panels.SURVEY_WIDTH,
-        label=picked.caption,
+        label=panels.caption(picked),
     )
     axis.legend(handles=[marker], fontsize=8, loc="upper right", frameon=False)

@@ -15,6 +15,8 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import PercentFormatter
 
 from models.results import SetCoverage
+from survey.models.survey import Survey
+from utils.maths import quantities
 
 GREY = "#8a8a8a"
 
@@ -141,3 +143,18 @@ def title(coverage: Sequence[SetCoverage]) -> str:
     """
     summary = coverage[0].summary
     return f"{summary.feature_class} / {summary.feature_name}"
+
+
+def caption(survey: Survey) -> str:
+    """Sum the picked window up in one line, for a legend or a title.
+
+    Args:
+        survey: The window the search picked.
+
+    Returns:
+        Its length, how many instruments it holds, and what it scores.
+    """
+    return (
+        f"best window: {quantities.duration(survey.days)}, "
+        f"{survey.instruments} instruments, scoring {survey.reach:.0%}"
+    )

@@ -8,7 +8,7 @@ from html import escape
 import ipywidgets as widgets
 
 from models.results import Event, SetCoverage
-from survey.results import Survey
+from survey.models.survey import Survey
 from utils.maths import mask as packing
 from utils.maths import quantities
 from visualization import panels, surveys
@@ -41,6 +41,7 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     picked = surveys.picked(coverage)
     if picked is None:
         return panels.unavailable(_NO_WINDOW)
+    lasted = quantities.duration(picked.days)
     rows = "".join(_row(instrument, picked) for instrument in coverage)
     return widgets.HTML(
         f"""<div style="font-family: sans-serif; font-size: 13px;">
@@ -50,7 +51,7 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
           <div style="color: {panels.GREY}; font-size: 12px; font-weight: 600;
                       margin-bottom: 8px;">
             {picked.start:%Y-%m-%d} to {picked.end:%Y-%m-%d},
-            {escape(picked.length)}, {picked.observations:,} observations
+            {escape(lasted)}, {picked.observations:,} observations
           </div>
           <table style="border-collapse: collapse;">
             <tr>{"".join(_heading(name) for name in _HEADINGS)}</tr>

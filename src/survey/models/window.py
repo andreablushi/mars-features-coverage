@@ -5,7 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from survey.models.track import Track
-from survey.reach import Reach
+from survey.utils import measuring
+from survey.utils.measuring import Counts
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,8 +52,14 @@ class Window:
         if (first, last) == (self.first, self.last):
             return self
         # If the window has changed, measure its new reach and return a new Window
-        held = Window.measure(track, first, last, wanted)
-        return Window(first, last, self.days, held.mean, held.instruments)
+        _, seen, inside = measured(track, first, last)
+        return Window(
+            first,
+            last,
+            self.days,
+            measuring.mean(seen, track.totals, wanted),
+            measuring.instruments(inside),
+        )
 
     def shares(self, track: Track) -> dict[str, float]:
         """Work out what each instrument set reaches inside this window.
@@ -63,24 +70,30 @@ class Window:
         Returns:
             The share of its own ground each set reaches, by set name.
         """
-        held = Window.measure(track, self.first, self.last)
-        return dict(zip(track.labels, held.shares, strict=True))
+        _, seen, _ = measured(track, self.first, self.last)
+        return dict(
+            zip(track.labels, measuring.shares(seen, track.totals), strict=True)
+        )
 
-    @staticmethod
-    def measure(track: Track, first: int, last: int, wanted: int = 0) -> Reach:
-        """Fill a fresh tally with everything one stretch of the axis holds.
 
-        Args:
-            track: The feature's observations on one time axis.
-            first: The index of the earliest observation it holds.
-            last: The index of the latest one.
-            wanted: How many instrument sets the score is taken over. Nought
-                for all of them.
+def measured(
+    track: Track, first: int, last: int
+) -> tuple[Counts, list[int], list[int]]:
+    """Count afresh everything one stretch of the axis holds.
 
-        Returns:
-            The tally, holding that stretch and nothing else.
-        """
-        held = Reach(track.totals, track.grid, wanted)
-        for index in range(first, last + 1):
-            held.hold(track.owners[index], track.cells[index])
-        return held
+    It takes bare indices rather than a window, since the search scores the
+    whole record this way before it has a window to speak of.
+
+    Args:
+        track: The feature's observations on one time axis.
+        first: The index of the earliest observation it holds.
+        last: The index of the latest one.
+
+    Returns:
+        The per cell counts, the cells each set reaches, and how many
+        observations each set has inside.
+    """
+    counts, seen, inside = measuring.opened(len(track.totals), track.grid)
+    for index in range(first, last + 1):
+        measuring.hold(counts, seen, inside, track.owners[index], track.cells[index])
+    return counts, seen, inside

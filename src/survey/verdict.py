@@ -7,8 +7,8 @@ from dataclasses import dataclass
 
 from models.results import SetCoverage
 from survey import algorithm, configs
+from survey.models.survey import Survey
 from survey.models.track import Track, build
-from survey.results import Survey
 from utils.maths import quantities
 
 _NOTHING = "no cells filled"
@@ -146,7 +146,7 @@ def _checks(track: Track, picked: Survey | None) -> list[Check]:
             ),
             Check(
                 "Ground the window reaches, counted evenly",
-                f"{picked.reach:.0%} over {picked.length}",
+                f"{picked.reach:.0%} over {quantities.duration(picked.days)}",
                 "",
                 True,
                 required=False,

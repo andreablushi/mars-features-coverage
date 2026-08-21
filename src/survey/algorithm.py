@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from survey import configs
 from survey.filters import redundancy
+from survey.models.survey import Survey
 from survey.models.track import Track
-from survey.models.window import Window
-from survey.reach import Reach
-from survey.results import Survey
+from survey.models.window import Window, measured
+from survey.utils import measuring
 from utils.maths import quantities
 
 
@@ -32,28 +32,35 @@ def search(track: Track) -> Survey | None:
         frontier, seen = [], set()
         # Rungs climb towards what the whole record reaches rather than towards
         # one, so the curve is sampled evenly whatever the feature can offer.
-        ceiling = Window.measure(track, 0, len(track.observations) - 1, wanted).mean
+        _, whole, _ = measured(track, 0, len(track.observations) - 1)
+        ceiling = measuring.mean(whole, track.totals, wanted)
         for step in range(configs.LEVELS + 1):
             level = (
                 ceiling * step / configs.LEVELS
             )  # the first rung asks for the instruments alone
 
             # 3. Slide a window along the axis: widen right, then tighten left.
-            held = Reach(track.totals, track.grid, wanted)
+            counts, reached, inside = measuring.opened(len(track.totals), track.grid)
             found: Window | None = None
             sounders, left = 0, 0
             for right in range(len(track.observations)):
-                held.hold(owners[right], cells[right])  # take the next one in
+                measuring.hold(counts, reached, inside, owners[right], cells[right])
                 sounders += sounder[right]
                 while (
                     sounders  # a survey without a sounder track is no survey
-                    and held.instruments >= wanted
-                    and held.mean >= level - configs.ROUNDING
+                    and measuring.instruments(inside) >= wanted
+                    and measuring.mean(reached, track.totals, wanted)
+                    >= level - configs.ROUNDING
                 ):
                     days = times[right] - times[left]
-                    if found is None or (days, -held.mean) < (found.days, -found.reach):
-                        found = Window(left, right, days, held.mean, held.instruments)
-                    held.release(owners[left], cells[left])  # drop the oldest
+                    scored = measuring.mean(reached, track.totals, wanted)
+                    if found is None or (days, -scored) < (found.days, -found.reach):
+                        found = Window(
+                            left, right, days, scored, measuring.instruments(inside)
+                        )
+                    measuring.release(
+                        counts, reached, inside, owners[left], cells[left]
+                    )
                     sounders -= sounder[left]
                     left += 1
 

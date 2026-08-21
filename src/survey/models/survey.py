@@ -1,4 +1,4 @@
-"""What the search returns: one chosen window, and the ones it beat."""
+"""The stretch of time the search picked, and the ones it beat."""
 
 from __future__ import annotations
 
@@ -40,37 +40,3 @@ class Survey:
     knee: bool
     shares: dict[str, float]
     frontier: list[Window]
-
-    @property
-    def redundant(self) -> int:
-        """Count the observations the window would reach the same ground without.
-
-        Returns:
-            How many of its observations brought no ground of their own.
-        """
-        return self.observations - self.core
-
-    @property
-    def length(self) -> str:
-        """Describe how long the window lasts, in units it reads well in.
-
-        Returns:
-            The length as a phrase, such as "18 hours" or "47 days".
-        """
-        if self.days < 1.0:
-            return f"{self.days * 24.0:.0f} hours"
-        if self.days < 10.0:
-            return f"{self.days:.1f} days"
-        return f"{self.days:,.0f} days"
-
-    @property
-    def caption(self) -> str:
-        """Sum the window up in one line, for a legend or a title.
-
-        Returns:
-            Its length, how many instruments it holds, and what it scores.
-        """
-        return (
-            f"best window: {self.length}, {self.instruments} instruments, "
-            f"scoring {self.reach:.0%}"
-        )

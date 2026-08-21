@@ -6,7 +6,7 @@ from collections.abc import Sequence
 
 from models.results import SetCoverage
 from survey import verdict
-from survey.results import Survey
+from survey.models.survey import Survey
 from survey.verdict import Verdict
 
 # How many searches are kept, so every panel of a feature shares one.
