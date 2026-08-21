@@ -7,8 +7,8 @@ from survey.models.track import Track
 from survey.results import Span
 
 
-def core(track: Track, span: Span) -> int:
-    """Count the observations a window would still reach the same ground without.
+def trimming(track: Track, span: Span) -> int:
+    """Separate the observations that add coverage from the ones that repeat it.
 
     Args:
         track: The feature's observations on one time axis.
@@ -20,9 +20,12 @@ def core(track: Track, span: Span) -> int:
     seen: dict[int, set[int]] = {}
     counted = 0
     for index in range(span.first, span.last + 1):
+        # Each set is scored against its own record, so each keeps its own seen cells.
         held = seen.setdefault(track.owners[index], set())
+        # Ground its own set had not reached anywhere earlier in the window
         fresh = [cell for cell in track.cells[index] if cell not in held]
         if len(fresh) >= configs.MIN_GAIN_CELLS:
             counted += 1
+        # A cell is held once however many observations go on to fill it
         held.update(fresh)
     return counted

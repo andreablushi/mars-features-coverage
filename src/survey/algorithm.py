@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from survey import configs, curve, measuring, trimming
+from survey import configs, curve, measuring
+from survey.filters import redundancy
 from survey.models.track import Track
 from survey.reach import Reach
 from survey.results import Span, Survey
@@ -84,7 +85,7 @@ def search(track: Track) -> Survey | None:
         reach=picked.reach,
         instruments=picked.instruments,
         observations=picked.last - picked.first + 1,
-        core=trimming.core(track, picked),
+        core=redundancy.trimming(track, picked),
         knee=knee,
         shares=measuring.shares(track, picked),
         frontier=frontier,
