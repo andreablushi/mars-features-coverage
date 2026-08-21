@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from campaign.reach import Reach
-from campaign.results import Span
-from campaign.timeline import Track
+from survey.reach import Reach
+from survey.results import Span
+from survey.timeline import Track
 
 
 def widen(track: Track, span: Span, wanted: int = 0) -> Span:

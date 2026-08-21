@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-# A campaign is a stretch to observe in, not an era, so it never runs longer
+# A survey is a stretch to observe in, not an era, so it never runs longer
 # than one Mars year, which is every season the feature has.
 MAX_SPAN_DAYS = 687.0
 

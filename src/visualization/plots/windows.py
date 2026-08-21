@@ -13,9 +13,9 @@ from matplotlib.dates import date2num
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
-from campaign.results import Campaign
 from models.results import SetCoverage
-from visualization import campaigns, candidates, panels
+from survey.results import Survey
+from visualization import candidates, panels, surveys
 from visualization.candidates import Grid
 
 # How large the grid of candidates is drawn.
@@ -82,7 +82,7 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     if grid is None:
         return panels.unavailable(_TOO_SHORT)
     figure, axis = plt.subplots(figsize=WINDOW_FIGURE_SIZE)
-    mesh = _field(axis, grid, campaigns.picked(coverage))
+    mesh = _field(axis, grid, surveys.picked(coverage))
     axis.set_title(
         f"{panels.title(coverage)}  -  candidate time windows", fontsize=12, loc="left"
     )
@@ -96,7 +96,7 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     return panels.rendered(figure)
 
 
-def _field(axis: Axes, grid: Grid, picked: Campaign | None):
+def _field(axis: Axes, grid: Grid, picked: Survey | None):
     """Draw what every candidate window reaches, by when it opens and how long.
 
     Args:
@@ -179,7 +179,7 @@ def _rings(grid: Grid) -> list[tuple[int, str, float]]:
     ]
 
 
-def _marked(axis: Axes, grid: Grid, picked: Campaign | None) -> None:
+def _marked(axis: Axes, grid: Grid, picked: Survey | None) -> None:
     """Mark the window the search picked on the grid it was chosen from.
 
     Args:
@@ -196,7 +196,7 @@ def _marked(axis: Axes, grid: Grid, picked: Campaign | None) -> None:
     axis.plot([centre], [length], **_PICK)
 
 
-def _at(grid: Grid, picked: Campaign) -> tuple[float, float]:
+def _at(grid: Grid, picked: Survey) -> tuple[float, float]:
     """Place the chosen window on the two axes the candidates are drawn on.
 
     A window shorter than the shortest length drawn is marked on the bottom
@@ -213,7 +213,7 @@ def _at(grid: Grid, picked: Campaign) -> tuple[float, float]:
     return (opened + closed) / 2.0, max(closed - opened, float(grid.widths[0]))
 
 
-def _keys(grid: Grid, picked: Campaign | None) -> list:
+def _keys(grid: Grid, picked: Survey | None) -> list:
     """Name every ring the panel draws, the window it marks, and the grey it leaves.
 
     Args:

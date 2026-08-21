@@ -25,9 +25,9 @@ FIGURE_WIDTH = 11
 COLORMAP = "YlGnBu"
 
 # The window the search picked, marked at either end of the time panels.
-CAMPAIGN_LINE = "#1a1a1a"
-CAMPAIGN_STYLE = (0, (6, 3))
-CAMPAIGN_WIDTH = 0.8
+SURVEY_LINE = "#1a1a1a"
+SURVEY_STYLE = (0, (6, 3))
+SURVEY_WIDTH = 0.8
 
 
 Colour = tuple[float, float, float]
@@ -78,9 +78,9 @@ def bracket(axis: Axes, start: datetime, end: datetime) -> None:
     for edge in (start, end):
         axis.axvline(
             edge,
-            color=CAMPAIGN_LINE,
-            linestyle=CAMPAIGN_STYLE,
-            linewidth=CAMPAIGN_WIDTH,
+            color=SURVEY_LINE,
+            linestyle=SURVEY_STYLE,
+            linewidth=SURVEY_WIDTH,
             zorder=4,
         )
 

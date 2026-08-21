@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from campaign import configs
 from models.results import Event
+from survey import configs
 
 
 def admissible(event: Event, cells: Sequence[int], width_km: float) -> bool:

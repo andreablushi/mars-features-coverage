@@ -7,11 +7,11 @@ from html import escape
 
 import ipywidgets as widgets
 
-from campaign.results import Campaign
 from models.results import Event, SetCoverage
+from survey.results import Survey
 from utils import mask as packing
 from utils import quantities
-from visualization import campaigns, panels
+from visualization import panels, surveys
 
 _NO_WINDOW = "No stretch of time here holds a sounder track, so there is none to fill."
 _UNMEASURED = "not measured"
@@ -38,7 +38,7 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     """
     if not coverage:
         return panels.unavailable()
-    picked = campaigns.picked(coverage)
+    picked = surveys.picked(coverage)
     if picked is None:
         return panels.unavailable(_NO_WINDOW)
     rows = "".join(_row(entry, picked) for entry in coverage)
@@ -76,7 +76,7 @@ def _heading(name: str) -> str:
     )
 
 
-def _row(entry: SetCoverage, picked: Campaign) -> str:
+def _row(entry: SetCoverage, picked: Survey) -> str:
     """Build one instrument set's row of the table.
 
     Args:

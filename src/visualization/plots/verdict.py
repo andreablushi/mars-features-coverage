@@ -7,9 +7,9 @@ from html import escape
 
 import ipywidgets as widgets
 
-from campaign.verdict import Check, Verdict
 from models.results import SetCoverage
-from visualization import campaigns, panels
+from survey.verdict import Check, Verdict
+from visualization import panels, surveys
 
 # How a feature that belongs in the dataset is marked, and one that does not.
 VERDICT_PASS = "#2e7d32"
@@ -36,7 +36,7 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     """
     if not coverage:
         return panels.unavailable()
-    verdict = campaigns.assessed(coverage)
+    verdict = surveys.assessed(coverage)
     rows = "".join(_row(check) for check in verdict.checks)
     return widgets.HTML(
         f"""<div style="font-family: sans-serif; font-size: 13px;">

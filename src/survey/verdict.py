@@ -5,10 +5,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from campaign import algorithm, configs, timeline
-from campaign.results import Campaign
-from campaign.timeline import Track
 from models.results import SetCoverage
+from survey import algorithm, configs, timeline
+from survey.results import Survey
+from survey.timeline import Track
 from utils import quantities
 
 _NOTHING = "no cells filled"
@@ -40,11 +40,11 @@ class Verdict:
     """Whether one feature belongs in the dataset, and everything behind it.
 
     Attributes:
-        campaign: The window the search picked, or None when it found none.
+        survey: The window the search picked, or None when it found none.
         checks: Everything asked of the feature, in the order they read.
     """
 
-    campaign: Campaign | None
+    survey: Survey | None
     checks: list[Check]
 
     @property
@@ -83,15 +83,15 @@ def assess(coverage: Sequence[SetCoverage]) -> Verdict:
     if track is None:
         return Verdict(None, [Check("Ground on the feature", _NOTHING, "any", False)])
     picked = algorithm.search(track)
-    return Verdict(campaign=picked, checks=_checks(track, picked))
+    return Verdict(survey=picked, checks=_checks(track, picked))
 
 
-def _sounding(track: Track, picked: Campaign | None) -> str:
+def _sounding(track: Track, picked: Survey | None) -> str:
     """Say whether a sounder track was found, and where it went when not.
 
     A sounder track clipping the edge of a feature is dropped like any other
     observation too small to count, and a feature whose only tracks were that
-    small has no campaign for a different reason than one no sounder ever flew
+    small has no survey for a different reason than one no sounder ever flew
     over. The two read alike once the search returns nothing, so the dropped
     tracks are named here.
 
@@ -109,7 +109,7 @@ def _sounding(track: Track, picked: Campaign | None) -> str:
     return "none"
 
 
-def _checks(track: Track, picked: Campaign | None) -> list[Check]:
+def _checks(track: Track, picked: Survey | None) -> list[Check]:
     """Ask a feature everything the dataset asks of it.
 
     Args:
@@ -173,7 +173,7 @@ def _checks(track: Track, picked: Campaign | None) -> list[Check]:
     return rows
 
 
-def _smallest(track: Track, picked: Campaign) -> list[tuple[float, str, str]]:
+def _smallest(track: Track, picked: Survey) -> list[tuple[float, str, str]]:
     """Find the least an instrument's single observation covers in the window.
 
     This is what the floors are read against. Every observation here already
@@ -226,7 +226,7 @@ def _measured(ground: float, pixels: float | None) -> str:
     return f"{quantities.area(ground)}, {quantities.compact(pixels)} pixels"
 
 
-def _refused(track: Track, picked: Campaign | None) -> str:
+def _refused(track: Track, picked: Survey | None) -> str:
     """Count what the window turned away, out of everything taken during it.
 
     The count is of the window and not of the record, since what a stretch of

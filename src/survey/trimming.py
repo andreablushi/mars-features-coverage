@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from campaign import configs
-from campaign.results import Span
-from campaign.timeline import Track
+from survey import configs
+from survey.results import Span
+from survey.timeline import Track
 
 
 def core(track: Track, span: Span) -> int:

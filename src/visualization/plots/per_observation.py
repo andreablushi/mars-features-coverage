@@ -10,7 +10,7 @@ import numpy as np
 from matplotlib.lines import Line2D
 
 from models.results import SetCoverage
-from visualization import campaigns, panels
+from visualization import panels, surveys
 
 # One stacked panel per instrument set, so the height is per panel
 PANEL_HEIGHT = 2.5
@@ -27,7 +27,7 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     """
     if not coverage:
         return panels.unavailable()
-    picked = campaigns.picked(coverage)
+    picked = surveys.picked(coverage)
     colours = panels.colours(coverage)
     area_km2 = coverage[0].summary.feature_area_km2
     figure, axes = plt.subplots(
@@ -103,9 +103,9 @@ def _key(axis, picked) -> None:
     marker = Line2D(
         [],
         [],
-        color=panels.CAMPAIGN_LINE,
-        linestyle=panels.CAMPAIGN_STYLE,
-        linewidth=panels.CAMPAIGN_WIDTH,
+        color=panels.SURVEY_LINE,
+        linestyle=panels.SURVEY_STYLE,
+        linewidth=panels.SURVEY_WIDTH,
         label=picked.caption,
     )
     axis.legend(handles=[marker], fontsize=8, loc="upper right", frameon=False)

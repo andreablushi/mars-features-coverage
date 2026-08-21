@@ -7,8 +7,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
-from campaign import configs, filtering
 from models.results import Event, SetCoverage
+from survey import configs, filtering
 from utils import mask as packing
 
 Burned = list[tuple[Event, list[int]]]
@@ -29,14 +29,14 @@ class Track:
         pixels: How many of the instrument's own pixels each of them landed
             inside the feature, in the same order.
         sounder: Whether each observation is a sounder track, one of which a
-            campaign is required to hold.
+            survey is required to hold.
         totals: How many cells each set fills across the whole record, which is
             what its reach inside a window is a share of.
         labels: The name of each set, in the order owners index them.
         grid: How many cells the feature's grid holds.
         refused: When each observation left off the axis was taken, oldest
             first, so that a window can say how many fell inside it.
-        sounded: How many of those were sounder tracks, which a campaign
+        sounded: How many of those were sounder tracks, which a survey
             cannot be found without.
     """
 

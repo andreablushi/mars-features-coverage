@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from campaign import verdict
-from campaign.results import Campaign
-from campaign.verdict import Verdict
 from models.results import SetCoverage
+from survey import verdict
+from survey.results import Survey
+from survey.verdict import Verdict
 
 # How many searches are kept, so every panel of a feature shares one.
-CAMPAIGN_CACHE = 8
+SURVEY_CACHE = 8
 
 
 _found: dict[tuple, Verdict] = {}
@@ -32,13 +32,13 @@ def assessed(coverage: Sequence[SetCoverage]) -> Verdict:
     """
     key = _key(coverage)
     if key not in _found:
-        if len(_found) >= CAMPAIGN_CACHE:
+        if len(_found) >= SURVEY_CACHE:
             _found.clear()
         _found[key] = verdict.assess(coverage)
     return _found[key]
 
 
-def picked(coverage: Sequence[SetCoverage]) -> Campaign | None:
+def picked(coverage: Sequence[SetCoverage]) -> Survey | None:
     """Return the best window for one feature.
 
     Args:
@@ -47,7 +47,7 @@ def picked(coverage: Sequence[SetCoverage]) -> Campaign | None:
     Returns:
         The chosen window, or None when the feature has none.
     """
-    return assessed(coverage).campaign
+    return assessed(coverage).survey
 
 
 def _key(coverage: Sequence[SetCoverage]) -> tuple:

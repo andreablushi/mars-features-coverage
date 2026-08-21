@@ -28,7 +28,7 @@ class Span:
 
 
 @dataclass(frozen=True, slots=True)
-class Campaign:
+class Survey:
     """The stretch of time a feature's instruments are best studied over.
 
     Attributes:

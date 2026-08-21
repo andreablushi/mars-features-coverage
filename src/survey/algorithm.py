@@ -2,54 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-
-from campaign import configs, curve, measuring, timeline, trimming
-from campaign.reach import Reach
-from campaign.results import Campaign, Span
-from campaign.timeline import Track
-from models.results import SetCoverage
+from survey import configs, curve, measuring, trimming
+from survey.reach import Reach
+from survey.results import Span, Survey
+from survey.timeline import Track
 
 
-def find_best_time_window(coverage: Sequence[SetCoverage]) -> Campaign | None:
-    """Find the shortest window holding most of what every instrument saw.
-
-    Two aims pull against each other: a window should be short, and it should
-    hold most of the ground every instrument covered. Neither can be maximised
-    without giving up the other, so nothing here is scored against a made up
-    exchange rate between days and ground. The demand for ground is raised a
-    rung at a time instead, the shortest window meeting each rung is found
-    exactly, and the turn in the curve those windows trace is what gets picked.
-
-    It runs in four steps, marked in the body below.
-
-    1. Put every instrument's observations on one time axis, oldest first.
-    2. Ask for all the instruments at once, and settle for fewer only when no
-       window inside the allowed span holds that many at all.
-    3. For each rung of ground, slide a window along the axis and keep the
-       shortest one meeting it. Two facts make one pass enough. A window can
-       always be pulled in to start and end on an observation without losing
-       anything, so only those windows are worth looking at. And every demand
-       only becomes easier to meet as a window grows, so once a window
-       qualifies, the earliest observation it can start at never moves
-       backwards again: the left edge sweeps forward exactly once.
-    4. Pick the knee of the curve, the point past which more ground stops
-       being worth the days it costs. When the curve never bends that way,
-       ground is still speeding up when the cap arrives, so take all of it.
-
-    Args:
-        coverage: The feature's instrument sets, in any order.
-
-    Returns:
-        The chosen window, or None when the feature was never sounded, or when
-        no window inside the allowed span holds a sounder track at all.
-    """
-    # 1. One time axis, and nothing to choose from unless a sounder flew here.
-    track = timeline.build(coverage)
-    return search(track) if track else None
-
-
-def search(track: Track) -> Campaign | None:
+def search(track: Track) -> Survey | None:
     """Run the search over a timeline that has already been built.
 
     Args:
@@ -84,7 +43,7 @@ def search(track: Track) -> Campaign | None:
                 held.hold(owners[right], cells[right])  # take the next one in
                 sounders += sounder[right]
                 while (
-                    sounders  # a campaign without a sounder track is no campaign
+                    sounders  # a survey without a sounder track is no survey
                     and held.instruments >= wanted
                     and held.mean >= level - configs.ROUNDING
                 ):
@@ -118,7 +77,7 @@ def search(track: Track) -> Campaign | None:
     knee = lift[turn] > 0.0
     picked = frontier[turn] if knee else frontier[-1]
 
-    return Campaign(
+    return Survey(
         start=track.moments[picked.first],
         end=track.moments[picked.last],
         days=picked.days,
