@@ -30,6 +30,9 @@ class Track:
             what its reach inside a window is a share of.
         labels: The name of each set, in the order owners index them.
         grid: How many cells the feature's grid holds.
+        cell_km2: How much ground one of those cells covers, which is what
+            turns a count of cells into the square kilometres every floor is
+            asked in.
         refused: The observations left off the axis, oldest first, so that a
             window can say how many fell inside it.
     """
@@ -42,6 +45,7 @@ class Track:
     totals: list[int]
     labels: list[str]
     grid: int
+    cell_km2: float
     refused: list[Event]
 
 
@@ -54,6 +58,9 @@ def build(coverage: Sequence[SetCoverage]) -> Track | None:
     Returns:
         The timeline, or None when no set left anything measurable behind.
     """
+    if not coverage[0].summary.mask_cells:
+        return None
+    cell_km2 = coverage[0].summary.feature_area_km2 / coverage[0].summary.mask_cells
     sets: list[tuple[SetCoverage, Burned]] = []
     refused: list[Event] = []
     for instrument in coverage:
@@ -63,7 +70,7 @@ def build(coverage: Sequence[SetCoverage]) -> Track | None:
             # Gather the cells the observation fills
             cells = packing.cells_of(observation.mask).tolist()
             # Filter out not admissible observations, and keep the rest
-            if admissible.admissible(observation, cells, width_km):
+            if admissible.admissible(observation, len(cells) * cell_km2, width_km):
                 # Keep track for future cumulation and search
                 burned.append((observation, cells))
             else:
@@ -95,5 +102,6 @@ def build(coverage: Sequence[SetCoverage]) -> Track | None:
         ],
         labels=[instrument.label for instrument, _ in sets],
         grid=max(coverage[0].summary.mask_cells, reached + 1),
+        cell_km2=cell_km2,
         refused=sorted(refused, key=lambda observation: observation.t_start),
     )

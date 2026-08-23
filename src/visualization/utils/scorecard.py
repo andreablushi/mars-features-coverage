@@ -95,11 +95,12 @@ def _sounding(verdict: Verdict) -> str:
 
 
 def _overlaps(verdict: Verdict, area_km2: float) -> list[Row]:
-    """Read how much of the feature several instruments reach between them.
+    """Read how much ground several instruments reach between them.
 
     Args:
         verdict: What the feature was judged to be.
-        area_km2: How much ground the feature covers.
+        area_km2: How much ground the feature covers, which the ground shared
+            is read back as a share of.
 
     Returns:
         One row per count of instruments, each there to be read rather than to
@@ -108,11 +109,11 @@ def _overlaps(verdict: Verdict, area_km2: float) -> list[Row]:
     return [
         (
             f"Ground at least {_WORDS.get(wanted, str(wanted))} instruments reach",
-            f"{share:.0%}, {quantities.area(share * area_km2)}",
+            f"{quantities.area(shared)}, {shared / area_km2:.0%} of the feature",
             "",
             None,
         )
-        for wanted, share in verdict.overlaps.items()
+        for wanted, shared in verdict.overlaps.items()
     ]
 
 

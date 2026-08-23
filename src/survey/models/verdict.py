@@ -31,9 +31,9 @@ class Verdict:
             window when there is one and over the whole record when there is
             not.
         taken: How many were counted over that same stretch.
-        overlaps: What share of the feature is reached by at least that many
-            instrument sets at once, by set count. Empty when there is no
-            window.
+        overlaps: How much ground in square kilometres is reached by at least
+            that many instrument sets at once, by set count. Empty when there
+            is no window.
     """
 
     survey: Survey | None

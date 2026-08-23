@@ -40,7 +40,7 @@ def assess(coverage: Sequence[SetCoverage]) -> Verdict:
         smallest=_smallest(track, picked),
         refused=_refused(track, picked),
         taken=picked.observations if picked else len(track.observations),
-        overlaps=_overlaps(track, picked, coverage[0].summary.mask_cells),
+        overlaps=_overlaps(track, picked),
     )
 
 
@@ -56,24 +56,24 @@ def _sounders(track: Track) -> int:
     return sum(bool(observation.width_km) for observation in track.refused)
 
 
-def _overlaps(track: Track, picked: Survey | None, cells: int) -> dict[int, float]:
-    """Measure how much of the feature several instruments reach between them.
+def _overlaps(track: Track, picked: Survey | None) -> dict[int, float]:
+    """Measure how much ground several instruments reach between them.
 
     Args:
         track: The feature's admissible observations on one time axis.
         picked: The window the shared ground is counted inside, or None when
             the search found none.
-        cells: How many cells of the feature's grid fall inside it.
 
     Returns:
-        The share of the feature reached by at least that many sets, by set
-        count, and nothing at all without a window to count it inside.
+        The ground in square kilometres reached by at least that many sets, by
+        set count, and nothing at all without a window to count it inside.
     """
     if picked is None:
         return {}
     counted = overlap.reached(track, picked)
     return {
-        wanted: overlap.share(counted, wanted, cells) for wanted in configs.OVERLAP_SETS
+        wanted: overlap.ground(counted, wanted, track.cell_km2)
+        for wanted in configs.OVERLAP_SETS
     }
 
 
