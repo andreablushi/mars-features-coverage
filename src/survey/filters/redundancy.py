@@ -24,7 +24,7 @@ def trimming(track: Track, window: Window) -> int:
         held = seen.setdefault(track.owners[index], set())
         # Ground its own set had not reached anywhere earlier in the window
         fresh = [cell for cell in track.cells[index] if cell not in held]
-        if len(fresh) >= configs.MIN_GAIN_CELLS:
+        if len(fresh) * track.cell_km2 >= configs.MIN_GAIN_KM2:
             counted += 1
         # A cell is held once however many observations go on to fill it
         held.update(fresh)

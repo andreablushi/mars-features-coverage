@@ -16,18 +16,32 @@ ROUNDING = 1e-9
 # Seconds in a day, which is what every span is measured in.
 DAY_SECONDS = 86400.0
 
-# An observation clipping the edge of a feature reports the edge, not the
-# feature. It has to bring ground enough to crop, and fill a cell of the
-# feature's grid that is not the only one.
+# How wide a tile of a feature is, in kilometres. A CTX swath is some tens of
+# kilometres across, so a tile this wide is a few images across: narrower, and
+# a single image fills it and the share of it asked for stops meaning
+# anything; wider, and one window stretches over ground nothing looked at
+# together, which is what the tiling is here to stop.
+TILE_KM = 100.0
+
+# An observation clipping the edge of a tile reports the edge, not the tile.
+# It has to bring ground enough to crop.
 MIN_AREA_KM2 = 1.0
-MIN_CELLS = 2
 
 # A sounder reports a line, so it also has to cross this share of the feature
 # rather than stopping just inside it.
 MIN_CROSSING = 0.10
 
-# What a feature has to hold before it is worth putting in a dataset at all.
-MIN_SETS = 2
+# Which weighting of the instruments the search runs under, by the name the
+# strategy's own file gives it. The others stay for the comparison.
+STRATEGY = "imaged"
 
-# Cells an observation has to bring a window that nothing before it brought.
-MIN_GAIN_CELLS = 1
+# Ground an observation has to bring a window that nothing before it brought.
+MIN_GAIN_KM2 = 1.0
+
+# How many tiles a feature has to leave with a window before it is worth
+# putting in a dataset at all. Nothing else is asked of the feature as a
+# whole: what a window has to hold is asked of it tile by tile.
+MIN_TILES = 1
+
+# How many instruments the shared ground is read at, most first.
+OVERLAP_SETS = (3, 2)

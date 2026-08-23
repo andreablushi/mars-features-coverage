@@ -1,217 +1,153 @@
-"""Asking a feature everything the dataset asks of it."""
+"""Asking a feature everything the dataset asks of it, a tile at a time."""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 
-from models.results import SetCoverage
-from survey import algorithm, configs
+from models.results import Event, SetCoverage
+from survey import algorithm, configs, strategies
+from survey.models import track as timeline
+from survey.models.strategy import Strategy
 from survey.models.survey import Survey
-from survey.models.track import Track, build
-from survey.models.verdict import Row, Verdict
-from utils.maths import quantities
+from survey.models.track import Track
+from survey.models.verdict import Verdict
+from survey.utils import overlap, tiles
 
-_NOTHING = "no cells filled"
-_UNCOUNTED = "not counted"
-
-
-def kept(checks: Sequence[Row]) -> bool:
-    """Report whether the feature belongs in the dataset.
-
-    Args:
-        checks: Everything asked of it.
-
-    Returns:
-        True when everything required of it holds. A row there to be read has
-        no say in this.
-    """
-    return all(passed for _, _, _, passed in checks if passed is not None)
+Found = list[tuple[Track, Survey]]
 
 
-def assess(coverage: Sequence[SetCoverage]) -> Verdict:
-    """Search one feature for a window, and judge whether it is worth keeping.
-
-    A feature is not kept or dropped on the window alone. A window can be
-    found and still be built on too few observations, on one instrument, or on
-    a feature the record barely touched, and each of those is a different
-    reason to leave it out. Every reason is asked separately and answered in
-    full, so a feature that is left out says which rung it failed rather than
-    only that it failed.
-
-    The search still runs on a feature that will be left out. What it found is
-    worth reading beside the reason it was not kept, and the panels draw it
-    either way.
+def assess(
+    coverage: Sequence[SetCoverage], strategy: Strategy | None = None
+) -> Verdict:
+    """Search every tile of a feature for the window a dataset would keep.
 
     Args:
         coverage: The feature's instrument sets, in any order.
+        strategy: Which instruments a window has to hold and how much ground
+            each of them has to reach, or None for the configured one.
 
     Returns:
-        The verdict, holding the window, every check, and the counts behind
-        them.
+        The verdict, holding the window every tile earned and every count
+        behind them.
     """
-    track = build(coverage)
-    if track is None:
-        return Verdict(None, [("Ground on the feature", _NOTHING, "any", False)])
-    picked = algorithm.search(track)
-    return Verdict(survey=picked, checks=_checks(track, picked))
-
-
-def _sounding(track: Track, picked: Survey | None) -> str:
-    """Say whether a sounder track was found, and where it went when not.
-
-    A sounder track clipping the edge of a feature is dropped like any other
-    observation too small to count, and a feature whose only tracks were that
-    small has no survey for a different reason than one no sounder ever flew
-    over. The two read alike once the search returns nothing, so the dropped
-    tracks are named here.
-
-    Args:
-        track: The feature's admissible observations on one time axis.
-        picked: The window the search found, or None when it found none.
-
-    Returns:
-        The line the scorecard reads on that row.
-    """
-    if picked is not None:
-        return "found"
-    sounded = sum(bool(observation.width_km) for observation in track.refused)
-    if sounded:
-        return f"none, {sounded:,} tracks were too small to count"
-    return "none"
-
-
-def _checks(track: Track, picked: Survey | None) -> list[Row]:
-    """Ask a feature everything the dataset asks of it.
-
-    Args:
-        track: The feature's admissible observations on one time axis.
-        picked: The window the search found, or None when it found none.
-
-    Returns:
-        Every row, the required ones first and what is only worth reading last.
-    """
-    rows = [
-        (
-            "A window holding a sounder track",
-            _sounding(track, picked),
-            "one",
-            picked is not None,
-        ),
+    strategy = strategy or strategies.named(configs.STRATEGY)
+    summary = coverage[0].summary
+    if not summary.mask_cells:
+        return _nothing()
+    tiling = tiles.split(summary.feature_area_km2, summary.mask_cells)
+    tracks = timeline.build(coverage, tiling)
+    if not tracks:
+        return _nothing()
+    found: Found = [
+        (track, picked)
+        for track in tracks
+        if (picked := algorithm.search(track, strategy)) is not None
     ]
-    if picked is not None:
-        rows += [
-            (
-                "Instruments in the window",
-                f"{picked.instruments}",
-                f"{configs.MIN_SETS}",
-                picked.instruments >= configs.MIN_SETS,
-            ),
-            (
-                "Observations bringing ground of their own",
-                f"{picked.core:,} of {picked.observations:,}",
-                "",
-                None,
-            ),
-            (
-                "Ground the window reaches, counted evenly",
-                f"{picked.reach:.0%} over {quantities.duration(picked.days)}",
-                "",
-                None,
-            ),
-        ]
-        rows += [
-            (
-                f"Smallest observation from {label}",
-                reads,
-                "",
-                None,
-            )
-            for _, reads, label in _smallest(track, picked)
-        ]
-    rows.append(
-        (
-            "Observations too small to count",
-            _refused(track, picked),
-            "",
-            None,
+    return Verdict(
+        surveys=[picked for _, picked in found],
+        across=tiling.across,
+        gridded=True,
+        sounders_refused=_sounders(tracks),
+        smallest=_smallest(found),
+        refused=_refused(found),
+        taken=sum(picked.observations for _, picked in found),
+        overlaps=_overlaps(found),
+    )
+
+
+def _nothing() -> Verdict:
+    """Report a feature no instrument set ever filled a cell of.
+
+    Returns:
+        The verdict, which is the one a feature can reach before it is
+        searched at all.
+    """
+    return Verdict(
+        surveys=[],
+        across=0,
+        gridded=False,
+        sounders_refused=0,
+        smallest={},
+        refused=0,
+        taken=0,
+        overlaps={},
+    )
+
+
+def _sounders(tracks: Sequence[Track]) -> int:
+    """Count the sounder tracks that were too small to count.
+
+    Args:
+        tracks: The feature's tiles, each on its own time axis.
+
+    Returns:
+        How many of the looks left off the axes were sounder tracks, counting
+        a track once per tile it was turned away from.
+    """
+    return sum(
+        bool(observation.width_km) for track in tracks for observation in track.refused
+    )
+
+
+def _overlaps(found: Found) -> dict[int, float]:
+    """Measure how much ground several instruments reach between them.
+
+    Args:
+        found: Every tile that earned a window, with the window it earned.
+
+    Returns:
+        The ground in square kilometres reached by at least that many sets
+        inside the windows, by set count, counting only as many sets as the
+        feature has, and nothing at all when no tile earned a window. The
+        tiles are disjoint, so their ground adds up.
+    """
+    if not found:
+        return {}
+    sets = len(found[0][0].labels)
+    return {
+        wanted: sum(
+            overlap.ground(overlap.reached(track, picked), wanted, track.cell_km2)
+            for track, picked in found
         )
-    )
-    return rows
+        for wanted in configs.OVERLAP_SETS
+        if wanted <= sets
+    }
 
 
-def _smallest(track: Track, picked: Survey) -> list[tuple[float, str, str]]:
-    """Find the least an instrument's single observation covers in the window.
-
-    This is what the floors are read against. Every observation here already
-    cleared them, so the smallest one says how close to the floor the window
-    is actually working, and whether there is anything in it worth turning
-    away that is not being turned away.
-
-    A set the window never holds has no smallest observation and is left out,
-    since it has none to answer with.
+def _smallest(found: Found) -> dict[str, Event]:
+    """Find the least an instrument's single observation covers in a window.
 
     Args:
-        track: The feature's admissible observations on one time axis.
-        picked: The window the search found.
-
-    Both the ground and the pixels it landed there are given, since they are
-    the two floors an observation is asked to clear and one does not follow
-    from the other: a pixel is a quarter of a metre across for HiRISE and more
-    than a kilometre for SHARAD.
+        found: Every tile that earned a window, with the window it earned.
 
     Returns:
-        The ground, what it reads as with its pixels, and the instrument, least
-        first, so that whatever the window is thinnest on is read first.
+        The smallest look each set left inside a window, by set name, least
+        ground first, so that whatever the windows are thinnest on comes
+        first.
     """
-    least: dict[int, tuple[float, float | None]] = {}
-    for owner, observation in zip(track.owners, track.observations, strict=True):
-        if picked.start <= observation.t_start <= picked.end:
-            held = least.get(owner)
-            if held is None or observation.own_km2 < held[0]:
-                least[owner] = (observation.own_km2, observation.pixels)
-    return sorted(
-        (ground, _measured(ground, pixels), track.labels[owner])
-        for owner, (ground, pixels) in least.items()
-    )
+    least: dict[str, Event] = {}
+    for track, picked in found:
+        for owner, observation in zip(track.owners, track.observations, strict=True):
+            if picked.start <= observation.t_start <= picked.end:
+                label = track.labels[owner]
+                held = least.get(label)
+                if held is None or observation.own_km2 < held.own_km2:
+                    least[label] = observation
+    return dict(sorted(least.items(), key=lambda found: found[1].own_km2))
 
 
-def _measured(ground: float, pixels: float | None) -> str:
-    """Write one observation's size in both of the units it is judged in.
+def _refused(found: Found) -> int:
+    """Count what the windows turned away for being too small.
 
     Args:
-        ground: How much of the feature it covers, in square kilometres.
-        pixels: How many of the instrument's pixels it landed there, or None
-            when the artifact predates the measurement.
+        found: Every tile that earned a window, with the window it earned.
 
     Returns:
-        The ground and the pixels, or the ground alone where none were counted.
+        How many looks were turned away over those stretches of time.
     """
-    if pixels is None:
-        return f"{quantities.area(ground)}, pixels {_UNCOUNTED}"
-    return f"{quantities.area(ground)}, {quantities.compact(pixels)} pixels"
-
-
-def _refused(track: Track, picked: Survey | None) -> str:
-    """Count what the window turned away, out of everything taken during it.
-
-    The count is of the window and not of the record, since what a stretch of
-    time elsewhere had to leave out says nothing about the stretch that was
-    chosen. A feature with no window at all is counted over its whole record,
-    which is the only span it has.
-
-    Args:
-        track: The feature's admissible observations on one time axis.
-        picked: The window the search found, or None when it found none.
-
-    Returns:
-        How many were turned away, out of how many were taken.
-    """
-    if picked is None:
-        turned, taken = len(track.refused), len(track.observations)
-        return f"{turned:,} of {turned + taken:,}"
-    inside = sum(
+    return sum(
         1
+        for track, picked in found
         for observation in track.refused
         if picked.start <= observation.t_start <= picked.end
     )
-    return f"{inside:,} of {inside + picked.observations:,}"

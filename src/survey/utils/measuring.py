@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from survey.models.strategy import Demands
+from survey.models.track import Track
+
 Counts = list[list[int]]
 
 
@@ -71,6 +74,27 @@ def release(
     inside[owner] -= 1
 
 
+def counted(track: Track, first: int, last: int) -> tuple[Counts, list[int], list[int]]:
+    """Count afresh everything one stretch of the axis holds.
+
+    It takes bare indices rather than a window, since the search scores the
+    whole record this way before it has a window to speak of.
+
+    Args:
+        track: The feature's observations on one time axis.
+        first: The index of the earliest observation it holds.
+        last: The index of the latest one.
+
+    Returns:
+        The per cell counts, the cells each set reaches, and how many
+        observations each set has inside.
+    """
+    counts, seen, inside = opened(len(track.labels), track.grid)
+    for index in range(first, last + 1):
+        hold(counts, seen, inside, track.owners[index], track.cells[index])
+    return counts, seen, inside
+
+
 def instruments(inside: Sequence[int]) -> int:
     """Count the instrument sets with an observation in the window.
 
@@ -83,41 +107,33 @@ def instruments(inside: Sequence[int]) -> int:
     return len(inside) - inside.count(0)
 
 
-def shares(seen: Sequence[int], totals: Sequence[int]) -> list[float]:
-    """Return what share of its own ground each set reaches in the window.
-
-    Args:
-        seen: How many cells each set reaches inside the window.
-        totals: How many it fills across its whole record.
-
-    Returns:
-        One share per set, where 1.0 means the window holds everything that
-        set ever covered of this feature.
-    """
-    return [held / total for held, total in zip(seen, totals, strict=True)]
-
-
-def mean(seen: Sequence[int], totals: Sequence[int], wanted: int = 0) -> float:
-    """Return how much ground the window reaches, counting it evenly out.
+def scored(track: Track, demands: Demands, seen: Sequence[int]) -> float:
+    """Score what a window holds, or refuse it for what it does not hold.
 
     The shares are multiplied and rooted rather than added and divided, so that
-    one instrument cannot carry a window on its own. A set absent from the
-    window counts as zero, which is what lets the sweep trust that a wider
-    window is never worse.
+    one instrument cannot carry a window on its own. Every share is of the same
+    ground, so the ground divides out of the product and is applied once at the
+    end. An instrument that several sets answer for is credited with the best
+    of them rather than with all of them at once.
 
     Args:
+        track: The observations on one time axis.
+        demands: The sets answering for each instrument insisted on, and the
+            cells any one of them has to reach, tightest demand first so that
+            a window fails on it soonest.
         seen: How many cells each set reaches inside the window.
-        totals: How many it fills across its whole record.
-        wanted: How many sets the score is taken over, best first. Nought for
-            all of them.
 
     Returns:
-        The score, between zero and one.
+        How much of the ground it reaches, between zero and one, or less than
+        nothing when an instrument insisted on is missing from the window or
+        reached too little of the ground to count.
     """
-    scored = shares(seen, totals)
-    if wanted and wanted < len(scored):
-        scored = sorted(scored, reverse=True)[:wanted]
-    product = 1.0
-    for share in scored:
-        product *= share
-    return product ** (1.0 / len(scored))
+    product = 1
+    for answering, floor in demands:
+        reached = seen[answering[0]]
+        if len(answering) > 1:
+            reached = max(seen[owner] for owner in answering)
+        if reached < floor:
+            return -1.0
+        product *= reached
+    return product ** (1.0 / len(demands)) * track.cell_km2 / track.area_km2

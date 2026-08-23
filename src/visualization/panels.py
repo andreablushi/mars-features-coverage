@@ -15,8 +15,6 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import PercentFormatter
 
 from models.results import SetCoverage
-from survey.models.survey import Survey
-from utils.maths import quantities
 
 GREY = "#8a8a8a"
 
@@ -26,10 +24,12 @@ FIGURE_WIDTH = 11
 # The ramp a heat panel is coloured by.
 COLORMAP = "YlGnBu"
 
-# The window the search picked, marked at either end of the time panels.
+# The windows the tiles earned, marked across the time panels.
 SURVEY_LINE = "#1a1a1a"
 SURVEY_STYLE = (0, (6, 3))
 SURVEY_WIDTH = 0.8
+SURVEY_SHADE = "#9e9e9e"
+SURVEY_ALPHA = 0.18
 
 
 Colour = tuple[float, float, float]
@@ -69,25 +69,26 @@ def tidy(axis: Axes, percent: str, grid: str) -> None:
     axis.spines[["top", "right"]].set_visible(False)
 
 
-def bracket(axis: Axes, start: datetime, end: datetime) -> None:
-    """Mark a stretch of time on a panel with a line at either end of it.
+def shade(axis: Axes, open_for: Sequence[tuple[datetime, datetime]]) -> None:
+    """Mark the stretches of time the tiles' windows are open over.
 
     Args:
         axis: The panel to draw on, whose x axis carries time.
-        start: When the stretch opens.
-        end: When it closes.
+        open_for: When each stretch opens and closes, earliest first.
 
     Returns:
         None.
     """
-    for edge in (start, end):
-        axis.axvline(
-            edge,
-            color=SURVEY_LINE,
-            linestyle=SURVEY_STYLE,
-            linewidth=SURVEY_WIDTH,
-            zorder=4,
-        )
+    for opened, closed in open_for:
+        axis.axvspan(opened, closed, color=SURVEY_SHADE, alpha=SURVEY_ALPHA, zorder=0)
+        for edge in (opened, closed):
+            axis.axvline(
+                edge,
+                color=SURVEY_LINE,
+                linestyle=SURVEY_STYLE,
+                linewidth=SURVEY_WIDTH,
+                zorder=4,
+            )
 
 
 def rendered(figure: Figure) -> widgets.Image:
@@ -143,18 +144,3 @@ def title(coverage: Sequence[SetCoverage]) -> str:
     """
     summary = coverage[0].summary
     return f"{summary.feature_class} / {summary.feature_name}"
-
-
-def caption(survey: Survey) -> str:
-    """Sum the picked window up in one line, for a legend or a title.
-
-    Args:
-        survey: The window the search picked.
-
-    Returns:
-        Its length, how many instruments it holds, and what it scores.
-    """
-    return (
-        f"best window: {quantities.duration(survey.days)}, "
-        f"{survey.instruments} instruments, scoring {survey.reach:.0%}"
-    )
