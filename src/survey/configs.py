@@ -38,5 +38,10 @@ STRATEGY = "imaged"
 # Ground an observation has to bring a window that nothing before it brought.
 MIN_GAIN_KM2 = 1.0
 
+# How many tiles a feature has to leave with a window before it is worth
+# putting in a dataset at all. Nothing else is asked of the feature as a
+# whole: what a window has to hold is asked of it tile by tile.
+MIN_TILES = 1
+
 # How many instruments the shared ground is read at, most first.
 OVERLAP_SETS = (3, 2)

@@ -12,6 +12,8 @@ class Survey:
 
     Attributes:
         tile: Which tile of the feature it was found over.
+        area_km2: How much ground that tile covers, which is what the dataset
+            gains by keeping the window.
         start: When the earliest observation inside it was taken.
         end: When the latest one was taken.
         days: How long it lasts.
@@ -28,6 +30,7 @@ class Survey:
     """
 
     tile: int
+    area_km2: float
     start: datetime
     end: datetime
     days: float

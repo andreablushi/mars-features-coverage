@@ -97,17 +97,20 @@ def _overlaps(found: Found) -> dict[int, float]:
 
     Returns:
         The ground in square kilometres reached by at least that many sets
-        inside the windows, by set count, and nothing at all when no tile
-        earned one. The tiles are disjoint, so their ground adds up.
+        inside the windows, by set count, counting only as many sets as the
+        feature has, and nothing at all when no tile earned a window. The
+        tiles are disjoint, so their ground adds up.
     """
     if not found:
         return {}
+    sets = len(found[0][0].labels)
     return {
         wanted: sum(
             overlap.ground(overlap.reached(track, picked), wanted, track.cell_km2)
             for track, picked in found
         )
         for wanted in configs.OVERLAP_SETS
+        if wanted <= sets
     }
 
 

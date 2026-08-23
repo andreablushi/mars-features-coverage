@@ -38,6 +38,7 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
     picked, knee = _bend(frontier)
     return Survey(
         tile=track.tile,
+        area_km2=track.area_km2,
         start=track.observations[picked.first].t_start,
         end=track.observations[picked.last].t_start,
         days=picked.days,
