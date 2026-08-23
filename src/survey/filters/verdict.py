@@ -9,10 +9,14 @@ from survey import algorithm, configs
 from survey.models.survey import Survey
 from survey.models.track import Track, build
 from survey.models.verdict import Row, Verdict
+from survey.utils import overlap
 from utils.maths import quantities
 
 _NOTHING = "no cells filled"
 _UNCOUNTED = "not counted"
+
+# How many instruments the overlap rows read the shared ground at, most first.
+_OVERLAPS = ((3, "three"), (2, "two"))
 
 
 def kept(checks: Sequence[Row]) -> bool:
@@ -53,7 +57,8 @@ def assess(coverage: Sequence[SetCoverage]) -> Verdict:
     if track is None:
         return Verdict(None, [("Ground on the feature", _NOTHING, "any", False)])
     picked = algorithm.search(track)
-    return Verdict(survey=picked, checks=_checks(track, picked))
+    cells = coverage[0].summary.mask_cells
+    return Verdict(survey=picked, checks=_checks(track, picked, cells))
 
 
 def _sounding(track: Track, picked: Survey | None) -> str:
@@ -80,12 +85,13 @@ def _sounding(track: Track, picked: Survey | None) -> str:
     return "none"
 
 
-def _checks(track: Track, picked: Survey | None) -> list[Row]:
+def _checks(track: Track, picked: Survey | None, cells: int) -> list[Row]:
     """Ask a feature everything the dataset asks of it.
 
     Args:
         track: The feature's admissible observations on one time axis.
         picked: The window the search found, or None when it found none.
+        cells: How many cells of the feature's grid fall inside it.
 
     Returns:
         Every row, the required ones first and what is only worth reading last.
@@ -119,6 +125,7 @@ def _checks(track: Track, picked: Survey | None) -> list[Row]:
                 None,
             ),
         ]
+        rows += _overlaps(track, picked, cells)
         rows += [
             (
                 f"Smallest observation from {label}",
@@ -137,6 +144,34 @@ def _checks(track: Track, picked: Survey | None) -> list[Row]:
         )
     )
     return rows
+
+
+def _overlaps(track: Track, picked: Survey, cells: int) -> list[Row]:
+    """Read how much of the feature several instruments reach between them.
+
+    The ground is counted once however many observations landed on it, and a
+    row asks for at least that many instruments rather than exactly that many,
+    so the ground three reach sits inside the ground two reach.
+
+    Args:
+        track: The feature's admissible observations on one time axis.
+        picked: The window the shared ground is counted inside.
+        cells: How many cells of the feature's grid fall inside it.
+
+    Returns:
+        One row per count of instruments, most first, each there to be read
+        rather than to be met.
+    """
+    counted = overlap.reached(track, picked)
+    return [
+        (
+            f"Ground at least {word} instruments reach",
+            f"{overlap.share(counted, wanted, cells):.0%}",
+            "",
+            None,
+        )
+        for wanted, word in _OVERLAPS
+    ]
 
 
 def _smallest(track: Track, picked: Survey) -> list[tuple[float, str, str]]:
