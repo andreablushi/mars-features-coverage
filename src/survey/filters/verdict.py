@@ -5,22 +5,28 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from models.results import Event, SetCoverage
-from survey import algorithm, configs
+from survey import algorithm, configs, strategies
+from survey.models.strategy import Strategy
 from survey.models.survey import Survey
 from survey.models.track import Track, build
 from survey.models.verdict import Verdict
 from survey.utils import overlap
 
 
-def assess(coverage: Sequence[SetCoverage]) -> Verdict:
-    """Search an optimal window for a feature and judge whether it is worth keeping.
+def assess(
+    coverage: Sequence[SetCoverage], strategy: Strategy | None = None
+) -> Verdict:
+    """Search a feature for the window a dataset would keep, and report it.
 
     Args:
         coverage: The feature's instrument sets, in any order.
+        strategy: Which instruments the window has to hold and how much ground
+            each of them has to reach, or None for the configured one.
 
     Returns:
         The verdict, holding the window and every count behind it.
     """
+    strategy = strategy or strategies.named(configs.STRATEGY)
     track = build(coverage)
     if track is None:
         return Verdict(
@@ -32,7 +38,7 @@ def assess(coverage: Sequence[SetCoverage]) -> Verdict:
             taken=0,
             overlaps={},
         )
-    picked = algorithm.search(track)
+    picked = algorithm.search(track, strategy)
     return Verdict(
         survey=picked,
         gridded=True,

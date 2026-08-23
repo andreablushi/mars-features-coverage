@@ -26,10 +26,12 @@ class Track:
         cells: The feature's cells each fills, in the same order.
         sounder: Whether each is a sounder track, one of which a survey is
             required to hold.
-        totals: How many cells each set fills across the whole record, which is
-            what its reach inside a window is a share of.
         labels: The name of each set, in the order owners index them.
+        iids: The instrument each set belongs to, in the same order, which is
+            what a strategy asks its demands of.
         grid: How many cells the feature's grid holds.
+        area_km2: How much ground the search is run over, which is what the
+            reach of a window is a share of.
         cell_km2: How much ground one of those cells covers, which is what
             turns a count of cells into the square kilometres every floor is
             asked in.
@@ -42,9 +44,10 @@ class Track:
     owners: list[int]
     cells: list[list[int]]
     sounder: list[bool]
-    totals: list[int]
     labels: list[str]
+    iids: list[str]
     grid: int
+    area_km2: float
     cell_km2: float
     refused: list[Event]
 
@@ -97,11 +100,10 @@ def build(coverage: Sequence[SetCoverage]) -> Track | None:
         owners=[owner for _, _, owner in merged],
         cells=[filled for _, filled, _ in merged],
         sounder=[bool(observation.width_km) for observation, _, _ in merged],
-        totals=[
-            len({cell for _, filled in burned for cell in filled}) for _, burned in sets
-        ],
         labels=[instrument.label for instrument, _ in sets],
+        iids=[instrument.summary.iid for instrument, _ in sets],
         grid=max(coverage[0].summary.mask_cells, reached + 1),
+        area_km2=coverage[0].summary.feature_area_km2,
         cell_km2=cell_km2,
         refused=sorted(refused, key=lambda observation: observation.t_start),
     )

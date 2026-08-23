@@ -24,8 +24,9 @@ MIN_AREA_KM2 = 1.0
 # rather than stopping just inside it.
 MIN_CROSSING = 0.10
 
-# What a feature has to hold before it is worth putting in a dataset at all.
-MIN_SETS = 2
+# Which weighting of the instruments the search runs under, by the name the
+# strategy's own file gives it. The others stay for the comparison.
+STRATEGY = "imaged"
 
 # Ground an observation has to bring a window that nothing before it brought.
 MIN_GAIN_KM2 = 1.0

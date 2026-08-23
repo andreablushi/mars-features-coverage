@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from survey import configs
+from survey.models.strategy import Floors
 from survey.models.track import Track
 from survey.utils import measuring
 
@@ -17,9 +17,9 @@ class Window:
         first: The index of the earliest observation the window holds.
         last: The index of the latest one.
         days: How long it lasts, from the first start time to the last.
-        reach: How much ground it reaches, as the shares of their own records
-            the instrument sets reach inside it, multiplied and rooted so that
-            one set cannot carry the window alone.
+        reach: How much of the ground it reaches, as the shares each
+            instrument insisted on reaches of it, multiplied and rooted so
+            that one instrument cannot carry the window alone.
         instruments: How many sets have an observation inside it.
     """
 
@@ -29,11 +29,13 @@ class Window:
     reach: float
     instruments: int
 
-    def widened(self, track: Track) -> Window:
+    def widened(self, track: Track, floors: Floors) -> Window:
         """Take in every observation sharing an instant with either end.
 
         Args:
-            track: The feature's observations on one time axis.
+            track: The observations on one time axis.
+            floors: The instruments the strategy insists on, which are the
+                ones a widened window is scored over again.
 
         Returns:
             The same stretch of time, holding everything taken during it.
@@ -55,6 +57,6 @@ class Window:
             first,
             last,
             self.days,
-            measuring.mean(seen, track.totals, configs.MIN_SETS),
+            measuring.reach(track, seen, floors),
             measuring.instruments(inside),
         )
