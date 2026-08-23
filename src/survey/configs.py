@@ -31,3 +31,6 @@ MIN_SETS = 2
 
 # Cells an observation has to bring a window that nothing before it brought.
 MIN_GAIN_CELLS = 1
+
+# How many instruments the shared ground is read at, most first.
+OVERLAP_SETS = (3, 2)

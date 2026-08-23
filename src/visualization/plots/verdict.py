@@ -8,9 +8,10 @@ from html import escape
 import ipywidgets as widgets
 
 from models.results import SetCoverage
-from survey.filters.verdict import kept
-from survey.models.verdict import Row, Verdict
+from survey.models.verdict import Verdict
 from visualization import panels, surveys
+from visualization.utils import scorecard
+from visualization.utils.scorecard import Row
 
 # How a feature that belongs in the dataset is marked, and one that does not.
 VERDICT_PASS = "#2e7d32"
@@ -38,7 +39,8 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     if not coverage:
         return panels.unavailable()
     verdict = surveys.assessed(coverage)
-    rows = "".join(_row(check) for check in verdict.checks)
+    area_km2 = coverage[0].summary.feature_area_km2
+    rows = "".join(_row(check) for check in scorecard.rows(verdict, area_km2))
     return widgets.HTML(
         f"""<div style="font-family: sans-serif; font-size: 13px;">
           <div style="font-weight: 600; margin-bottom: 2px;">
@@ -65,7 +67,7 @@ def _headline(verdict: Verdict) -> str:
     Returns:
         The banner, coloured by which way it went.
     """
-    held = kept(verdict.checks)
+    held = verdict.kept
     colour = VERDICT_PASS if held else VERDICT_FAIL
     said = VERDICT_KEPT if held else VERDICT_LEFT
     return (
