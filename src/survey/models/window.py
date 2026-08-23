@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from survey.models.strategy import Floors
+from survey.models.strategy import Demands
 from survey.models.track import Track
 from survey.utils import measuring
 
@@ -29,12 +29,12 @@ class Window:
     reach: float
     instruments: int
 
-    def widened(self, track: Track, floors: Floors) -> Window:
+    def widened(self, track: Track, demands: Demands) -> Window:
         """Take in every observation sharing an instant with either end.
 
         Args:
             track: The observations on one time axis.
-            floors: The instruments the strategy insists on, which are the
+            demands: The instruments the strategy insists on, which are the
                 ones a widened window is scored over again.
 
         Returns:
@@ -57,6 +57,6 @@ class Window:
             first,
             last,
             self.days,
-            measuring.reach(track, seen, floors),
+            measuring.scored(track, demands, seen),
             measuring.instruments(inside),
         )

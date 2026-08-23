@@ -1,4 +1,4 @@
-"""Asking a feature everything the dataset asks of it."""
+"""Asking a feature everything the dataset asks of it, a tile at a time."""
 
 from __future__ import annotations
 
@@ -6,125 +6,145 @@ from collections.abc import Sequence
 
 from models.results import Event, SetCoverage
 from survey import algorithm, configs, strategies
+from survey.models import track as timeline
 from survey.models.strategy import Strategy
 from survey.models.survey import Survey
-from survey.models.track import Track, build
+from survey.models.track import Track
 from survey.models.verdict import Verdict
-from survey.utils import overlap
+from survey.utils import overlap, tiles
+
+Found = list[tuple[Track, Survey]]
 
 
 def assess(
     coverage: Sequence[SetCoverage], strategy: Strategy | None = None
 ) -> Verdict:
-    """Search a feature for the window a dataset would keep, and report it.
+    """Search every tile of a feature for the window a dataset would keep.
 
     Args:
         coverage: The feature's instrument sets, in any order.
-        strategy: Which instruments the window has to hold and how much ground
+        strategy: Which instruments a window has to hold and how much ground
             each of them has to reach, or None for the configured one.
 
     Returns:
-        The verdict, holding the window and every count behind it.
+        The verdict, holding the window every tile earned and every count
+        behind them.
     """
     strategy = strategy or strategies.named(configs.STRATEGY)
-    track = build(coverage)
-    if track is None:
-        return Verdict(
-            survey=None,
-            gridded=False,
-            sounders_refused=0,
-            smallest=[],
-            refused=0,
-            taken=0,
-            overlaps={},
-        )
-    picked = algorithm.search(track, strategy)
+    summary = coverage[0].summary
+    if not summary.mask_cells:
+        return _nothing()
+    tiling = tiles.split(summary.feature_area_km2, summary.mask_cells)
+    tracks = timeline.build(coverage, tiling)
+    if not tracks:
+        return _nothing()
+    found: Found = [
+        (track, picked)
+        for track in tracks
+        if (picked := algorithm.search(track, strategy)) is not None
+    ]
     return Verdict(
-        survey=picked,
+        surveys=[picked for _, picked in found],
+        tiles=len(tiling.tiles),
         gridded=True,
-        sounders_refused=_sounders(track),
-        smallest=_smallest(track, picked),
-        refused=_refused(track, picked),
-        taken=picked.observations if picked else len(track.observations),
-        overlaps=_overlaps(track, picked),
+        sounders_refused=_sounders(tracks),
+        smallest=_smallest(found),
+        refused=_refused(found),
+        taken=sum(picked.observations for _, picked in found),
+        overlaps=_overlaps(found),
     )
 
 
-def _sounders(track: Track) -> int:
+def _nothing() -> Verdict:
+    """Report a feature no instrument set ever filled a cell of.
+
+    Returns:
+        The verdict, which is the one a feature can reach before it is
+        searched at all.
+    """
+    return Verdict(
+        surveys=[],
+        tiles=0,
+        gridded=False,
+        sounders_refused=0,
+        smallest={},
+        refused=0,
+        taken=0,
+        overlaps={},
+    )
+
+
+def _sounders(tracks: Sequence[Track]) -> int:
     """Count the sounder tracks that were too small to count.
 
     Args:
-        track: The feature's admissible observations on one time axis.
+        tracks: The feature's tiles, each on its own time axis.
 
     Returns:
-        How many of the observations left off the axis were sounder tracks.
+        How many of the looks left off the axes were sounder tracks, counting
+        a track once per tile it was turned away from.
     """
-    return sum(bool(observation.width_km) for observation in track.refused)
+    return sum(
+        bool(observation.width_km) for track in tracks for observation in track.refused
+    )
 
 
-def _overlaps(track: Track, picked: Survey | None) -> dict[int, float]:
+def _overlaps(found: Found) -> dict[int, float]:
     """Measure how much ground several instruments reach between them.
 
     Args:
-        track: The feature's admissible observations on one time axis.
-        picked: The window the shared ground is counted inside, or None when
-            the search found none.
+        found: Every tile that earned a window, with the window it earned.
 
     Returns:
-        The ground in square kilometres reached by at least that many sets, by
-        set count, and nothing at all without a window to count it inside.
+        The ground in square kilometres reached by at least that many sets
+        inside the windows, by set count, and nothing at all when no tile
+        earned one. The tiles are disjoint, so their ground adds up.
     """
-    if picked is None:
+    if not found:
         return {}
-    counted = overlap.reached(track, picked)
     return {
-        wanted: overlap.ground(counted, wanted, track.cell_km2)
+        wanted: sum(
+            overlap.ground(overlap.reached(track, picked), wanted, track.cell_km2)
+            for track, picked in found
+        )
         for wanted in configs.OVERLAP_SETS
     }
 
 
-def _smallest(track: Track, picked: Survey | None) -> dict[str, Event]:
-    """Find the least an instrument's single observation covers in the window.
+def _smallest(found: Found) -> dict[str, Event]:
+    """Find the least an instrument's single observation covers in a window.
 
     Args:
-        track: The feature's admissible observations on one time axis.
-        picked: The window the search found, or None when it found none.
+        found: Every tile that earned a window, with the window it earned.
 
     Returns:
-        The smallest observation each set left in the window, by set name,
-        least ground first, so that whatever the window is thinnest on comes
+        The smallest look each set left inside a window, by set name, least
+        ground first, so that whatever the windows are thinnest on comes
         first.
     """
-    if picked is None:
-        return {}
-    least: dict[int, Event] = {}
-    for owner, observation in zip(track.owners, track.observations, strict=True):
-        if picked.start <= observation.t_start <= picked.end:
-            held = least.get(owner)
-            if held is None or observation.own_km2 < held.own_km2:
-                least[owner] = observation
-    return {
-        track.labels[owner]: observation
-        for owner, observation in sorted(
-            least.items(), key=lambda found: found[1].own_km2
-        )
-    }
+    least: dict[str, Event] = {}
+    for track, picked in found:
+        for owner, observation in zip(track.owners, track.observations, strict=True):
+            if picked.start <= observation.t_start <= picked.end:
+                label = track.labels[owner]
+                held = least.get(label)
+                if held is None or observation.own_km2 < held.own_km2:
+                    least[label] = observation
+    return dict(sorted(least.items(), key=lambda found: found[1].own_km2))
 
 
-def _refused(track: Track, picked: Survey | None) -> int:
-    """Count what the window turned away for being too small.
+def _refused(found: Found) -> int:
+    """Count what the windows turned away for being too small.
 
     Args:
-        track: The feature's admissible observations on one time axis.
-        picked: The window the search found, or None when it found none.
+        found: Every tile that earned a window, with the window it earned.
 
     Returns:
-        How many were turned away over that stretch.
+        How many looks were turned away over those stretches of time.
     """
-    if picked is None:
-        return len(track.refused)
     return sum(
         1
+        for track, picked in found
         for observation in track.refused
         if picked.start <= observation.t_start <= picked.end
     )

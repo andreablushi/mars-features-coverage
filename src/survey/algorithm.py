@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from survey import configs
 from survey.filters import redundancy
-from survey.models.strategy import Floors, Strategy
+from survey.models.strategy import Demands, Strategy
 from survey.models.survey import Survey
 from survey.models.track import Track
 from survey.models.window import Window
@@ -29,14 +29,15 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
     Returns:
         The chosen window, or None when no window is worth keeping.
     """
-    floors = strategy.floors(track.iids, track.area_km2)
-    if floors is None:
+    demands = strategy.floors(track.iids, track.area_km2, track.cell_km2)
+    if demands is None:
         return None  # an instrument the strategy insists on never came here
-    frontier = _frontier(track, floors)
+    frontier = _frontier(track, demands)
     if not frontier:
         return None
     picked, knee = _bend(frontier)
     return Survey(
+        tile=track.tile,
         start=track.observations[picked.first].t_start,
         end=track.observations[picked.last].t_start,
         days=picked.days,
@@ -48,12 +49,12 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
     )
 
 
-def _frontier(track: Track, floors: Floors) -> list[Window]:
+def _frontier(track: Track, demands: Demands) -> list[Window]:
     """Trace the shortest window worth keeping at every level of ground.
 
     Args:
         track: The admissible observations on one time axis.
-        floors: The ground each instrument insisted on has to reach.
+        demands: The cells each instrument insisted on has to reach.
 
     Returns:
         One window per level of ground, shortest first, and nothing at all
@@ -62,21 +63,23 @@ def _frontier(track: Track, floors: Floors) -> list[Window]:
     # Rungs climb towards what the whole record reaches, so the curve is
     # sampled evenly whatever the ground can offer.
     _, whole, _ = measuring.counted(track, 0, len(track.observations) - 1)
-    ceiling = measuring.reach(track, whole, floors)
+    ceiling = measuring.scored(track, demands, whole)
+    if ceiling < 0.0:
+        return []  # what the whole record cannot hold, no window inside it can
     frontier: list[Window] = []
     seen: set[tuple[int, int]] = set()
     for step in range(configs.LEVELS + 1):
-        found = _shortest(track, floors, ceiling * step / configs.LEVELS)
+        found = _shortest(track, demands, ceiling * step / configs.LEVELS)
         if found is None:
             break  # asking for more ground can only ever ask for more days
-        found = found.widened(track, floors)  # a tie in time is free
+        found = found.widened(track, demands)  # a tie in time is free
         if (found.first, found.last) not in seen:
             seen.add((found.first, found.last))
             frontier.append(found)
     return frontier
 
 
-def _shortest(track: Track, floors: Floors, level: float) -> Window | None:
+def _shortest(track: Track, demands: Demands, level: float) -> Window | None:
     """Find the shortest window worth keeping that reaches one level of ground.
 
     The window is slid along the axis, widened to the right and tightened from
@@ -85,7 +88,7 @@ def _shortest(track: Track, floors: Floors, level: float) -> Window | None:
 
     Args:
         track: The admissible observations on one time axis.
-        floors: The ground each instrument insisted on has to reach.
+        demands: The cells each instrument insisted on has to reach.
         level: The ground the window has to reach, counted evenly.
 
     Returns:
@@ -97,9 +100,10 @@ def _shortest(track: Track, floors: Floors, level: float) -> Window | None:
     left = 0
     for right in range(len(track.observations)):
         measuring.hold(counts, reached, inside, track.owners[right], track.cells[right])
-        while _kept(track, floors, reached, inside, level):
+        while (
+            scored := measuring.scored(track, demands, reached)
+        ) >= level - configs.ROUNDING:
             days = track.times[right] - track.times[left]
-            scored = measuring.reach(track, reached, floors)
             if days <= configs.MAX_SPAN_DAYS and (
                 found is None or (days, -scored) < (found.days, -found.reach)
             ):
@@ -109,35 +113,6 @@ def _shortest(track: Track, floors: Floors, level: float) -> Window | None:
             )
             left += 1
     return found
-
-
-def _kept(
-    track: Track,
-    floors: Floors,
-    reached: list[int],
-    inside: list[int],
-    level: float,
-) -> bool:
-    """Report whether what a window holds is worth keeping at one level.
-
-    Args:
-        track: The admissible observations on one time axis.
-        floors: The ground each instrument insisted on has to reach.
-        reached: How many cells each set reaches inside the window.
-        inside: How many observations each set has inside it.
-        level: The ground it has to reach, counted evenly.
-
-    Returns:
-        True when every instrument insisted on is in it over ground enough,
-        and between them they reach that much ground.
-    """
-    for answering, floor in floors:
-        if not any(
-            inside[owner] and reached[owner] * track.cell_km2 >= floor
-            for owner in answering
-        ):
-            return False
-    return measuring.reach(track, reached, floors) >= level - configs.ROUNDING
 
 
 def _bend(frontier: list[Window]) -> tuple[Window, bool]:

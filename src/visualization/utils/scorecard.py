@@ -5,6 +5,7 @@ from __future__ import annotations
 from models.results import Event
 from survey.models.verdict import Verdict
 from utils.maths import quantities
+from visualization import surveys
 
 Row = tuple[str, str, str, bool | None]
 
@@ -31,13 +32,13 @@ def rows(verdict: Verdict, area_km2: float) -> list[Row]:
     """
     if not verdict.gridded:
         return [("Ground on the feature", _NOTHING, "any", False)]
-    picked = verdict.survey
+    picked = surveys.widest(verdict.surveys)
     written: list[Row] = [
         (
-            "A window worth keeping",
+            "Tiles holding a window worth keeping",
             _sounding(verdict),
             "one",
-            picked is not None,
+            bool(verdict.surveys),
         ),
     ]
     if picked is not None:
@@ -78,7 +79,7 @@ def rows(verdict: Verdict, area_km2: float) -> list[Row]:
 
 
 def _sounding(verdict: Verdict) -> str:
-    """Say whether the search found a window, and what stopped it when not.
+    """Say how many tiles earned a window, and what stopped them when none did.
 
     Args:
         verdict: What the feature was judged to be.
@@ -86,8 +87,8 @@ def _sounding(verdict: Verdict) -> str:
     Returns:
         The line the scorecard reads on that row.
     """
-    if verdict.survey is not None:
-        return "found"
+    if verdict.surveys:
+        return f"{len(verdict.surveys):,} of {verdict.tiles:,}"
     if verdict.sounders_refused:
         return f"none, {verdict.sounders_refused:,} tracks were too small to count"
     return "none"

@@ -13,30 +13,33 @@ class Verdict:
     """What the dataset asked of one feature, and what the feature answered.
 
     Attributes:
-        survey: The window the search picked, or None when the feature holds
-            no window worth keeping.
+        surveys: The window every tile that earned one was given, in the order
+            the tiling lays the tiles out. A tile earns a window only when one
+            worth keeping was found over it, so these are what the feature
+            would put in a dataset.
+        tiles: How many tiles the feature was cut into, which is what the ones
+            it earned are counted against.
         gridded: Whether any instrument set filled a cell of the feature at
-            all, which is the one way a feature can fail before it is searched.
+            all, which is the one way a feature can fail before it is
+            searched.
         sounders_refused: How many sounder tracks were too small to count. A
-            feature whose only tracks were that small has no window for a
+            feature whose only tracks were that small holds no window for a
             different reason than one no sounder ever flew over.
-        smallest: The smallest observation each instrument set left in the
-            window, by set name, least ground first, so that whatever the
-            window is thinnest on comes first. The ground it covers and the
-            pixels it landed there are the two floors an observation is
-            asked to clear, and one does not follow from the other: a pixel
-            is a quarter of a metre across for HiRISE and more than a
-            kilometre for SHARAD. Empty when there is no window.
-        refused: How many observations were too small to count, over the
-            window when there is one and over the whole record when there is
-            not.
-        taken: How many were counted over that same stretch.
+        smallest: The smallest look each instrument set left inside a window,
+            by set name, least ground first, so that whatever the windows are
+            thinnest on comes first. The ground it covers and the pixels it
+            landed there are the two floors an observation is asked to clear,
+            and one does not follow from the other: a pixel is a quarter of a
+            metre across for HiRISE and more than a kilometre for SHARAD.
+        refused: How many looks were too small to count inside the windows.
+        taken: How many were counted inside them.
         overlaps: How much ground in square kilometres is reached by at least
-            that many instrument sets at once, by set count. Empty when there
-            is no window.
+            that many instrument sets at once, by set count. Empty when no
+            tile earned a window.
     """
 
-    survey: Survey | None
+    surveys: list[Survey]
+    tiles: int
     gridded: bool
     sounders_refused: int
     smallest: dict[str, Event]
@@ -49,7 +52,7 @@ class Verdict:
         """Report whether the feature belongs in the dataset.
 
         Returns:
-            True when the search found a window, which it only ever does for a
-            window the dataset would keep.
+            True when at least one tile earned a window, which the search only
+            ever gives a window worth keeping.
         """
-        return self.survey is not None
+        return bool(self.surveys)

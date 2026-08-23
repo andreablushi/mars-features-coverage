@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from survey.models.strategy import Floors
+from survey.models.strategy import Demands
 from survey.models.track import Track
 
 Counts = list[list[int]]
@@ -107,38 +107,33 @@ def instruments(inside: Sequence[int]) -> int:
     return len(inside) - inside.count(0)
 
 
-def covered(seen: Sequence[int], cell_km2: float) -> list[float]:
-    """Return the ground in square kilometres each set reaches in the window.
-
-    Args:
-        seen: How many cells each set reaches inside the window.
-        cell_km2: How much ground one cell covers.
-
-    Returns:
-        One ground per set, in square kilometres.
-    """
-    return [cells * cell_km2 for cells in seen]
-
-
-def reach(track: Track, seen: Sequence[int], floors: Floors) -> float:
-    """Return how much of the ground a window reaches, counting it evenly out.
+def scored(track: Track, demands: Demands, seen: Sequence[int]) -> float:
+    """Score what a window holds, or refuse it for what it does not hold.
 
     The shares are multiplied and rooted rather than added and divided, so that
-    one instrument cannot carry a window on its own. An instrument with nothing
-    in the window counts as zero, which is what lets the sweep trust that a
-    wider window is never worse.
+    one instrument cannot carry a window on its own. Every share is of the same
+    ground, so the ground divides out of the product and is applied once at the
+    end. An instrument that several sets answer for is credited with the best
+    of them rather than with all of them at once.
 
     Args:
-        track: The feature's observations on one time axis.
+        track: The observations on one time axis.
+        demands: The sets answering for each instrument insisted on, and the
+            cells any one of them has to reach, tightest demand first so that
+            a window fails on it soonest.
         seen: How many cells each set reaches inside the window.
-        floors: The sets answering for each instrument the strategy insists on,
-            which are the instruments the score is taken over.
 
     Returns:
-        The score, between zero and one.
+        How much of the ground it reaches, between zero and one, or less than
+        nothing when an instrument insisted on is missing from the window or
+        reached too little of the ground to count.
     """
-    product = 1.0
-    for answering, _ in floors:
-        reached = max(seen[owner] for owner in answering)
-        product *= reached * track.cell_km2 / track.area_km2
-    return product ** (1.0 / len(floors))
+    product = 1
+    for answering, floor in demands:
+        reached = seen[answering[0]]
+        if len(answering) > 1:
+            reached = max(seen[owner] for owner in answering)
+        if reached < floor:
+            return -1.0
+        product *= reached
+    return product ** (1.0 / len(demands)) * track.cell_km2 / track.area_km2

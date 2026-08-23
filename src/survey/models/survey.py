@@ -8,15 +8,16 @@ from datetime import datetime
 
 @dataclass(frozen=True, slots=True)
 class Survey:
-    """The stretch of time a feature's instruments are best studied over.
+    """The stretch of time one tile of a feature is best studied over.
 
     Attributes:
+        tile: Which tile of the feature it was found over.
         start: When the earliest observation inside it was taken.
         end: When the latest one was taken.
         days: How long it lasts.
-        reach: How much ground it reaches, as the shares of their own records
-            the instrument sets reach inside it, multiplied and rooted so that
-            one set cannot carry the window alone, and counting a set that
+        reach: How much of the tile it reaches, as the shares each instrument
+            insisted on reaches of it, multiplied and rooted so that one
+            instrument cannot carry the window alone, and counting one that
             never appears as nothing.
         instruments: How many sets have an observation inside it.
         observations: How many observations it holds in total.
@@ -26,6 +27,7 @@ class Survey:
             than the longest window the curve reached.
     """
 
+    tile: int
     start: datetime
     end: datetime
     days: float

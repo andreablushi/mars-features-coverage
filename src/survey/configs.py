@@ -16,8 +16,15 @@ ROUNDING = 1e-9
 # Seconds in a day, which is what every span is measured in.
 DAY_SECONDS = 86400.0
 
-# An observation clipping the edge of a feature reports the edge, not the
-# feature. It has to bring ground enough to crop.
+# How wide a tile of a feature is, in kilometres. A CTX swath is some tens of
+# kilometres across, so a tile this wide is a few images across: narrower, and
+# a single image fills it and the share of it asked for stops meaning
+# anything; wider, and one window stretches over ground nothing looked at
+# together, which is what the tiling is here to stop.
+TILE_KM = 100.0
+
+# An observation clipping the edge of a tile reports the edge, not the tile.
+# It has to bring ground enough to crop.
 MIN_AREA_KM2 = 1.0
 
 # A sounder reports a line, so it also has to cross this share of the feature

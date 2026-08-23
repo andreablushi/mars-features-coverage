@@ -39,15 +39,32 @@ def assessed(coverage: Sequence[SetCoverage]) -> Verdict:
 
 
 def picked(coverage: Sequence[SetCoverage]) -> Survey | None:
-    """Return the best window for one feature.
+    """Return the window standing in for a feature on a single time axis.
+
+    A feature is searched a tile at a time and every tile keeps its own
+    window, so a panel with one time axis and no room for a tile shows the
+    window that reaches furthest over its own tile.
 
     Args:
         coverage: The feature's instrument sets, in the order they are drawn.
 
     Returns:
-        The chosen window, or None when the feature has none.
+        The window of the tile the search reached furthest over, or None when
+        no tile earned one.
     """
-    return assessed(coverage).survey
+    return widest(assessed(coverage).surveys)
+
+
+def widest(found: Sequence[Survey]) -> Survey | None:
+    """Return the window that reaches furthest over its own tile.
+
+    Args:
+        found: The windows the tiles of one feature earned.
+
+    Returns:
+        The window reaching furthest, or None when there are none.
+    """
+    return max(found, key=lambda survey: survey.reach) if found else None
 
 
 def _key(coverage: Sequence[SetCoverage]) -> tuple:
