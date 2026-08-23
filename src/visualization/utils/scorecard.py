@@ -58,7 +58,8 @@ def rows(verdict: Verdict, area_km2: float) -> list[Row]:
     written.append(
         (
             "Observations too small to count",
-            f"{verdict.refused:,} of {verdict.refused + verdict.taken:,}",
+            f"{verdict.refused:,} of {verdict.refused + verdict.taken:,}, "
+            f"counted tile by tile",
             "",
             None,
         )
@@ -114,7 +115,8 @@ def _windows(verdict: Verdict, area_km2: float) -> list[Row]:
         ),
         (
             "Observations bringing ground of their own",
-            f"{sum(survey.core for survey in found):,} of {verdict.taken:,}",
+            f"{sum(survey.core for survey in found):,} of {verdict.taken:,}, "
+            f"counted tile by tile",
             "",
             None,
         ),

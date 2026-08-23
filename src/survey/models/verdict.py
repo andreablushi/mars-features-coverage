@@ -32,8 +32,9 @@ class Verdict:
             landed there are the two floors an observation is asked to clear,
             and one does not follow from the other: a pixel is a quarter of a
             metre across for HiRISE and more than a kilometre for SHARAD.
-        refused: How many looks were too small to count inside the windows.
-        taken: How many were counted inside them.
+        refused: How many looks were too small to count inside the windows,
+            counting an observation once per tile it reached.
+        taken: How many were counted inside them, counted the same way.
         overlaps: How much ground in square kilometres is reached by at least
             that many instrument sets at once, by set count. Empty when no
             tile earned a window.
