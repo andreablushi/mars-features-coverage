@@ -6,7 +6,7 @@ from survey import configs
 from survey.filters import redundancy
 from survey.models.survey import Survey
 from survey.models.track import Track
-from survey.models.window import Window, measured
+from survey.models.window import Window
 from survey.utils import measuring
 from utils.maths import quantities
 
@@ -21,18 +21,19 @@ def search(track: Track) -> Survey | None:
         The chosen window, or None when no window inside the allowed span holds
         a sounder track at all.
     """
+    # Early out: no sounder track ever flew over the feature, so there is no window.
     if not any(track.sounder):
         return None
     times, owners = track.times, track.owners
     sounder, cells = track.sounder, track.cells
-
     frontier: list[Window] = []
-    # 2. Every instrument first, dropping to fewer only when none of them fit.
+
+    #
     for wanted in range(len(track.labels), 0, -1):
         frontier, seen = [], set()
         # Rungs climb towards what the whole record reaches rather than towards
         # one, so the curve is sampled evenly whatever the feature can offer.
-        _, whole, _ = measured(track, 0, len(track.observations) - 1)
+        _, whole, _ = measuring.counted(track, 0, len(track.observations) - 1)
         ceiling = measuring.mean(whole, track.totals, wanted)
         for step in range(configs.LEVELS + 1):
             level = (

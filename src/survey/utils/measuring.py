@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from survey.models.track import Track
+
 Counts = list[list[int]]
 
 
@@ -69,6 +71,27 @@ def release(
             lost += 1  # ground nothing else left in the window reaches
     seen[owner] -= lost
     inside[owner] -= 1
+
+
+def counted(track: Track, first: int, last: int) -> tuple[Counts, list[int], list[int]]:
+    """Count afresh everything one stretch of the axis holds.
+
+    It takes bare indices rather than a window, since the search scores the
+    whole record this way before it has a window to speak of.
+
+    Args:
+        track: The feature's observations on one time axis.
+        first: The index of the earliest observation it holds.
+        last: The index of the latest one.
+
+    Returns:
+        The per cell counts, the cells each set reaches, and how many
+        observations each set has inside.
+    """
+    counts, seen, inside = opened(len(track.totals), track.grid)
+    for index in range(first, last + 1):
+        hold(counts, seen, inside, track.owners[index], track.cells[index])
+    return counts, seen, inside
 
 
 def instruments(inside: Sequence[int]) -> int:

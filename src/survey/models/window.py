@@ -6,7 +6,6 @@ from dataclasses import dataclass
 
 from survey.models.track import Track
 from survey.utils import measuring
-from survey.utils.measuring import Counts
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,7 +51,7 @@ class Window:
         if (first, last) == (self.first, self.last):
             return self
         # If the window has changed, measure its new reach and return a new Window
-        _, seen, inside = measured(track, first, last)
+        _, seen, inside = measuring.counted(track, first, last)
         return Window(
             first,
             last,
@@ -70,30 +69,7 @@ class Window:
         Returns:
             The share of its own ground each set reaches, by set name.
         """
-        _, seen, _ = measured(track, self.first, self.last)
+        _, seen, _ = measuring.counted(track, self.first, self.last)
         return dict(
             zip(track.labels, measuring.shares(seen, track.totals), strict=True)
         )
-
-
-def measured(
-    track: Track, first: int, last: int
-) -> tuple[Counts, list[int], list[int]]:
-    """Count afresh everything one stretch of the axis holds.
-
-    It takes bare indices rather than a window, since the search scores the
-    whole record this way before it has a window to speak of.
-
-    Args:
-        track: The feature's observations on one time axis.
-        first: The index of the earliest observation it holds.
-        last: The index of the latest one.
-
-    Returns:
-        The per cell counts, the cells each set reaches, and how many
-        observations each set has inside.
-    """
-    counts, seen, inside = measuring.opened(len(track.totals), track.grid)
-    for index in range(first, last + 1):
-        measuring.hold(counts, seen, inside, track.owners[index], track.cells[index])
-    return counts, seen, inside
