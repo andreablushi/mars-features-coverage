@@ -1,4 +1,4 @@
-"""How many pixels each instrument gathered inside the best time window."""
+"""How much each instrument gathered inside the windows the tiles earned."""
 
 from __future__ import annotations
 
@@ -8,27 +8,28 @@ from html import escape
 import ipywidgets as widgets
 
 from models.results import Event, SetCoverage
-from survey.models.survey import Survey
 from utils.maths import mask as packing
 from utils.maths import quantities
 from visualization import panels, surveys
+from visualization.surveys import Stretch
 
-_NO_WINDOW = "No stretch of time here holds a sounder track, so there is none to fill."
+_NO_WINDOW = "No tile of this feature holds a window worth keeping."
 _UNMEASURED = "not measured"
 _HEADINGS = (
     "Instrument",
     "Observations",
-    "Pixels in the window",
+    "Pixels in the windows",
     "Pixels in the feature",
-    "Share of the feature's ground",
+    "Ground reached in the windows",
 )
 
 
 def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
-    """Tabulate what each instrument gathered inside the chosen window.
+    """Tabulate what each instrument gathered inside the chosen windows.
 
-    A set that took nothing during the window is still given a row, at zero,
-    so a missing instrument reads as a measurement rather than as an omission.
+    A feature is searched a tile at a time and every tile keeps its own
+    window, so an observation counts here when it was taken while any of them
+    was open, and counts once however many of them it was.
 
     Args:
         coverage: The feature's instrument sets, widest coverage first.
@@ -38,20 +39,21 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     """
     if not coverage:
         return panels.unavailable()
-    picked = surveys.picked(coverage)
-    if picked is None:
+    verdict = surveys.assessed(coverage)
+    if not verdict.surveys:
         return panels.unavailable(_NO_WINDOW)
-    lasted = quantities.duration(picked.days)
-    rows = "".join(_row(instrument, picked) for instrument in coverage)
+    summary = coverage[0].summary
+    cell_km2 = summary.feature_area_km2 / summary.mask_cells
+    open_for = surveys.stretches(verdict.surveys)
+    rows = "".join(_row(instrument, open_for, cell_km2) for instrument in coverage)
     return widgets.HTML(
         f"""<div style="font-family: sans-serif; font-size: 13px;">
           <div style="font-weight: 600; margin-bottom: 2px;">
-            {escape(panels.title(coverage))}  -  pixels inside the best window
+            {escape(panels.title(coverage))}  -  inside the windows the tiles earned
           </div>
           <div style="color: {panels.GREY}; font-size: 12px; font-weight: 600;
                       margin-bottom: 8px;">
-            {picked.start:%Y-%m-%d} to {picked.end:%Y-%m-%d},
-            {escape(lasted)}, {picked.observations:,} observations
+            {len(verdict.surveys):,} tiles, {_when(open_for)}
           </div>
           <table style="border-collapse: collapse;">
             <tr>{"".join(_heading(name) for name in _HEADINGS)}</tr>
@@ -59,6 +61,41 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
           </table>
         </div>"""
     )
+
+
+def _when(open_for: Sequence[Stretch]) -> str:
+    """Say when the windows were open and over how many stretches of time.
+
+    Args:
+        open_for: The stretches of time the windows are open over.
+
+    Returns:
+        The line under the title.
+    """
+    counted = (
+        "one stretch of time"
+        if len(open_for) == 1
+        else f"{len(open_for):,} stretches of time"
+    )
+    return f"{counted}, {open_for[0][0]:%Y-%m-%d} to {open_for[-1][1]:%Y-%m-%d}"
+
+
+def _inside(observations: Sequence[Event], open_for: Sequence[Stretch]) -> list[Event]:
+    """Keep the observations taken while any window was open.
+
+    Args:
+        observations: One instrument set's observations, in chronological
+            order.
+        open_for: The stretches of time the windows are open over.
+
+    Returns:
+        Those of them falling inside one, each once.
+    """
+    return [
+        observation
+        for observation in observations
+        if any(opened <= observation.t_start <= closed for opened, closed in open_for)
+    ]
 
 
 def _heading(name: str) -> str:
@@ -77,23 +114,20 @@ def _heading(name: str) -> str:
     )
 
 
-def _row(instrument: SetCoverage, picked: Survey) -> str:
+def _row(instrument: SetCoverage, open_for: Sequence[Stretch], cell_km2: float) -> str:
     """Build one instrument set's row of the table.
 
     Args:
         instrument: The instrument set the row describes.
-        picked: The window its observations are counted inside.
+        open_for: The stretches of time its observations are counted inside.
+        cell_km2: How much ground one cell of the feature's grid covers.
 
     Returns:
         The row, saying so where the artifacts carry no pixel count at all.
     """
-    held = [
-        observation
-        for observation in instrument.events
-        if picked.start <= observation.t_start <= picked.end
-    ]
+    held = _inside(instrument.events, open_for)
     inside, total = _pixels(held), instrument.summary.pixels
-    ground = _ground(held, instrument.summary.mask_cells)
+    ground = _ground(held, cell_km2)
     if inside is None or total is None:
         cells = [f"{len(held):,}", _UNMEASURED, _UNMEASURED, ground]
     else:
@@ -126,34 +160,33 @@ def _cell(value: str, left: bool = False) -> str:
     )
 
 
-def _ground(observations: Sequence[Event], cells: int) -> str:
-    """Work out how much of the feature a run of observations covers.
+def _ground(observations: Sequence[Event], cell_km2: float) -> str:
+    """Work out how much ground a run of observations covers.
 
     The cells are unioned rather than added up, so a set that images the same
-    patch twice is credited with it once, which is how the search counts ground
-    too. That makes this the one column of the table that does not double count
-    a revisit.
+    patch twice is credited with it once, which is how the search counts
+    ground too. That makes this the one column of the table that does not
+    double count a revisit.
 
     Args:
         observations: The observations to measure, from one instrument set.
-        cells: How many cells of the feature's grid fall inside it.
+        cell_km2: How much ground one cell of the feature's grid covers.
 
     Returns:
-        The share of the feature they cover, or that it was never measured.
+        The ground they cover in square kilometres.
     """
-    if not cells:
-        return _UNMEASURED
     covered: set[int] = set()
     for observation in observations:
         covered.update(packing.cells_of(observation.mask).tolist())
-    return f"{len(covered) / cells:.1%}"
+    return quantities.area(len(covered) * cell_km2)
 
 
 def _pixels(observations: Sequence[Event]) -> float | None:
     """Add up the pixels a run of observations landed inside the feature.
 
     Args:
-        observations: The observations to count, which may predate the measurement.
+        observations: The observations to count, which may predate the
+            measurement.
 
     Returns:
         The total, counting a revisited patch again as the pipeline does, or

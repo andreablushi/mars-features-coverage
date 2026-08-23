@@ -30,13 +30,15 @@ class Tiling:
     """A feature's grid cut into tiles, and where every cell of it landed.
 
     Attributes:
-        tiles: The patches the feature was cut into, row by row.
+        tiles: The patches the feature was cut into, row by row, south first.
+        across: How many of them there are along each axis.
         owners: The tile each cell of the feature's grid falls in, by cell.
         places: Where each cell sits in its own tile's grid, by cell.
         cell_km2: How much ground one cell of the feature's grid covers.
     """
 
     tiles: list[Tile]
+    across: int
     owners: list[int]
     places: list[int]
     cell_km2: float
@@ -88,7 +90,13 @@ def split(area_km2: float, mask_cells: int) -> Tiling:
         for column in range(across)
     ]
     owners, places = _placed(side, across, edges)
-    return Tiling(tiles=tiles, owners=owners, places=places, cell_km2=cell_km2)
+    return Tiling(
+        tiles=tiles,
+        across=across,
+        owners=owners,
+        places=places,
+        cell_km2=cell_km2,
+    )
 
 
 def _tile(columns: int, rows: int, cell_km2: float) -> Tile:

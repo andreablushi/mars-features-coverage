@@ -27,7 +27,7 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     """
     if not coverage:
         return panels.unavailable()
-    picked = surveys.picked(coverage)
+    open_for = surveys.stretches(surveys.assessed(coverage).surveys)
     colours = panels.colours(coverage)
     area_km2 = coverage[0].summary.feature_area_km2
     figure, axes = plt.subplots(
@@ -40,9 +40,8 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     axes = np.atleast_1d(axes)
     for axis, instrument in zip(axes, coverage, strict=True):
         _panel(axis, instrument, colours[instrument.label], area_km2)
-        if picked:
-            panels.bracket(axis, picked.start, picked.end)
-    _key(axes[0], picked)
+        panels.shade(axis, open_for)
+    _key(axes[0], open_for)
     axes[0].set_ylim(-0.05, 1.05)
     axes[0].set_title(
         f"{panels.title(coverage)}  -  coverage per observation",
@@ -88,24 +87,29 @@ def _panel(axis, instrument: SetCoverage, colour, area_km2: float) -> None:
     panels.tidy(axis, percent="y", grid="y")
 
 
-def _key(axis, picked) -> None:
-    """Name the marked stretch of time, when the search found one.
+def _key(axis, open_for) -> None:
+    """Name the marked stretches of time, when the tiles earned any.
 
     Args:
         axis: The top panel, which carries the legend.
-        picked: The window the search chose, or None when it found none.
+        open_for: The stretches of time the tiles' windows are open over.
 
     Returns:
         None.
     """
-    if not picked:
+    if not open_for:
         return
+    counted = (
+        "the window the one tile earned"
+        if len(open_for) == 1
+        else f"{len(open_for):,} stretches the tiles' windows open over"
+    )
     marker = Line2D(
         [],
         [],
         color=panels.SURVEY_LINE,
         linestyle=panels.SURVEY_STYLE,
         linewidth=panels.SURVEY_WIDTH,
-        label=panels.caption(picked),
+        label=counted,
     )
     axis.legend(handles=[marker], fontsize=8, loc="upper right", frameon=False)

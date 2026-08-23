@@ -45,7 +45,7 @@ def assess(
     ]
     return Verdict(
         surveys=[picked for _, picked in found],
-        tiles=len(tiling.tiles),
+        across=tiling.across,
         gridded=True,
         sounders_refused=_sounders(tracks),
         smallest=_smallest(found),
@@ -64,7 +64,7 @@ def _nothing() -> Verdict:
     """
     return Verdict(
         surveys=[],
-        tiles=0,
+        across=0,
         gridded=False,
         sounders_refused=0,
         smallest={},

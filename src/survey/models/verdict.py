@@ -18,8 +18,8 @@ class Verdict:
             the tiling lays the tiles out. A tile earns a window only when one
             worth keeping was found over it, so these are what the feature
             would put in a dataset.
-        tiles: How many tiles the feature was cut into, which is what the ones
-            it earned are counted against.
+        across: How many tiles the feature was cut into along each axis, which
+            is how they are laid out as well as how many there are.
         gridded: Whether any instrument set filled a cell of the feature at
             all, which is the one way a feature can fail before it is
             searched.
@@ -40,13 +40,23 @@ class Verdict:
     """
 
     surveys: list[Survey]
-    tiles: int
+    across: int
     gridded: bool
     sounders_refused: int
     smallest: dict[str, Event]
     refused: int
     taken: int
     overlaps: dict[int, float]
+
+    @property
+    def tiles(self) -> int:
+        """Report how many tiles the feature was cut into.
+
+        Returns:
+            The count, which the tiles that earned a window are counted
+            against.
+        """
+        return self.across**2
 
     @property
     def kept(self) -> bool:
