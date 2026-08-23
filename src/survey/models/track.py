@@ -25,7 +25,6 @@ class Track:
             measured in.
         owners: The instrument set each belongs to, as its index into labels.
         cells: The tile's own cells each fills, in the same order.
-        sounder: Whether each is a sounder track.
         labels: The name of each set, in the order owners index them.
         iids: The instrument each set belongs to, in the same order, which is
             what a strategy asks its demands of.
@@ -43,7 +42,6 @@ class Track:
     times: list[float]
     owners: list[int]
     cells: list[list[int]]
-    sounder: list[bool]
     labels: list[str]
     iids: list[str]
     grid: int
@@ -120,7 +118,6 @@ def _track(
         ],
         owners=[owner for _, owner, _ in held],
         cells=[cells for _, _, cells in held],
-        sounder=[bool(observation.width_km) for observation, _, _ in held],
         labels=labels,
         iids=iids,
         grid=patch.cells,
