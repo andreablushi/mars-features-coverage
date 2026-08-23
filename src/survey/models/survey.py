@@ -1,11 +1,9 @@
-"""The stretch of time the search picked, and the ones it beat."""
+"""The stretch of time the search picked."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-
-from survey.models.window import Window
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,8 +24,6 @@ class Survey:
             had already brought.
         knee: Whether the curve bent, and the window is the bend in it, rather
             than the longest window the curve reached.
-        shares: What share of its own ground each set reaches, by set name.
-        frontier: Every window this one was chosen from, shortest first.
     """
 
     start: datetime
@@ -38,5 +34,3 @@ class Survey:
     observations: int
     core: int
     knee: bool
-    shares: dict[str, float]
-    frontier: list[Window]

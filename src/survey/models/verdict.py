@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from models.results import Event
-from survey import configs
 from survey.models.survey import Survey
 
 
@@ -14,7 +13,8 @@ class Verdict:
     """What the dataset asked of one feature, and what the feature answered.
 
     Attributes:
-        survey: The window the search picked, or None when it found none.
+        survey: The window the search picked, or None when the feature holds
+            no window worth keeping.
         gridded: Whether any instrument set filled a cell of the feature at
             all, which is the one way a feature can fail before it is searched.
         sounders_refused: How many sounder tracks were too small to count. A
@@ -49,8 +49,7 @@ class Verdict:
         """Report whether the feature belongs in the dataset.
 
         Returns:
-            True when every requirement holds: the feature was reached at all,
-            a window holding a sounder track was found in it, and that window
-            holds instruments enough to be worth learning from.
+            True when the search found a window, which it only ever does for a
+            window the dataset would keep.
         """
-        return self.survey is not None and self.survey.instruments >= configs.MIN_SETS
+        return self.survey is not None

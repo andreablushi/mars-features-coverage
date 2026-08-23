@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from models.results import Event
-from survey import configs
 from survey.models.verdict import Verdict
 from utils.maths import quantities
 
@@ -35,7 +34,7 @@ def rows(verdict: Verdict, area_km2: float) -> list[Row]:
     picked = verdict.survey
     written: list[Row] = [
         (
-            "A window holding a sounder track",
+            "A window worth keeping",
             _sounding(verdict),
             "one",
             picked is not None,
@@ -46,8 +45,8 @@ def rows(verdict: Verdict, area_km2: float) -> list[Row]:
             (
                 "Instruments in the window",
                 f"{picked.instruments}",
-                f"{configs.MIN_SETS}",
-                picked.instruments >= configs.MIN_SETS,
+                "",
+                None,
             ),
             (
                 "Observations bringing ground of their own",
@@ -79,7 +78,7 @@ def rows(verdict: Verdict, area_km2: float) -> list[Row]:
 
 
 def _sounding(verdict: Verdict) -> str:
-    """Say whether a sounder track was found, and where it went when not.
+    """Say whether the search found a window, and what stopped it when not.
 
     Args:
         verdict: What the feature was judged to be.

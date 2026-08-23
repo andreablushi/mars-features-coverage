@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from survey import configs
 from survey.models.track import Track
 from survey.utils import measuring
 
@@ -28,13 +29,11 @@ class Window:
     reach: float
     instruments: int
 
-    def widened(self, track: Track, wanted: int = 0) -> Window:
+    def widened(self, track: Track) -> Window:
         """Take in every observation sharing an instant with either end.
 
         Args:
             track: The feature's observations on one time axis.
-            wanted: How many instrument sets the search is insisting on, which
-                is how many its score is taken over. Nought for all of them.
 
         Returns:
             The same stretch of time, holding everything taken during it.
@@ -56,20 +55,6 @@ class Window:
             first,
             last,
             self.days,
-            measuring.mean(seen, track.totals, wanted),
+            measuring.mean(seen, track.totals, configs.MIN_SETS),
             measuring.instruments(inside),
-        )
-
-    def shares(self, track: Track) -> dict[str, float]:
-        """Work out what each instrument set reaches inside this window.
-
-        Args:
-            track: The feature's observations on one time axis.
-
-        Returns:
-            The share of its own ground each set reaches, by set name.
-        """
-        _, seen, _ = measuring.counted(track, self.first, self.last)
-        return dict(
-            zip(track.labels, measuring.shares(seen, track.totals), strict=True)
         )
