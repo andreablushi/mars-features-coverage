@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from models.results import Event, SetCoverage
-from survey import algorithm, configs, strategies
+from survey import algorithm, configs
 from survey.models import track as timeline
 from survey.models.look import Look
 from survey.models.strategy import Strategy
@@ -17,21 +17,18 @@ from survey.utils import overlap, tiling
 Found = list[tuple[Track, Survey]]
 
 
-def assess(
-    coverage: Sequence[SetCoverage], strategy: Strategy | None = None
-) -> Verdict:
+def assess(coverage: Sequence[SetCoverage], strategy: Strategy) -> Verdict:
     """Search every tile of a feature for the window a dataset would keep.
 
     Args:
         coverage: The feature's instrument sets, in any order.
         strategy: Which instruments a window has to hold and how much ground
-            each of them has to reach, or None for the configured one.
+            each of them has to reach.
 
     Returns:
         The verdict, holding the window every tile earned and every count
         behind them.
     """
-    strategy = strategy or strategies.named(configs.STRATEGY)
     summary = coverage[0].summary
     if not summary.mask_cells:
         return _nothing()

@@ -8,10 +8,6 @@ DAYS_PER_PERCENT = 10.0
 # Seconds in a day, which is what every span is measured in.
 DAY_SECONDS = 86400.0
 
-# Which weighting of the instruments the search runs under, by the name the
-# strategy's own file gives it. The others stay for the comparison.
-STRATEGY = "imaged"
-
 # Cells an observation has to bring a window that no other observation of its
 # own set already reaches, or it is dropped as a repeat of ground it holds.
 MIN_GAIN_CELLS = 5

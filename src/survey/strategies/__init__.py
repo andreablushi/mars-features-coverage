@@ -40,4 +40,6 @@ def named(name: str) -> Strategy:
     Raises:
         KeyError: When no strategy goes by that name.
     """
+    if name not in STRATEGIES:
+        raise KeyError(f"no strategy named {name!r}, try one of {sorted(STRATEGIES)}")
     return STRATEGIES[name]
