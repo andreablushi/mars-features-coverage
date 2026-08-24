@@ -8,10 +8,6 @@ DAYS_PER_PERCENT = 10.0
 # Seconds in a day, which is what every span is measured in.
 DAY_SECONDS = 86400.0
 
-# An observation clipping the edge of a tile reports the edge, not the tile.
-# It has to bring ground enough to crop.
-MIN_AREA_KM2 = 1.0
-
 # Which weighting of the instruments the search runs under, by the name the
 # strategy's own file gives it. The others stay for the comparison.
 STRATEGY = "imaged"

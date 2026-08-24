@@ -5,7 +5,6 @@ from __future__ import annotations
 import math
 
 from models.results import Event
-from survey import configs
 from survey.models.tiles import Tile
 
 
@@ -41,11 +40,10 @@ def admissible(observation: Event, ground_km2: float, crossing_km: float) -> boo
             sounder is measured against.
 
     Returns:
-        True when the observation clears every floor asked of it.
+        True when the observation clears every floor asked of it. A cell is
+        the least an observation can leave on a tile, so reaching the tile at
+        all is the whole of what an imager is asked.
     """
-    # Under a minimum area
-    if ground_km2 < configs.MIN_AREA_KM2:
-        return False
     # Only SHARAD has a swath width, otherwise we are satisfied by this check
     if not observation.width_km:
         return True
