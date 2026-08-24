@@ -30,6 +30,7 @@ DISK = "64Gi"
 ARTIFACTS_NAME = "coverage-artifacts"
 METADATA_NAME = "coverage-metadata"
 SUMMARY_NAME = "coverage-summary"
+CATALOG_NAME = "coverage-catalog"
 
 # Registering a table samples it with pandas, which the pipeline itself never
 # needs, and the image ships an older SDK that samples parquet with a CSV argument.
@@ -108,6 +109,17 @@ def save_artifacts(project):
         source=str(paths.ARTIFACTS_ROOT / paths.SUMMARY_NAME),
         description="One row per feature and instrument set.",
     )
+
+    # Publish the ODE catalogues the run fetched, which the notebooks read.
+    if paths.CATALOG_ROOT.exists() and any(paths.CATALOG_ROOT.glob("*.jsonl")):
+        print("uploading the catalogues", flush=True)
+        packed = _archive(paths.CATALOG_ROOT, CATALOG_NAME)
+        project.log_artifact(
+            name=CATALOG_NAME,
+            kind="artifact",
+            source=str(packed),
+            description="The ODE feature and instrument sets; unpack under data/.",
+        )
 
     # Publish the records too, unless the run was told to discard them.
     if paths.METADATA_ROOT.exists() and any(paths.METADATA_ROOT.rglob("*.jsonl")):
