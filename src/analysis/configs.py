@@ -17,17 +17,18 @@ LINE_CLIP_MARGIN_DEG = 2.0
 
 LAEA_MIN_DENOMINATOR = 1e-12
 
-# The union is kept per tile so each insert touches a small shape
-MIN_UNION_TILES = 4
-MAX_UNION_TILES = 32
+# The union is kept per sector so each insert touches a small shape. A sector
+# is not a tile of the survey: it exists only to keep the union small.
+MIN_UNION_SECTORS = 4
+MAX_UNION_SECTORS = 32
 
-# How many tiles of one feature are accumulated at once
+# How many sectors of one feature are accumulated at once
 UNION_THREADS = 4
 
-# How many observations a tile folds in before its union is rebuilt in one
+# How many observations a sector folds in before its union is rebuilt in one
 UNION_CHUNK = 64
 
-# A tile covered to within this share of what it could hold
+# A sector covered to within this share of what it could hold
 SATURATION_TOLERANCE = 1e-12
 
 # Grid an overlay is snapped to when exact arithmetic cannot node it.

@@ -6,13 +6,18 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from models.results import SetCoverage
-from survey import configs, strategies
+from survey import strategies
 from survey.filters import verdict
 from survey.models.strategy import Strategy
 from survey.models.survey import Survey
 from survey.models.verdict import Verdict
 
 Stretch = tuple[datetime, datetime]
+
+# Which strategy the panels are drawn under. The search is never configured
+# with one, it is told, so the choice of what to show belongs here. The
+# comparison table draws every strategy whatever this says.
+SHOWN = strategies.named("surface")
 
 # How many searches are kept, so every panel of a feature shares one. A
 # feature is searched once per strategy the comparison draws, so the cache
@@ -37,13 +42,13 @@ def assessed(
     Args:
         coverage: The feature's instrument sets, in the order they are drawn.
         strategy: Which instruments a window has to hold, or None for the
-            configured one.
+            one the panels are drawn under.
 
     Returns:
         The verdict, holding the window every tile earned and every check
         behind them.
     """
-    strategy = strategy or strategies.named(configs.STRATEGY)
+    strategy = strategy or SHOWN
     key = (strategy.name, _key(coverage))
     if key not in _found:
         if len(_found) >= SURVEY_CACHE:

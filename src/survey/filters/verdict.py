@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from models.results import Event, SetCoverage
-from survey import algorithm, configs, strategies
+from survey import algorithm
 from survey.models import track as timeline
 from survey.models.look import Look
 from survey.models.strategy import Strategy
@@ -17,31 +17,28 @@ from survey.utils import overlap, tiling
 Found = list[tuple[Track, Survey]]
 
 
-def assess(
-    coverage: Sequence[SetCoverage], strategy: Strategy | None = None
-) -> Verdict:
+def assess(coverage: Sequence[SetCoverage], strategy: Strategy) -> Verdict:
     """Search every tile of a feature for the window a dataset would keep.
 
     Args:
         coverage: The feature's instrument sets, in any order.
         strategy: Which instruments a window has to hold and how much ground
-            each of them has to reach, or None for the configured one.
+            each of them has to reach.
 
     Returns:
         The verdict, holding the window every tile earned and every count
         behind them.
     """
-    strategy = strategy or strategies.named(configs.STRATEGY)
     summary = coverage[0].summary
     if not summary.mask_cells:
         return _nothing()
     patchwork = tiling.split(
         summary.grid_side,
-        summary.tiles_across,
+        strategy.tile_km,
         summary.cell_km2,
         summary.grid_mask,
     )
-    tracks = timeline.build(coverage, patchwork, strategy.crossing_km)
+    tracks = timeline.build(coverage, patchwork, strategy.admits)
     if not tracks:
         return _nothing()
     found: Found = [
@@ -54,10 +51,9 @@ def assess(
         across=patchwork.across,
         tiles=sum(1 for tile in patchwork.tiles if tile.area_km2),
         gridded=True,
-        sounders_refused=_sounders(tracks),
+        turned_away=_turned_away(tracks),
         smallest=_smallest(found),
         refused=_refused(found),
-        taken=sum(len(picked.kept) for _, picked in found),
         overlaps=_overlaps(found),
     )
 
@@ -74,52 +70,44 @@ def _nothing() -> Verdict:
         across=0,
         tiles=0,
         gridded=False,
-        sounders_refused=0,
+        turned_away=0,
         smallest={},
         refused=0,
-        taken=0,
         overlaps={},
     )
 
 
-def _sounders(tracks: Sequence[Track]) -> int:
-    """Count the sounder tracks that were too small to count.
+def _turned_away(tracks: Sequence[Track]) -> int:
+    """Count the looks that were too small for the tile they reached.
+
+    What is turned away is whatever the strategy asked more of a tile than it
+    left, so which instrument that is depends on what the strategy admits.
 
     Args:
         tracks: The feature's tiles, each on its own time axis.
 
     Returns:
-        How many of the looks left off the axes were sounder tracks, counting
-        a track once per tile it was turned away from.
+        How many looks were left off the axes, counting one once per tile it
+        was turned away from.
     """
-    return sum(
-        bool(observation.width_km) for track in tracks for observation in track.refused
-    )
+    return sum(len(track.refused) for track in tracks)
 
 
-def _overlaps(found: Found) -> dict[int, float]:
-    """Measure how much ground several instruments reach between them.
+def _overlaps(found: Found) -> dict[tuple[str, ...], float]:
+    """Measure how much ground each set of instruments reaches between them.
 
     Args:
         found: Every tile that earned a window, with the window it earned.
 
     Returns:
-        The ground in square kilometres reached by at least that many sets
-        inside the windows, by set count, counting only as many sets as the
-        feature has, and nothing at all when no tile earned a window. The
-        tiles are disjoint, so their ground adds up.
+        The ground in square kilometres, by the instruments that reach it, most
+        ground first. The tiles are disjoint, so their grounds add up.
     """
-    if not found:
-        return {}
-    sets = len(found[0][0].labels)
-    return {
-        wanted: sum(
-            overlap.ground(overlap.reached(track, picked), wanted, track.cell_km2)
-            for track, picked in found
-        )
-        for wanted in configs.OVERLAP_SETS
-        if wanted <= sets
-    }
+    merged: dict[tuple[str, ...], float] = {}
+    for track, picked in found:
+        for names, km2 in overlap.reached(track, picked).items():
+            merged[names] = merged.get(names, 0.0) + km2
+    return dict(sorted(merged.items(), key=lambda ground: -ground[1]))
 
 
 def _smallest(found: Found) -> dict[str, Look]:
@@ -146,7 +134,6 @@ def _smallest(found: Found) -> dict[str, Look]:
             held = least.get(label)
             if held is None or ground_km2 < held.ground_km2:
                 least[label] = Look(
-                    observation=observation,
                     ground_km2=ground_km2,
                     pixels=_landed(observation, ground_km2),
                 )

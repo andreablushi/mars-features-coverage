@@ -1,4 +1,4 @@
-"""How much new ground each observation covers, accumulated tile by tile."""
+"""How much new ground each observation covers, accumulated sector by sector."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from shapely.geometry.base import BaseGeometry
 
 from analysis import configs
 from analysis.geometry.region import FeatureRegion
-from analysis.geometry.tiles import TileGrid
+from analysis.geometry.sectors import SectorGrid
 
 
 def _robust(operation, *shapes):
@@ -42,31 +42,33 @@ def new_ground(region: FeatureRegion, shapes: Sequence[BaseGeometry]) -> np.ndar
         The ground in square metres each observation covered that nothing
         before it had reached, indexed as the observations were given.
     """
-    grid = TileGrid(region, shapes)
+    grid = SectorGrid(region, shapes)
     fresh = np.zeros(len(shapes), dtype=float)
     with ThreadPoolExecutor(max_workers=configs.UNION_THREADS) as pool:
-        for share in pool.map(lambda tile: _tile_contributions(grid, *tile), grid):
+        for share in pool.map(
+            lambda sector: _sector_contributions(grid, *sector), grid
+        ):
             for index, added in share:
                 fresh[index] += added
     return fresh
 
 
-def _tile_contributions(
-    grid: TileGrid,
+def _sector_contributions(
+    grid: SectorGrid,
     rectangle: BaseGeometry,
     cap: float,
     reaching: np.ndarray,
 ) -> list[tuple[int, float]]:
-    """Accumulate one tile and report what it contributes to each observation.
+    """Accumulate one sector and report what it contributes to each observation.
 
     Args:
-        grid: The tile grid, used to cut a chunk down to this tile.
-        rectangle: The tile being accumulated.
-        cap: The ground in square metres the tile could ever hold.
+        grid: The sector grid, used to cut a chunk down to this sector.
+        rectangle: The sector being accumulated.
+        cap: The ground in square metres the sector could ever hold.
         reaching: The indices of the observations reaching it, in order.
 
     Returns:
-        The ground in square metres this tile saw each observation cover first,
+        The ground in square metres this sector saw each observation cover first,
         as observation index and area pairs.
     """
     covered: BaseGeometry | None = None
@@ -97,10 +99,10 @@ def _record_first_cover(
 
     Args:
         indices: The observation index of every piece, in order.
-        pieces: The footprints clipped to the tile, in the same order.
-        covered: The tile's union of everything before this chunk, or None when
-            the chunk is the first to reach the tile.
-        share: The tile's contributions so far, appended to in place.
+        pieces: The footprints clipped to the sector, in the same order.
+        covered: The sector's union of everything before this chunk, or None when
+            the chunk is the first to reach the sector.
+        share: The sector's contributions so far, appended to in place.
 
     Returns:
         None.

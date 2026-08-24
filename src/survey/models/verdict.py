@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from survey import configs
 from survey.models.look import Look
 from survey.models.survey import Survey
 
@@ -27,9 +26,10 @@ class Verdict:
         gridded: Whether any instrument set filled a cell of the feature at
             all, which is the one way a feature can fail before it is
             searched.
-        sounders_refused: How many sounder tracks were too small to count. A
-            feature whose only tracks were that small holds no window for a
-            different reason than one no sounder ever flew over.
+        turned_away: How many looks were too small for the tile they reached,
+            counting one once per tile it was turned away from. A feature whose
+            looks were all that small holds no window for a different reason
+            than one no instrument ever visited.
         smallest: The smallest look each instrument set left inside a window,
             by set name, least ground first, so that whatever the windows are
             thinnest on comes first. Each is measured on the tile its window
@@ -40,30 +40,38 @@ class Verdict:
             for SHARAD.
         refused: How many looks were too small to count inside the windows,
             counting an observation once per tile it reached.
-        taken: How many were counted inside them, counted the same way.
-        overlaps: How much ground in square kilometres is reached by at least
-            that many instrument sets at once, by set count. Empty when no
-            tile earned a window.
+        overlaps: How much ground in square kilometres each set of
+            instruments reaches between them, by the instruments that reach
+            it, most ground first. A cell counts once, under the instruments
+            really there. Empty when no tile earned a window.
     """
 
     surveys: list[Survey]
     across: int
     tiles: int
     gridded: bool
-    sounders_refused: int
+    turned_away: int
     smallest: dict[str, Look]
     refused: int
-    taken: int
-    overlaps: dict[int, float]
+    overlaps: dict[tuple[str, ...], float]
+
+    @property
+    def taken(self) -> int:
+        """Report how many observations the windows hold between them.
+
+        Returns:
+            How many the tiles keep in total, counting one once per tile whose
+            window holds it, which is what the surveys already say.
+        """
+        return sum(len(survey.kept) for survey in self.surveys)
 
     @property
     def kept(self) -> bool:
         """Report whether the feature belongs in the dataset.
 
         Returns:
-            True when tiles enough earned a window. Nothing else is asked
-            here: the search gives a tile a window only when it is worth
-            keeping, so counting the tiles that earned one is the whole
-            judgment.
+            True when any tile earned a window. Nothing else is asked here:
+            the search gives a tile a window only when it is worth keeping, so
+            a feature that left one anywhere has something to put in a dataset.
         """
-        return len(self.surveys) >= configs.MIN_TILES
+        return bool(self.surveys)

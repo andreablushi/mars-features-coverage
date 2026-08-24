@@ -9,7 +9,7 @@ from html import escape
 import ipywidgets as widgets
 
 from models.results import SetCoverage
-from survey import configs, strategies
+from survey import strategies
 from survey.models.verdict import Verdict
 from utils.maths import quantities
 from visualization import panels, surveys
@@ -88,9 +88,9 @@ def _row(name: str, verdict: Verdict, area_km2: float) -> str:
     Returns:
         The row, the strategy the run is configured with marked as such.
     """
-    running = name == configs.STRATEGY
+    running = name == surveys.SHOWN.name
     ground = sum(survey.area_km2 for survey in verdict.surveys)
-    shared = verdict.overlaps.get(2, 0.0)
+    shared = sum(km2 for names, km2 in verdict.overlaps.items() if len(names) > 1)
     cells = [
         _asked(name),
         f"{len(verdict.surveys):,} of {verdict.tiles:,}",
@@ -116,7 +116,8 @@ def _asked(name: str) -> str:
         Each instrument and the share of a tile it has to reach.
     """
     return ", ".join(
-        f"{iid} {share:.0%}" for iid, share in strategies.named(name).demands.items()
+        " or ".join(f"{iid} {share:.0%}" for iid, share in demand.items())
+        for demand in strategies.named(name).demands
     )
 
 

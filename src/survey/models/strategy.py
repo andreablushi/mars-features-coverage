@@ -6,7 +6,11 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-Demands = list[tuple[tuple[int, ...], int]]
+# One instrument that can answer a demand: the sets that speak for it, and the
+# cells any one of them has to reach.
+Answer = tuple[tuple[int, ...], int]
+# A demand any one of its instruments can answer, and what a window is asked.
+Demands = list[list[Answer]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,13 +20,25 @@ class Strategy:
     Attributes:
         name: What the strategy is called, which is how a run picks it and how
             one comparison is told from another.
-        demands: The share of the tile each instrument the strategy insists on
-            has to reach inside a window, by instrument id. An instrument it
-            does not name is welcome in a window but never asked for.
-        crossing_km: How far a sounder's line has to run inside a tile before
-            it is a look at the tile rather than a clip of its edge. A line is
-            asked for a length rather than a share of the ground, since a swath
-            a few kilometres wide cannot fill a tile however far it runs.
+        demands: What a window is asked for, as a run of demands it has to
+            meet all of. One demand names the instruments that can answer it
+            and the share of the tile each of them has to reach, so any one of
+            them answering meets it. An instrument named nowhere is welcome in
+            a window but never asked for.
+        admits: The cells each instrument has to leave on a whole tile before
+            it counts as a look at it rather than a clip of its edge, by
+            instrument id. An instrument named nowhere has to leave a cell,
+            which is to say it has only to reach the tile.
+        tile_km: How wide a tile of a feature is, in kilometres, which is
+            what a window is searched over one of. The cells were sized by the
+            run that measured the feature, so a tile is cut to the nearest
+            whole number of them.
+        together: The share of the tile every instrument has to reach at
+            once, so a window is kept only when that much of the ground is
+            looked at by all of them rather than by each of them somewhere.
+        span_days: How long a window may run. A Mars year is every season the
+            ground has, but a surface reading holds far longer than that, so
+            what the span should be is one of the things a comparison settles.
         timeless: The instruments the ground answers for whenever they came,
             rather than inside the window. What a sounder reads is the rock
             under the ground, which does not turn with the seasons, so asking
@@ -31,13 +47,16 @@ class Strategy:
     """
 
     name: str
-    demands: dict[str, float]
-    crossing_km: float
+    demands: tuple[dict[str, float], ...]
+    admits: dict[str, int]
+    tile_km: float
+    together: float
+    span_days: float
     timeless: frozenset[str] = frozenset()
 
     def floors(
         self, iids: Sequence[str], area_km2: float, cell_km2: float
-    ) -> tuple[Demands, Demands] | None:
+    ) -> tuple[Demands, Demands]:
         """Work out how much ground each instrument insisted on has to reach.
 
         Args:
@@ -48,21 +67,40 @@ class Strategy:
 
         Returns:
             What a window is scored on and what the whole record answers for,
-            each holding the sets that can answer for one instrument and the
-            cells any one of them has to reach, tightest demand first so that
-            a window fails on it soonest. None when the record holds no set at
-            all for one of them.
+            each holding one entry per demand, and in it the sets that can
+            answer for each instrument and the cells any one of them has to
+            reach. The tightest demand comes first so that a window fails on it
+            soonest. Every demand is mandatory, so an instrument no set answers
+            for is left with nothing answering for it and cannot answer.
         """
         windowed: Demands = []
         standing: Demands = []
-        for iid, share in self.demands.items():
-            answering = tuple(index for index, owner in enumerate(iids) if owner == iid)
-            if not answering:
-                return None
-            demand = (answering, max(1, math.ceil(share * area_km2 / cell_km2)))
-            held = standing if iid in self.timeless else windowed
-            held.append(demand)
+        for demand in self.demands:
+            answers = [
+                (
+                    tuple(index for index, owner in enumerate(iids) if owner == iid),
+                    max(1, math.ceil(share * area_km2 / cell_km2)),
+                )
+                for iid, share in demand.items()
+            ]
+            # A demand is out of the window only when everything answering it is
+            held = standing if all(iid in self.timeless for iid in demand) else windowed
+            held.append(answers)
         return (
-            sorted(windowed, key=lambda demand: -demand[1]),
-            sorted(standing, key=lambda demand: -demand[1]),
+            sorted(windowed, key=_tightest),
+            sorted(standing, key=_tightest),
         )
+
+
+def _tightest(answers: list[Answer]) -> int:
+    """Say how soon a window fails one demand, so the soonest is tried first.
+
+    Args:
+        answers: The instruments that can answer the demand, and the cells any
+            one of them has to reach.
+
+    Returns:
+        The least a window can reach and still answer it, negated so that the
+        hardest demand sorts first.
+    """
+    return -min(floor for _, floor in answers)

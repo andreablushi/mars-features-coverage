@@ -25,7 +25,7 @@ def trimmed(track: Track, window: Window, demands: Demands) -> tuple[list[int], 
     # List of the observations that are kept
     kept = list(range(window.first, window.last + 1))
     # Count what the window holds in cells
-    counter = Counter.empty(len(track.labels), track.grid)
+    counter = Counter.empty(track.iids, track.grid)
     for index in kept:
         counter.hold(track.owners[index], track.cells[index])
     reach = window.reach

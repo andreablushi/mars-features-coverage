@@ -5,7 +5,6 @@ from __future__ import annotations
 import statistics
 from collections.abc import Sequence
 
-from survey import configs
 from survey.models.look import Look
 from survey.models.survey import Survey
 from survey.models.verdict import Verdict
@@ -18,7 +17,6 @@ _UNCOUNTED = "not counted"
 _NONE = "none"
 
 # What each count of instruments is called in the shared ground rows.
-_WORDS = {3: "three", 2: "two"}
 
 
 def rows(verdict: Verdict, area_km2: float) -> list[Row]:
@@ -45,7 +43,7 @@ def rows(verdict: Verdict, area_km2: float) -> list[Row]:
         (
             "Tiles leaving a window worth keeping",
             _emitted(verdict),
-            f"{configs.MIN_TILES}",
+            "any",
             verdict.kept,
         )
     ]
@@ -78,8 +76,8 @@ def _emitted(verdict: Verdict) -> str:
     """
     if verdict.surveys:
         return f"{len(verdict.surveys):,} of {verdict.tiles:,}"
-    if verdict.sounders_refused:
-        return f"none, {verdict.sounders_refused:,} tracks were too small to count"
+    if verdict.turned_away:
+        return f"none, {verdict.turned_away:,} looks were too small to count"
     return _NONE
 
 
@@ -152,17 +150,17 @@ def _overlaps(verdict: Verdict, area_km2: float) -> list[Row]:
             is read back as a share of.
 
     Returns:
-        One row per count of instruments, each there to be read rather than to
-        be met.
+        One row per set of instruments, each there to be read rather than to be
+        met.
     """
     return [
         (
-            f"Ground at least {_WORDS.get(wanted, str(wanted))} instruments reach",
+            f"Ground {' and '.join(names)} reach",
             f"{quantities.area(shared)}, {shared / area_km2:.0%} of the feature",
             "",
             None,
         )
-        for wanted, shared in verdict.overlaps.items()
+        for names, shared in verdict.overlaps.items()
     ]
 
 

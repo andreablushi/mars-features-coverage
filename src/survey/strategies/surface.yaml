@@ -1,0 +1,14 @@
+# The surface looked at and the ground under it sounded, inside one window.
+# Either imager answers for the surface: CTX images a swath and has been
+# pointed at the whole planet, so it is asked for a quarter of the tile, while
+# CRISM's multispectral survey maps in narrower strips and was pointed at far
+# less of it, so it is asked for a tenth. A feature only one of them ever
+# visited is still surveyed, on whichever one came.
+demands:
+  - {CTX: 0.25, CRISM: 0.10}
+  - {SHARAD: 0.0}
+admits: {CTX: 5, CRISM: 5, SHARAD: 16}
+tile_km: 100.0
+together: 0.25
+span_days: 687.0
+timeless: []
