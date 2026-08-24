@@ -54,7 +54,6 @@ def assess(coverage: Sequence[SetCoverage], strategy: Strategy) -> Verdict:
         turned_away=_turned_away(tracks),
         smallest=_smallest(found),
         refused=_refused(found),
-        taken=sum(len(picked.kept) for _, picked in found),
         overlaps=_overlaps(found, len(strategy.demands)),
     )
 
@@ -74,7 +73,6 @@ def _nothing() -> Verdict:
         turned_away=0,
         smallest={},
         refused=0,
-        taken=0,
         overlaps={},
     )
 

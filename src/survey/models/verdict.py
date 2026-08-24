@@ -40,7 +40,6 @@ class Verdict:
             for SHARAD.
         refused: How many looks were too small to count inside the windows,
             counting an observation once per tile it reached.
-        taken: How many were counted inside them, counted the same way.
         overlaps: How much ground in square kilometres is reached by as many
             instrument sets at once as the strategy makes demands, by that
             count. Empty when no tile earned a window, or when the feature
@@ -54,8 +53,17 @@ class Verdict:
     turned_away: int
     smallest: dict[str, Look]
     refused: int
-    taken: int
     overlaps: dict[int, float]
+
+    @property
+    def taken(self) -> int:
+        """Report how many observations the windows hold between them.
+
+        Returns:
+            How many the tiles keep in total, counting one once per tile whose
+            window holds it, which is what the surveys already say.
+        """
+        return sum(len(survey.kept) for survey in self.surveys)
 
     @property
     def kept(self) -> bool:
