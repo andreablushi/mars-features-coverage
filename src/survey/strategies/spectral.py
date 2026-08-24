@@ -8,5 +8,7 @@ from survey.models.strategy import Strategy
 # CRISM's multispectral survey is asked for less ground than CTX, since it
 # maps in narrower strips and was pointed at far less of the planet.
 SPECTRAL = Strategy(
-    name="spectral", demands={"SHARAD": 0.0, "CTX": 0.25, "CRISM": 0.10}
+    name="spectral",
+    demands={"SHARAD": 0.0, "CTX": 0.25, "CRISM": 0.10},
+    crossing_km=50.0,
 )

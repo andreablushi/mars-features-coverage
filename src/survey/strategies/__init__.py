@@ -9,11 +9,22 @@ from __future__ import annotations
 
 from survey.models.strategy import Strategy
 from survey.strategies.imaged import IMAGED
+from survey.strategies.imaged_timeless import IMAGED_TIMELESS
 from survey.strategies.presence import PRESENCE
+from survey.strategies.presence_timeless import PRESENCE_TIMELESS
 from survey.strategies.spectral import SPECTRAL
+from survey.strategies.spectral_timeless import SPECTRAL_TIMELESS
 
 STRATEGIES: dict[str, Strategy] = {
-    strategy.name: strategy for strategy in (PRESENCE, IMAGED, SPECTRAL)
+    strategy.name: strategy
+    for strategy in (
+        PRESENCE,
+        PRESENCE_TIMELESS,
+        IMAGED,
+        IMAGED_TIMELESS,
+        SPECTRAL,
+        SPECTRAL_TIMELESS,
+    )
 }
 
 

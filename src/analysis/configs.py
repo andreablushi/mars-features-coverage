@@ -41,7 +41,7 @@ SHARAD_ALONG_TRACK_M = 460.0
 # CRISM's survey modes are binned about ten times coarser than its targeted one.
 # CTX publishes one for all but a handful of its records, and theirs is the
 # median of the 497,279 that do.
-FALLBACK_PIXEL_M = {"MRO/CRISM/TRDR:[mh]sp*": 180.0, "MRO/CTX/EDR": 5.4}
+FALLBACK_PIXEL_M = {"MRO/CRISM/TRDR:msp*": 180.0, "MRO/CTX/EDR": 5.4}
 
 # Straight lon/lat edges curve once projected, so resample below this step
 MAX_SEGMENT_DEG = 0.25

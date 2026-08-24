@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import math
-
 import numpy as np
 
 from survey.models.tiles import Patchwork, Tile
@@ -12,12 +10,6 @@ from utils.maths import mask as packing
 
 def split(side: int, across: int, cell_km2: float, grid_mask: bytes) -> Patchwork:
     """Cut a feature's grid into the tiles the grid was sized for.
-
-    The grid is burned for the tiling rather than for the feature, so every
-    tile holds the same square of cells and nothing is left over. What each
-    tile is credited with is another matter: the grid covers the box the
-    feature was projected into, and a tile is given only the cells of it that
-    fall inside the feature itself.
 
     Args:
         side: How many cells the feature's grid holds along each axis.
@@ -66,5 +58,4 @@ def _tile(inside: int, wide: int, cell_km2: float) -> Tile:
     Returns:
         The tile.
     """
-    area_km2 = inside * cell_km2
-    return Tile(cells=wide * wide, area_km2=area_km2, width_km=math.sqrt(area_km2))
+    return Tile(cells=wide * wide, area_km2=inside * cell_km2)

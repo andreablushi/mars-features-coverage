@@ -16,12 +16,10 @@ class Tile:
             outside the feature.
         area_km2: How much ground the feature really has inside it, which is
             what a window over it reaches a share of.
-        width_km: How wide it is, which a sounder track has to cross enough of.
     """
 
     cells: int
     area_km2: float
-    width_km: float
 
 
 @dataclass(frozen=True, slots=True)

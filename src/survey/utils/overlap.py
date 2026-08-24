@@ -19,11 +19,8 @@ def reached(track: Track, picked: Survey) -> list[int]:
         How many sets reach each cell of the tile's grid, cell by cell.
     """
     held: list[set[int]] = [set() for _ in track.labels]
-    for owner, observation, filled in zip(
-        track.owners, track.observations, track.cells, strict=True
-    ):
-        if picked.start <= observation.t_start <= picked.end:
-            held[owner].update(filled)
+    for index in picked.kept:
+        held[track.owners[index]].update(track.cells[index])
     counted = [0] * track.grid
     for filled in held:
         for cell in filled:

@@ -115,7 +115,8 @@ def _windows(verdict: Verdict, area_km2: float) -> list[Row]:
         ),
         (
             "Observations bringing ground of their own",
-            f"{sum(survey.core for survey in found):,} of {verdict.taken:,}, "
+            f"{verdict.taken:,} of "
+            f"{verdict.taken + sum(survey.dropped for survey in found):,}, "
             f"counted tile by tile",
             "",
             None,
