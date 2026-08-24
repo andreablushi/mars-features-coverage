@@ -9,9 +9,13 @@ from shapely import from_wkt
 
 from analysis.geometry import footprints
 from analysis.geometry.region import FeatureRegion
+from analysis.models.observation import (
+    LoadedSet,
+    Observation,
+    ProjectedObservation,
+)
 from analysis.utils import geodesy, pixels, swath
 from models.job import Job
-from models.observation import LoadedSet, Observation, ProjectedObservation
 from storage import records
 
 

@@ -9,8 +9,8 @@ import numpy as np
 from analysis.coverage import union
 from analysis.coverage.raster import FeatureRaster
 from analysis.geometry.region import FeatureRegion
+from analysis.models.observation import LoadedSet, ProjectedObservation
 from models.feature import Feature
-from models.observation import LoadedSet, ProjectedObservation
 from models.results import Event, Summary
 
 
