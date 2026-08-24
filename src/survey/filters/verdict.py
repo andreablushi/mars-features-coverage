@@ -57,7 +57,7 @@ def assess(
         sounders_refused=_sounders(tracks),
         smallest=_smallest(found),
         refused=_refused(found),
-        taken=sum(picked.observations for _, picked in found),
+        taken=sum(len(picked.kept) for _, picked in found),
         overlaps=_overlaps(found),
     )
 
@@ -139,17 +139,17 @@ def _smallest(found: Found) -> dict[str, Look]:
     """
     least: dict[str, Look] = {}
     for track, picked in found:
-        for index, observation in enumerate(track.observations):
-            if picked.start <= observation.t_start <= picked.end:
-                label = track.labels[track.owners[index]]
-                ground_km2 = len(track.cells[index]) * track.cell_km2
-                held = least.get(label)
-                if held is None or ground_km2 < held.ground_km2:
-                    least[label] = Look(
-                        observation=observation,
-                        ground_km2=ground_km2,
-                        pixels=_landed(observation, ground_km2),
-                    )
+        for index in picked.kept:
+            observation = track.observations[index]
+            label = track.labels[track.owners[index]]
+            ground_km2 = len(track.cells[index]) * track.cell_km2
+            held = least.get(label)
+            if held is None or ground_km2 < held.ground_km2:
+                least[label] = Look(
+                    observation=observation,
+                    ground_km2=ground_km2,
+                    pixels=_landed(observation, ground_km2),
+                )
     return dict(sorted(least.items(), key=lambda found: found[1].ground_km2))
 
 

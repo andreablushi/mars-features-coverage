@@ -21,9 +21,12 @@ class Survey:
             insisted on reaches of it, multiplied and rooted so that one
             instrument cannot carry the window alone, and counting one that
             never appears as nothing.
-        observations: How many observations it holds in total.
-        core: How many of them brought ground nothing before them in the window
-            had already brought.
+        kept: The observations it holds, as their places on the timeline,
+            oldest first. Every one of them brought ground no other
+            observation of its own set reaches, so these are what the tile
+            would put in a dataset.
+        dropped: How many were dropped from it as repeats of ground it already
+            held.
     """
 
     tile: int
@@ -32,5 +35,5 @@ class Survey:
     end: datetime
     days: float
     reach: float
-    observations: int
-    core: int
+    kept: tuple[int, ...]
+    dropped: int

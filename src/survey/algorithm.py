@@ -16,12 +16,6 @@ from utils.maths import quantities
 def search(track: Track, strategy: Strategy) -> Survey | None:
     """Search a timeline for the window the ground is best studied over.
 
-    Only a window the dataset would keep is ever weighed: every instrument the
-    strategy insists on is in it, each over as much ground as it is asked for,
-    and it runs no longer than the cap. Nothing is picked and judged
-    afterwards, so a record holding no such window is left without one rather
-    than given the best of what would have been thrown away.
-
     Args:
         track: The admissible observations on one time axis.
         strategy: Which instruments the window has to hold, and how much
@@ -30,22 +24,25 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
     Returns:
         The chosen window, or None when no window is worth keeping.
     """
+    # Pick up the strategy's requirements
     demands = strategy.floors(track.iids, track.area_km2, track.cell_km2)
     if demands is None:
-        return None  # an instrument the strategy insists on never came here
+        return None
+    # Build the first window that reaches the most ground
     frontier = _frontier(track, demands)
     if not frontier:
         return None
     picked = _bend(frontier)
+    kept, reach = redundancy.trimmed(track, picked, demands)
     return Survey(
         tile=track.tile,
         area_km2=track.area_km2,
-        start=track.observations[picked.first].t_start,
-        end=track.observations[picked.last].t_start,
-        days=picked.days,
-        reach=picked.reach,
-        observations=picked.last - picked.first + 1,
-        core=redundancy.trimming(track, picked),
+        start=track.observations[kept[0]].t_start,
+        end=track.observations[kept[-1]].t_start,
+        days=track.times[kept[-1]] - track.times[kept[0]],
+        reach=reach,
+        kept=tuple(kept),
+        dropped=picked.last - picked.first + 1 - len(kept),
     )
 
 
@@ -60,19 +57,20 @@ def _frontier(track: Track, demands: Demands) -> list[Window]:
         One window per level of ground, shortest first, and nothing at all
         when no window is worth keeping.
     """
-    # Rungs climb towards what the whole record reaches, so the curve is
-    # sampled evenly whatever the ground can offer.
+    # Take the maximum ground the whole record can hold as a ceiling for the windows
     whole = Counter.over(track, 0, len(track.observations) - 1)
     ceiling = scoring.scored(track, demands, whole.cells_reached)
+    # If the whole record does not reach the demands, there is no window worth keeping
     if ceiling is None:
-        return []  # what the whole record cannot hold, no window inside it can
+        return []
+    # Keep reducing the ceiling until the window is too long to be worth keeping
     frontier: list[Window] = []
     seen: set[tuple[int, int]] = set()
     for step in range(configs.LEVELS + 1):
         found = _shortest(track, demands, ceiling * step / configs.LEVELS)
         if found is None:
-            break  # asking for more ground can only ever ask for more days
-        found = found.widened(track, demands)  # a tie in time is free
+            break
+        found = found.widened(track, demands)
         if (found.first, found.last) not in seen:
             seen.add((found.first, found.last))
             frontier.append(found)
@@ -81,10 +79,6 @@ def _frontier(track: Track, demands: Demands) -> list[Window]:
 
 def _shortest(track: Track, demands: Demands, level: float) -> Window | None:
     """Find the shortest window worth keeping that reaches one level of ground.
-
-    The window is slid along the axis, widened to the right and tightened from
-    the left for as long as it is still worth keeping, which it can only stop
-    being as it tightens.
 
     Args:
         track: The admissible observations on one time axis.
@@ -115,9 +109,6 @@ def _shortest(track: Track, demands: Demands, level: float) -> Window | None:
 
 def _bend(frontier: list[Window]) -> Window:
     """Take the window where more days stop buying much more ground.
-
-    Both axes are rescaled to nought and one, and the point sitting furthest
-    above the diagonal joining the ends of the curve is the bend in it.
 
     Args:
         frontier: The shortest window at every level of ground, shortest first.
