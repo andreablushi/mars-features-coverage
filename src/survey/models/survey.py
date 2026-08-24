@@ -24,8 +24,6 @@ class Survey:
         observations: How many observations it holds in total.
         core: How many of them brought ground nothing before them in the window
             had already brought.
-        knee: Whether the curve bent, and the window is the bend in it, rather
-            than the longest window the curve reached.
     """
 
     tile: int
@@ -36,4 +34,3 @@ class Survey:
     reach: float
     observations: int
     core: int
-    knee: bool

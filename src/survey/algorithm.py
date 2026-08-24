@@ -36,7 +36,7 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
     frontier = _frontier(track, demands)
     if not frontier:
         return None
-    picked, knee = _bend(frontier)
+    picked = _bend(frontier)
     return Survey(
         tile=track.tile,
         area_km2=track.area_km2,
@@ -46,7 +46,6 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
         reach=picked.reach,
         observations=picked.last - picked.first + 1,
         core=redundancy.trimming(track, picked),
-        knee=knee,
     )
 
 
@@ -114,7 +113,7 @@ def _shortest(track: Track, demands: Demands, level: float) -> Window | None:
     return found
 
 
-def _bend(frontier: list[Window]) -> tuple[Window, bool]:
+def _bend(frontier: list[Window]) -> Window:
     """Take the window where more days stop buying much more ground.
 
     Both axes are rescaled to nought and one, and the point sitting furthest
@@ -124,14 +123,12 @@ def _bend(frontier: list[Window]) -> tuple[Window, bool]:
         frontier: The shortest window at every level of ground, shortest first.
 
     Returns:
-        The window and whether the curve bent at all. Nothing above the
-        diagonal means ground is speeding up rather than running out, so there
-        is nothing to gain by stopping early and every day the cap allows is
-        taken.
+        The window. Nothing above the diagonal means ground is speeding up
+        rather than running out, so there is nothing to gain by stopping early
+        and every day the cap allows is taken.
     """
     cost = quantities.unit([span.days for span in frontier])
     gain = quantities.unit([span.reach for span in frontier])
     lift = [ground - days for days, ground in zip(cost, gain, strict=True)]
     turn = max(range(len(lift)), key=lift.__getitem__)
-    knee = lift[turn] > 0.0
-    return frontier[turn] if knee else frontier[-1], knee
+    return frontier[turn] if lift[turn] > 0.0 else frontier[-1]
