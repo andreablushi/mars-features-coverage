@@ -13,12 +13,6 @@ Demands = list[tuple[tuple[int, ...], int]]
 class Strategy:
     """One way of asking the instruments for what only they can give.
 
-    An imager sweeps a swath and a sounder draws a line, so asking both for
-    the same share of the ground asks one for everything it has and the other
-    for what it cannot do. Each strategy therefore names its own demand per
-    instrument, and the sounder is named by every one of them, since a feature
-    with no subsurface is not what this dataset is for.
-
     Attributes:
         name: What the strategy is called, which is how a run picks it and how
             one comparison is told from another.
@@ -34,12 +28,6 @@ class Strategy:
         self, iids: Sequence[str], area_km2: float, cell_km2: float
     ) -> Demands | None:
         """Work out how much ground each instrument insisted on has to reach.
-
-        The ground is read back as a count of the tile's cells, which is the
-        same ground said in the unit the sweep counts in: every cell of a
-        feature covers the same area, so a share of the tile is a share of its
-        cells. A demand of nothing still asks for one cell, since an
-        instrument that reached none of the tile was never there.
 
         Args:
             iids: The instrument each set on the timeline belongs to, in the

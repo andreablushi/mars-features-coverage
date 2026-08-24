@@ -5,8 +5,8 @@ from __future__ import annotations
 import statistics
 from collections.abc import Sequence
 
-from models.results import Event
 from survey import configs
+from survey.models.look import Look
 from survey.models.survey import Survey
 from survey.models.verdict import Verdict
 from utils.maths import quantities
@@ -165,16 +165,17 @@ def _overlaps(verdict: Verdict, area_km2: float) -> list[Row]:
     ]
 
 
-def _measured(least: Event) -> str:
+def _measured(least: Look) -> str:
     """Write one observation's size in both of the units it is judged in.
 
     Args:
-        least: The smallest observation one instrument set left in a window.
+        least: The smallest look one instrument set left in a window, as the
+            tile it was judged on saw it.
 
     Returns:
         The ground and the pixels, or the ground alone where none were counted.
     """
-    ground = quantities.area(least.own_km2)
+    ground = quantities.area(least.ground_km2)
     if least.pixels is None:
         return f"{ground}, pixels {_UNCOUNTED}"
     return f"{ground}, {quantities.compact(least.pixels)} pixels"

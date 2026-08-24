@@ -10,18 +10,22 @@ SPARSE = 1
 _INDEX = np.dtype("<u4")
 
 
-def encode(filled: np.ndarray) -> bytes:
+def encode(cells: np.ndarray, total: int) -> bytes:
     """Pack the cells a footprint fills into whichever form is smaller.
 
     Args:
-        filled: One flag per cell, row by row, flattened.
+        cells: The indices of the cells the footprint fills, in ascending
+            order.
+        total: How many cells the grid holds in all.
 
     Returns:
         The tag byte followed by the packed cells.
     """
-    cells = np.flatnonzero(filled).astype(_INDEX)
-    if cells.nbytes < (filled.size + 7) // 8:
-        return bytes([SPARSE]) + cells.tobytes()
+    packed = cells.astype(_INDEX)
+    if packed.nbytes < (total + 7) // 8:
+        return bytes([SPARSE]) + packed.tobytes()
+    filled = np.zeros(total, dtype=bool)
+    filled[cells] = True
     return bytes([DENSE]) + np.packbits(filled).tobytes()
 
 

@@ -9,7 +9,7 @@ from typing import Any
 import httpx
 
 from download import configs
-from models.errors import ODEError
+from download.models.errors import ODEError
 
 
 class ODEClient:

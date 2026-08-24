@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from survey.models.counter import Counter
 from survey.models.strategy import Demands
 from survey.models.track import Track
-from survey.utils import measuring
+from survey.utils import scoring
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,17 +21,18 @@ class Window:
         reach: How much of the ground it reaches, as the shares each
             instrument insisted on reaches of it, multiplied and rooted so
             that one instrument cannot carry the window alone.
-        instruments: How many sets have an observation inside it.
     """
 
     first: int
     last: int
     days: float
     reach: float
-    instruments: int
 
     def widened(self, track: Track, demands: Demands) -> Window:
         """Take in every observation sharing an instant with either end.
+
+        A wider window holds everything the narrower one held, so it meets
+        every demand that one met and is never refused a score.
 
         Args:
             track: The observations on one time axis.
@@ -52,11 +54,10 @@ class Window:
         if (first, last) == (self.first, self.last):
             return self
         # If the window has changed, measure its new reach and return a new Window
-        _, seen, inside = measuring.counted(track, first, last)
+        counter = Counter.over(track, first, last)
         return Window(
             first,
             last,
             self.days,
-            measuring.scored(track, demands, seen),
-            measuring.instruments(inside),
+            scoring.scored(track, demands, counter.cells_reached),
         )

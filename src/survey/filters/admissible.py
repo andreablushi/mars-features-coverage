@@ -1,4 +1,4 @@
-"""Which observations are a look at the feature rather than a clip of its edge."""
+"""Which observations are a look at the tile rather than a clip of its edge."""
 
 from __future__ import annotations
 
@@ -7,16 +7,13 @@ from survey import configs
 
 
 def admissible(observation: Event, ground_km2: float, width_km: float) -> bool:
-    """Report whether one observation says enough about a feature to be counted.
-
-    Every floor is read in square kilometres, so what it asks for is the same
-    ground whatever the feature and however coarse the cells it is measured in.
+    """Report whether one observation says enough about a tile to be counted.
 
     Args:
         observation: The observation, which carries its swath width when it is
             a sounder track.
-        ground_km2: The ground it lands inside the feature.
-        width_km: How wide the feature is, which only a sounder is measured
+        ground_km2: The ground it lands inside the tile.
+        width_km: How wide the tile is, which only a sounder is measured
             against.
 
     Returns:
@@ -28,6 +25,6 @@ def admissible(observation: Event, ground_km2: float, width_km: float) -> bool:
     # Only SHARAD has a swath width, otherwise we are satisfied by this check
     if not observation.width_km:
         return True
-    # The SHARAD line and not the width as to cross the feature
+    # The SHARAD line and not the width as to cross the tile
     crossed = ground_km2 / observation.width_km
     return crossed >= configs.MIN_CROSSING * width_km

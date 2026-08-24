@@ -9,7 +9,7 @@ import utils.disk.provenance as provenance
 from download import configs
 from download.api.client import ODEClient
 from download.api.response import as_items
-from models.errors import ODEError
+from download.models.errors import ODEError
 from models.feature import Feature
 from models.instrument import InstrumentSet
 

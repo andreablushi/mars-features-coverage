@@ -21,7 +21,6 @@ class Survey:
             insisted on reaches of it, multiplied and rooted so that one
             instrument cannot carry the window alone, and counting one that
             never appears as nothing.
-        instruments: How many sets have an observation inside it.
         observations: How many observations it holds in total.
         core: How many of them brought ground nothing before them in the window
             had already brought.
@@ -35,7 +34,6 @@ class Survey:
     end: datetime
     days: float
     reach: float
-    instruments: int
     observations: int
     core: int
     knee: bool
