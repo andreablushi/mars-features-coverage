@@ -90,7 +90,7 @@ def _row(name: str, verdict: Verdict, area_km2: float) -> str:
     """
     running = name == surveys.SHOWN.name
     ground = sum(survey.area_km2 for survey in verdict.surveys)
-    shared = verdict.overlaps.get(2, 0.0)
+    shared = next(iter(verdict.overlaps.values()), 0.0)
     cells = [
         _asked(name),
         f"{len(verdict.surveys):,} of {verdict.tiles:,}",

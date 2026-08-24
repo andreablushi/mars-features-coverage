@@ -16,6 +16,3 @@ MIN_GAIN_CELLS = 5
 # putting in a dataset at all. Nothing else is asked of the feature as a
 # whole: what a window has to hold is asked of it tile by tile.
 MIN_TILES = 1
-
-# How many instruments the shared ground is read at, most first.
-OVERLAP_SETS = (3, 2)

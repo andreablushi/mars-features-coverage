@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from models.results import Event, SetCoverage
-from survey import algorithm, configs
+from survey import algorithm
 from survey.models import track as timeline
 from survey.models.look import Look
 from survey.models.strategy import Strategy
@@ -55,7 +55,7 @@ def assess(coverage: Sequence[SetCoverage], strategy: Strategy) -> Verdict:
         smallest=_smallest(found),
         refused=_refused(found),
         taken=sum(len(picked.kept) for _, picked in found),
-        overlaps=_overlaps(found),
+        overlaps=_overlaps(found, len(strategy.demands)),
     )
 
 
@@ -94,28 +94,29 @@ def _sounders(tracks: Sequence[Track]) -> int:
     )
 
 
-def _overlaps(found: Found) -> dict[int, float]:
+def _overlaps(found: Found, wanted: int) -> dict[int, float]:
     """Measure how much ground several instruments reach between them.
+
+    How many are asked for is the strategy's own count of demands, since that
+    is what the dataset wanted of the ground in the first place.
 
     Args:
         found: Every tile that earned a window, with the window it earned.
+        wanted: How many sets have to reach a piece of ground for it to count.
 
     Returns:
         The ground in square kilometres reached by at least that many sets
-        inside the windows, by set count, counting only as many sets as the
-        feature has, and nothing at all when no tile earned a window. The
+        inside the windows, by that count, and nothing at all when no tile
+        earned a window or the feature holds too few sets to reach it. The
         tiles are disjoint, so their ground adds up.
     """
-    if not found:
+    if not found or wanted > len(found[0][0].labels):
         return {}
-    sets = len(found[0][0].labels)
     return {
         wanted: sum(
             overlap.ground(overlap.reached(track, picked), wanted, track.cell_km2)
             for track, picked in found
         )
-        for wanted in configs.OVERLAP_SETS
-        if wanted <= sets
     }
 
 

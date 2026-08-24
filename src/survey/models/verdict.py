@@ -41,9 +41,10 @@ class Verdict:
         refused: How many looks were too small to count inside the windows,
             counting an observation once per tile it reached.
         taken: How many were counted inside them, counted the same way.
-        overlaps: How much ground in square kilometres is reached by at least
-            that many instrument sets at once, by set count. Empty when no
-            tile earned a window.
+        overlaps: How much ground in square kilometres is reached by as many
+            instrument sets at once as the strategy makes demands, by that
+            count. Empty when no tile earned a window, or when the feature
+            holds too few sets to reach the count.
     """
 
     surveys: list[Survey]
