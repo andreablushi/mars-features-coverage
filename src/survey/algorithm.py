@@ -1,4 +1,4 @@
-"""The shortest window worth keeping that reaches the most ground."""
+"""The window worth the most, once a day of waiting is priced against ground."""
 
 from __future__ import annotations
 
@@ -10,7 +10,6 @@ from survey.models.survey import Survey
 from survey.models.track import Track
 from survey.models.window import Window
 from survey.utils import scoring
-from utils.maths import quantities
 
 
 def search(track: Track, strategy: Strategy) -> Survey | None:
@@ -29,11 +28,9 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
     # What time cannot change is asked of the whole record rather than a window
     if standing and not _standing(track, standing):
         return None
-    # Build the first window that reaches the most ground
-    frontier = _frontier(track, demands)
-    if not frontier:
+    picked = _best(track, demands)
+    if picked is None:
         return None
-    picked = _bend(frontier)
     kept, reach = redundancy.trimmed(track, picked, demands)
     return Survey(
         tile=track.tile,
@@ -62,80 +59,31 @@ def _standing(track: Track, standing: Demands) -> bool:
     return scoring.scored(track, standing, whole.cells_reached) is not None
 
 
-def _frontier(track: Track, demands: Demands) -> list[Window]:
-    """Trace the shortest window worth keeping at every level of ground.
+def _best(track: Track, demands: Demands) -> Window | None:
+    """Take the window worth the most, at the price a day of waiting costs.
+
+    Every window the demands allow is weighed, so the one returned is the best
+    there is rather than the best of a sample.
 
     Args:
         track: The admissible observations on one time axis.
         demands: The cells each instrument insisted on has to reach.
 
     Returns:
-        One window per level of ground, shortest first, and nothing at all
-        when no window is worth keeping.
+        The window worth the most, or None when no window is worth keeping.
     """
-    # Take the maximum ground the whole record can hold as a ceiling for the windows
-    whole = Counter.over(track, 0, len(track.observations) - 1)
-    ceiling = scoring.scored(track, demands, whole.cells_reached)
-    # If the whole record does not reach the demands, there is no window worth keeping
-    if ceiling is None:
-        return []
-    # Keep reducing the ceiling until the window is too long to be worth keeping
-    frontier: list[Window] = []
-    seen: set[tuple[int, int]] = set()
-    for step in range(configs.LEVELS + 1):
-        found = _shortest(track, demands, ceiling * step / configs.LEVELS)
-        if found is None:
-            break
-        found = found.widened(track, demands)
-        if (found.first, found.last) not in seen:
-            seen.add((found.first, found.last))
-            frontier.append(found)
-    return frontier
-
-
-def _shortest(track: Track, demands: Demands, level: float) -> Window | None:
-    """Find the shortest window worth keeping that reaches one level of ground.
-
-    Args:
-        track: The admissible observations on one time axis.
-        demands: The cells each instrument insisted on has to reach.
-        level: The ground the window has to reach, counted evenly.
-
-    Returns:
-        The shortest window reaching it, or None when nothing worth keeping
-        reaches it inside the span the cap allows.
-    """
-    counter = Counter.empty(len(track.labels), track.grid)
-    found: Window | None = None
-    left = 0
-    for right in range(len(track.observations)):
-        counter.hold(track.owners[right], track.cells[right])
-        while (
-            score := scoring.scored(track, demands, counter.cells_reached)
-        ) is not None and score >= level - configs.ROUNDING:
+    price = 0.01 / configs.DAYS_PER_PERCENT
+    best: Window | None = None
+    worth = float("-inf")
+    for left in range(len(track.observations)):
+        counter = Counter.empty(len(track.labels), track.grid)
+        for right in range(left, len(track.observations)):
+            counter.hold(track.owners[right], track.cells[right])
+            reach = scoring.scored(track, demands, counter.cells_reached)
+            if reach is None:
+                continue  # the window does not hold what the strategy asks
             days = track.times[right] - track.times[left]
-            if days <= configs.MAX_SPAN_DAYS and (
-                found is None or (days, -score) < (found.days, -found.reach)
-            ):
-                found = Window(left, right, days, score)
-            counter.release(track.owners[left], track.cells[left])
-            left += 1
-    return found
-
-
-def _bend(frontier: list[Window]) -> Window:
-    """Take the window where more days stop buying much more ground.
-
-    Args:
-        frontier: The shortest window at every level of ground, shortest first.
-
-    Returns:
-        The window. Nothing above the diagonal means ground is speeding up
-        rather than running out, so there is nothing to gain by stopping early
-        and every day the cap allows is taken.
-    """
-    cost = quantities.unit([span.days for span in frontier])
-    gain = quantities.unit([span.reach for span in frontier])
-    lift = [ground - days for days, ground in zip(cost, gain, strict=True)]
-    turn = max(range(len(lift)), key=lift.__getitem__)
-    return frontier[turn] if lift[turn] > 0.0 else frontier[-1]
+            paid = reach - price * days
+            if days <= configs.MAX_SPAN_DAYS and paid > worth:
+                best, worth = Window(left, right, days, reach), paid
+    return best

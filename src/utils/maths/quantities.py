@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-
 _STEPS = ((1e9, "G"), (1e6, "M"), (1e3, "k"))
 
 
@@ -34,25 +32,6 @@ def area(km2: float) -> str:
         kilometres and rounded whole above that.
     """
     return f"{km2:,.0f} km2" if km2 >= 10.0 else f"{km2:,.2f} km2"
-
-
-def unit(values: Sequence[float]) -> list[float]:
-    """Rescale a run of numbers so it runs from nought to one.
-
-    Putting two axes on the same scale is what lets quantities in unrelated
-    units be compared at all, without an exchange rate being invented between
-    them.
-
-    Args:
-        values: The numbers, in their own units.
-
-    Returns:
-        The same numbers rescaled, or all zeros when they never vary.
-    """
-    low, high = min(values), max(values)
-    if high == low:
-        return [0.0] * len(values)
-    return [(value - low) / (high - low) for value in values]
 
 
 def duration(days: float) -> str:
