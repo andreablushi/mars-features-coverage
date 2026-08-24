@@ -21,9 +21,15 @@ def ground_pixel_km2(
         The ground one pixel covers in square kilometres.
 
     Raises:
-        KeyError: When a set publishes no scale and none is configured for it.
+        KeyError: When a set publishes no scale and none is configured for it,
+            which every one of its observations fails on rather than one.
     """
     if width_km is not None:
         return width_km * configs.SHARAD_ALONG_TRACK_M / 1000.0
-    scale = map_scale_m or configs.FALLBACK_PIXEL_M[set_key]
+    scale = map_scale_m or configs.FALLBACK_PIXEL_M.get(set_key)
+    if scale is None:
+        raise KeyError(
+            f"{set_key} publishes no map scale and none is configured for it, "
+            f"so it needs an entry in FALLBACK_PIXEL_M spelled exactly this way"
+        )
     return (scale / 1000.0) ** 2
