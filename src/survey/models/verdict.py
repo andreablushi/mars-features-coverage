@@ -26,9 +26,10 @@ class Verdict:
         gridded: Whether any instrument set filled a cell of the feature at
             all, which is the one way a feature can fail before it is
             searched.
-        sounders_refused: How many sounder tracks were too small to count. A
-            feature whose only tracks were that small holds no window for a
-            different reason than one no sounder ever flew over.
+        turned_away: How many looks were too small for the tile they reached,
+            counting one once per tile it was turned away from. A feature whose
+            looks were all that small holds no window for a different reason
+            than one no instrument ever visited.
         smallest: The smallest look each instrument set left inside a window,
             by set name, least ground first, so that whatever the windows are
             thinnest on comes first. Each is measured on the tile its window
@@ -50,7 +51,7 @@ class Verdict:
     across: int
     tiles: int
     gridded: bool
-    sounders_refused: int
+    turned_away: int
     smallest: dict[str, Look]
     refused: int
     taken: int

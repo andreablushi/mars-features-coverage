@@ -6,10 +6,6 @@ import math
 
 from survey.models.tiles import Tile
 
-# What an instrument the strategy says nothing about has to leave on a tile,
-# which is a cell, so reaching the tile at all is the whole of what it is asked.
-ANYTHING = 1
-
 
 def least(admits: dict[str, int], iid: str, patch: Tile, cell_km2: float) -> int:
     """Work out the cells one instrument has to leave on one tile.
@@ -30,8 +26,9 @@ def least(admits: dict[str, int], iid: str, patch: Tile, cell_km2: float) -> int
         cell_km2: How much ground one cell of the block covers.
 
     Returns:
-        The cells it has to leave on that tile, never fewer than one.
+        The cells it has to leave on that tile. An instrument the strategy
+        names nowhere is asked for nothing, and a tile too small to be asked
+        the strategy's count is asked less of it.
     """
-    whole = admits.get(iid, ANYTHING)
     share = patch.area_km2 / (patch.cells * cell_km2)
-    return max(ANYTHING, round(whole * math.sqrt(share)))
+    return round(admits.get(iid, 0) * math.sqrt(share))

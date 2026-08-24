@@ -51,7 +51,7 @@ def assess(coverage: Sequence[SetCoverage], strategy: Strategy) -> Verdict:
         across=patchwork.across,
         tiles=sum(1 for tile in patchwork.tiles if tile.area_km2),
         gridded=True,
-        sounders_refused=_sounders(tracks),
+        turned_away=_turned_away(tracks),
         smallest=_smallest(found),
         refused=_refused(found),
         taken=sum(len(picked.kept) for _, picked in found),
@@ -71,7 +71,7 @@ def _nothing() -> Verdict:
         across=0,
         tiles=0,
         gridded=False,
-        sounders_refused=0,
+        turned_away=0,
         smallest={},
         refused=0,
         taken=0,
@@ -79,18 +79,18 @@ def _nothing() -> Verdict:
     )
 
 
-def _sounders(tracks: Sequence[Track]) -> int:
-    """Count the sounder tracks that were too small to count.
+def _turned_away(tracks: Sequence[Track]) -> int:
+    """Count the looks that were too small for the tile they reached.
 
-    An instrument the strategy asks only to reach a tile is never left off,
-    so with the strategies as written it is the sounder that is turned away.
+    What is turned away is whatever the strategy asked more of a tile than it
+    left, so which instrument that is depends on what the strategy admits.
 
     Args:
         tracks: The feature's tiles, each on its own time axis.
 
     Returns:
-        How many looks were left off the axes, counting a track once per tile
-        it was turned away from.
+        How many looks were left off the axes, counting one once per tile it
+        was turned away from.
     """
     return sum(len(track.refused) for track in tracks)
 

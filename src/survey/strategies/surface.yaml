@@ -7,6 +7,6 @@
 demands:
   - {CTX: 0.25, CRISM: 0.10}
   - {SHARAD: 0.0}
-admits: {CTX: 1, CRISM: 1, SHARAD: 16}
+admits: {CTX: 5, CRISM: 5, SHARAD: 16}
 span_days: 687.0
 timeless: []

@@ -77,8 +77,8 @@ def _emitted(verdict: Verdict) -> str:
     """
     if verdict.surveys:
         return f"{len(verdict.surveys):,} of {verdict.tiles:,}"
-    if verdict.sounders_refused:
-        return f"none, {verdict.sounders_refused:,} tracks were too small to count"
+    if verdict.turned_away:
+        return f"none, {verdict.turned_away:,} looks were too small to count"
     return _NONE
 
 
