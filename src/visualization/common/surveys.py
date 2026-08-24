@@ -1,4 +1,4 @@
-"""The best time window for the feature on show, found once and shared."""
+"""The search behind the panels on show, run once and shared."""
 
 from __future__ import annotations
 
@@ -6,55 +6,52 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from models.results import SetCoverage
-from survey import strategies
-from survey.filters import verdict
+from survey import strategies, studying
 from survey.models.strategy import Strategy
+from survey.models.study import Study
 from survey.models.survey import Survey
-from survey.models.verdict import Verdict
 
 Stretch = tuple[datetime, datetime]
 
-# Which strategy the panels are drawn under. The search is never configured
-# with one, it is told, so the choice of what to show belongs here. The
-# comparison table draws every strategy whatever this says.
-SHOWN = strategies.named("surface")
+# The strategy a picker opens on. The search is never configured with one, it
+# is told, so the choice of what to show first belongs here.
+DEFAULT_STRATEGY = "surface"
 
-# How many searches are kept, so every panel of a feature shares one. A
-# feature is searched once per strategy the comparison draws, so the cache
-# holds a few features over as many strategies as there are.
-SURVEY_CACHE = 24
+# How many searches are kept, so every panel of a feature shares one.
+STUDY_CACHE = 8
 
 
-_found: dict[tuple, Verdict] = {}
+_found: dict[tuple, Study] = {}
 
 
-def assessed(
-    coverage: Sequence[SetCoverage], strategy: Strategy | None = None
-) -> Verdict:
-    """Judge one feature, searching it only once however many panels ask.
-
-    Every panel that marks a window or reads the verdict asks for the same
-    search, and confirming a feature draws them all, so what it found is kept
-    rather than repeated. What a feature is measured against decides it
-    entirely, which is the sets on show, what each of them holds, and what the
-    strategy asks of them.
+def studied(coverage: Sequence[SetCoverage], strategy: Strategy) -> Study:
+    """Search one feature, running it only once however many panels ask.
 
     Args:
         coverage: The feature's instrument sets, in the order they are drawn.
-        strategy: Which instruments a window has to hold, or None for the
-            one the panels are drawn under.
+        strategy: Which instruments a window has to hold.
 
     Returns:
-        The verdict, holding the window every tile earned and every check
-        behind them.
+        What the search found over every tile of it.
     """
-    strategy = strategy or SHOWN
     key = (strategy.name, _key(coverage))
     if key not in _found:
-        if len(_found) >= SURVEY_CACHE:
+        if len(_found) >= STUDY_CACHE:
             _found.clear()
-        _found[key] = verdict.assess(coverage, strategy)
+        _found[key] = studying.study(coverage, strategy)
     return _found[key]
+
+
+def opening() -> Strategy:
+    """Return the strategy a picker opens on.
+
+    Returns:
+        The named one where it is still written, and otherwise the first of
+        those that are.
+    """
+    if DEFAULT_STRATEGY in strategies.STRATEGIES:
+        return strategies.STRATEGIES[DEFAULT_STRATEGY]
+    return next(iter(strategies.STRATEGIES.values()))
 
 
 def stretches(found: Sequence[Survey]) -> list[Stretch]:
@@ -87,10 +84,6 @@ def stretches(found: Sequence[Survey]) -> list[Stretch]:
 
 def _key(coverage: Sequence[SetCoverage]) -> tuple:
     """Name what a search was run over, so the same run is recognised.
-
-    The sets are named by what they measured and not by name alone, so a
-    feature measured again by a later pipeline is searched again rather than
-    answered from what the earlier one produced.
 
     Args:
         coverage: The feature's instrument sets, in the order they are drawn.

@@ -1,28 +1,90 @@
-"""Picking one feature, and the areas that redraw themselves once it is picked."""
+"""Picking what is drawn: which feature, and the strategy it is judged under."""
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
+from dataclasses import dataclass
 
 import ipywidgets as widgets
 from IPython.display import display
 
 from models.results import SetCoverage
 from storage import catalog, summary
+from survey import strategies
+from survey.models.strategy import Strategy
 from utils.disk.slugify import slugify
-from visualization import panels, sets
+from visualization.common import panels, sets, surveys
 
-# The feature class the picker opens on
+# The feature class the picker opens on.
 DEFAULT_CLASS = "Crater"
 NO_DATA_SUFFIX = "  (no data)"
-DROPDOWN_WIDTH = "340px"
+DROPDOWN_WIDTH = "300px"
 
 
-Render = Callable[[Sequence[SetCoverage]], widgets.Widget]
+@dataclass(frozen=True, slots=True)
+class View:
+    """The feature on show and what it is judged against.
+
+    Attributes:
+        coverage: The feature's instrument sets, widest coverage first, and
+            empty until a feature with local data is confirmed.
+        strategy: Which instruments a window over it has to hold.
+    """
+
+    coverage: list[SetCoverage]
+    strategy: Strategy
 
 
-class FeatureSelector:
-    """A feature picker that fills the areas claimed below it.
+class Areas[Chosen]:
+    """Areas claimed under a picker, refilled whenever its choice changes."""
+
+    def __init__(self) -> None:
+        """Open with nothing claimed yet.
+
+        Returns:
+            None.
+        """
+        self._areas: list[tuple[widgets.Box, Callable[[Chosen], widgets.Widget]]] = []
+
+    @property
+    def chosen(self) -> Chosen:
+        """Return what the areas are drawn for.
+
+        Returns:
+            The current choice, which every claimed area is handed.
+
+        Raises:
+            NotImplementedError: When a picker has not said what it picks.
+        """
+        raise NotImplementedError
+
+    def show_panel(self, render: Callable[[Chosen], widgets.Widget]) -> None:
+        """Claim an area here and fill it whenever the choice changes.
+
+        Args:
+            render: What to draw in it, given the current choice.
+
+        Returns:
+            None.
+        """
+        area = widgets.VBox()
+        self._areas = [claimed for claimed in self._areas if claimed[1] is not render]
+        self._areas.append((area, render))
+        display(area)
+        area.children = (render(self.chosen),)
+
+    def refill(self) -> None:
+        """Redraw every claimed area from the current choice.
+
+        Returns:
+            None.
+        """
+        for area, render in self._areas:
+            area.children = (render(self.chosen),)
+
+
+class FeaturePicker(Areas[View]):
+    """A feature and strategy picker that fills the areas claimed below it.
 
     Attributes:
         selection: The confirmed feature class and name, or None until the
@@ -37,6 +99,7 @@ class FeatureSelector:
         Returns:
             None.
         """
+        super().__init__()
         self._names: dict[str, list[str]] = {}
         for feature in catalog.read_features():
             self._names.setdefault(feature.feature_class, []).append(feature.name)
@@ -45,7 +108,7 @@ class FeatureSelector:
         self._computed = summary.computed_features()
         self.selection: tuple[str, str] | None = None
         self.coverage: list[SetCoverage] = []
-        self._areas: list[tuple[widgets.Box, Render]] = []
+        self._following: list[Callable[[View], None]] = []
         self._class = widgets.Dropdown(
             options=sorted(self._names),
             description="Type:",
@@ -55,13 +118,29 @@ class FeatureSelector:
         self._name = widgets.Dropdown(
             description="Name:", layout=widgets.Layout(width=DROPDOWN_WIDTH)
         )
+        self._strategy = widgets.Dropdown(
+            options=sorted(strategies.STRATEGIES),
+            description="Strategy:",
+            value=surveys.opening().name,
+            layout=widgets.Layout(width=DROPDOWN_WIDTH),
+        )
         self._confirm = widgets.Button(
             description="Confirm", button_style="primary", icon="check"
         )
         self._status = widgets.VBox()
         self._class.observe(self._refresh_names, names="value")
+        self._strategy.observe(self._restrategised, names="value")
         self._confirm.on_click(self._confirmed)
         self._refresh_names()
+
+    @property
+    def chosen(self) -> View:
+        """Return the feature on show and the strategy it is judged under.
+
+        Returns:
+            The view every claimed area is drawn for.
+        """
+        return View(self.coverage, strategies.named(self._strategy.value))
 
     def choose(self) -> None:
         """Display the picker and report what the catalogue holds.
@@ -72,25 +151,21 @@ class FeatureSelector:
         catalogued = sum(len(names) for names in self._names.values())
         print(f"{catalogued} catalogued features in {len(self._names)} classes")
         print(f"{len(self._computed)} with coverage computed locally")
+        print(f"{len(strategies.STRATEGIES)} strategies to search under")
         controls = widgets.HBox([self._class, self._name, self._confirm])
-        display(widgets.VBox([controls, self._status]))
+        display(widgets.VBox([controls, self._strategy, self._status]))
 
-    def show_panel(self, render: Render) -> None:
-        """Claim an area here and fill it whenever a feature is confirmed.
+    def when_chosen(self, follow: Callable[[View], None]) -> None:
+        """Call something whenever the feature or the strategy changes.
 
         Args:
-            render: What to draw in it, given the confirmed feature's
-                coverage. It is called with an empty sequence while nothing is
-                confirmed, which is when it should show the grey panel.
+            follow: What to call with the new view, which a picker claiming
+                areas of its own registers so that it can rebuild them.
 
         Returns:
             None.
         """
-        area = widgets.VBox()
-        self._areas = [claimed for claimed in self._areas if claimed[1] is not render]
-        self._areas.append((area, render))
-        display(area)
-        area.children = (render(self.coverage),)
+        self._following.append(follow)
 
     def _has_data(self, feature_class: str, name: str) -> bool:
         """Report whether a feature has computed coverage on disk.
@@ -122,6 +197,18 @@ class FeatureSelector:
             for name in self._names[feature_class]
         ]
 
+    def _restrategised(self, _change=None) -> None:
+        """Redraw the confirmed feature under the strategy just picked.
+
+        Args:
+            _change: The widget change event, ignored.
+
+        Returns:
+            None.
+        """
+        if self.selection is not None:
+            self._filled()
+
     def _confirmed(self, _button=None) -> None:
         """Load the confirmed feature and refill every claimed area.
 
@@ -145,13 +232,15 @@ class FeatureSelector:
                 f"Nothing has been downloaded or computed for {feature_class} / {name}."
             )
         self._status.children = (note,)
-        self._refill()
+        self._filled()
 
-    def _refill(self) -> None:
-        """Redraw every claimed area from the current feature.
+    def _filled(self) -> None:
+        """Refill everything drawn for the current feature and strategy.
 
         Returns:
             None.
         """
-        for area, render in self._areas:
-            area.children = (render(self.coverage),)
+        view = self.chosen
+        self.refill()
+        for follow in self._following:
+            follow(view)

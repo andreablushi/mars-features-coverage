@@ -1,0 +1,164 @@
+"""What each single observation covered, at the time it was taken."""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+
+import ipywidgets as widgets
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.lines import Line2D
+
+from visualization.common import panels, series, surveys
+from visualization.common.picker import View
+from visualization.common.series import Series
+from visualization.common.surveys import Stretch
+from visualization.feature.picker import NO_TILE, TileView
+
+# One stacked panel per instrument set, so the height is per panel
+PANEL_HEIGHT = 2.5
+
+_FEATURE_GROUND = "Share of the feature covered by one observation"
+_TILE_GROUND = "Share of the tile covered by one observation"
+
+
+def plot(view: View) -> widgets.Widget:
+    """Draw one stacked panel per instrument set, over the whole feature.
+
+    Args:
+        view: The feature on show and the strategy it is judged under.
+
+    Returns:
+        The figure as a widget, or the grey panel when nothing is loaded.
+    """
+    if not view.coverage:
+        return panels.unavailable()
+    study = surveys.studied(view.coverage, view.strategy)
+    return _draw(
+        series.over_feature(view.coverage),
+        f"{panels.title(view.coverage)}  -  coverage per observation",
+        _FEATURE_GROUND,
+        surveys.stretches([picked for _, picked in study.kept]),
+    )
+
+
+def plot_tile(chosen: TileView | None) -> widgets.Widget:
+    """Draw the same panels for the tile on show.
+
+    Args:
+        chosen: The tile on show, or None while none is picked.
+
+    Returns:
+        The figure as a widget, or the grey panel when no tile is picked.
+    """
+    if chosen is None:
+        return panels.unavailable(NO_TILE)
+    return _draw(
+        series.over_tile(chosen.track),
+        f"{chosen.name}  -  coverage per observation",
+        _TILE_GROUND,
+        chosen.open_for,
+    )
+
+
+def _draw(
+    drawn: Sequence[Series],
+    title: str,
+    ground: str,
+    open_for: Sequence[Stretch],
+) -> widgets.Widget:
+    """Draw one stacked panel per instrument set, sharing both axes.
+
+    Args:
+        drawn: What each set observed of the ground on show.
+        title: The line above the top panel.
+        ground: What the heights are a share of.
+        open_for: The stretches of time the windows are open over.
+
+    Returns:
+        The figure as a widget.
+    """
+    colours = panels.colours(drawn)
+    figure, axes = plt.subplots(
+        len(drawn),
+        1,
+        figsize=(panels.FIGURE_WIDTH, PANEL_HEIGHT * len(drawn)),
+        sharex=True,
+        sharey=True,
+    )
+    axes = np.atleast_1d(axes)
+    for axis, one in zip(axes, drawn, strict=True):
+        _panel(axis, one, colours[one.label])
+        panels.shade(axis, open_for)
+    _key(axes[0], open_for)
+    axes[0].set_ylim(-0.05, 1.05)
+    axes[0].set_title(title, fontsize=12, loc="left")
+    axes[-1].set_xlabel("Observation start time")
+    figure.supylabel(ground, fontsize=10)
+    figure.tight_layout()
+    return panels.rendered(figure)
+
+
+def _panel(axis, one: Series, colour) -> None:
+    """Draw one instrument set's observations on its own panel.
+
+    Args:
+        axis: The panel to draw on.
+        one: What the set observed.
+        colour: The colour the set is drawn in.
+
+    Returns:
+        None.
+    """
+    axis.vlines(one.times, 0.0, one.shares, color=colour, alpha=0.35, linewidth=0.7)
+    axis.scatter(
+        one.times,
+        one.shares,
+        s=12,
+        alpha=0.65,
+        color=colour,
+        edgecolors="none",
+        zorder=3,
+    )
+    if not one.observed:
+        axis.set_xlim(one.first, one.last)
+        axis.text(
+            0.5,
+            0.5,
+            one.reason,
+            transform=axis.transAxes,
+            ha="center",
+            va="center",
+            fontsize=9,
+            color=panels.GREY,
+        )
+    axis.set_ylabel(one.label, rotation=0, ha="right", va="center", fontsize=9)
+    panels.tidy(axis, percent="y", grid="y")
+
+
+def _key(axis, open_for: Sequence[Stretch]) -> None:
+    """Name the marked stretches of time, when the tiles earned any.
+
+    Args:
+        axis: The top panel, which carries the legend.
+        open_for: The stretches of time the windows are open over.
+
+    Returns:
+        None.
+    """
+    if not open_for:
+        return
+    counted = (
+        "the window the tile earned"
+        if len(open_for) == 1
+        else f"{len(open_for):,} stretches the tiles' windows open over"
+    )
+    marker = Line2D(
+        [],
+        [],
+        color=panels.SURVEY_LINE,
+        linestyle=panels.SURVEY_STYLE,
+        linewidth=panels.SURVEY_WIDTH,
+        label=counted,
+    )
+    axis.legend(handles=[marker], fontsize=8, loc="upper right", frameon=False)
