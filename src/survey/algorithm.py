@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from survey import configs
 from survey.filters import redundancy
+from survey.models.counter import Counter
 from survey.models.strategy import Demands, Strategy
 from survey.models.survey import Survey
 from survey.models.track import Track
 from survey.models.window import Window
-from survey.utils import measuring
+from survey.utils import scoring
 from utils.maths import quantities
 
 
@@ -43,7 +44,6 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
         end=track.observations[picked.last].t_start,
         days=picked.days,
         reach=picked.reach,
-        instruments=picked.instruments,
         observations=picked.last - picked.first + 1,
         core=redundancy.trimming(track, picked),
         knee=knee,
@@ -63,9 +63,9 @@ def _frontier(track: Track, demands: Demands) -> list[Window]:
     """
     # Rungs climb towards what the whole record reaches, so the curve is
     # sampled evenly whatever the ground can offer.
-    _, whole, _ = measuring.counted(track, 0, len(track.observations) - 1)
-    ceiling = measuring.scored(track, demands, whole)
-    if ceiling < 0.0:
+    whole = Counter.over(track, 0, len(track.observations) - 1)
+    ceiling = scoring.scored(track, demands, whole.cells_reached)
+    if ceiling is None:
         return []  # what the whole record cannot hold, no window inside it can
     frontier: list[Window] = []
     seen: set[tuple[int, int]] = set()
@@ -96,22 +96,20 @@ def _shortest(track: Track, demands: Demands, level: float) -> Window | None:
         The shortest window reaching it, or None when nothing worth keeping
         reaches it inside the span the cap allows.
     """
-    counts, reached, inside = measuring.opened(len(track.labels), track.grid)
+    counter = Counter.empty(len(track.labels), track.grid)
     found: Window | None = None
     left = 0
     for right in range(len(track.observations)):
-        measuring.hold(counts, reached, inside, track.owners[right], track.cells[right])
+        counter.hold(track.owners[right], track.cells[right])
         while (
-            scored := measuring.scored(track, demands, reached)
-        ) >= level - configs.ROUNDING:
+            score := scoring.scored(track, demands, counter.cells_reached)
+        ) is not None and score >= level - configs.ROUNDING:
             days = track.times[right] - track.times[left]
             if days <= configs.MAX_SPAN_DAYS and (
-                found is None or (days, -scored) < (found.days, -found.reach)
+                found is None or (days, -score) < (found.days, -found.reach)
             ):
-                found = Window(left, right, days, scored, measuring.instruments(inside))
-            measuring.release(
-                counts, reached, inside, track.owners[left], track.cells[left]
-            )
+                found = Window(left, right, days, score)
+            counter.release(track.owners[left], track.cells[left])
             left += 1
     return found
 

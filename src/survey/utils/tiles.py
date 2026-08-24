@@ -62,16 +62,6 @@ class Tiling:
 def split(area_km2: float, mask_cells: int) -> Tiling:
     """Cut a feature's grid into tiles of about the width the config asks for.
 
-    Above a few tens of kilometres one window per feature says nothing: the
-    far side was observed years from the near side, so a single window either
-    leaves most of the feature out or stretches over ground nothing looked at
-    together. The feature is therefore cut up first and searched a tile at a
-    time.
-
-    Every cell falls in exactly one tile and every tile is a whole number of
-    cells wide, so the tiles leave no ground over between them and a feature
-    narrower than one tile is cut into exactly one.
-
     Args:
         area_km2: How much ground the feature covers.
         mask_cells: How many cells of its grid fall inside it, which is what

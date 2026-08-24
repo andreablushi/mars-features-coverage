@@ -9,9 +9,6 @@ from survey import configs
 def admissible(observation: Event, ground_km2: float, width_km: float) -> bool:
     """Report whether one observation says enough about a feature to be counted.
 
-    Every floor is read in square kilometres, so what it asks for is the same
-    ground whatever the feature and however coarse the cells it is measured in.
-
     Args:
         observation: The observation, which carries its swath width when it is
             a sounder track.
