@@ -144,7 +144,6 @@ def _smallest(found: Found) -> dict[str, Look]:
             held = least.get(label)
             if held is None or ground_km2 < held.ground_km2:
                 least[label] = Look(
-                    observation=observation,
                     ground_km2=ground_km2,
                     pixels=_landed(observation, ground_km2),
                 )

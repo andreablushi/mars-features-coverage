@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from models.results import Event
-
 
 @dataclass(frozen=True, slots=True)
 class Look:
@@ -17,12 +15,10 @@ class Look:
     crossing a terra can clip one tile and fill the next.
 
     Attributes:
-        observation: The observation itself.
         ground_km2: How much ground it covers inside that tile.
         pixels: How many of the instrument's pixels it landed there, or None
             when none were counted for it.
     """
 
-    observation: Event
     ground_km2: float
     pixels: float | None
