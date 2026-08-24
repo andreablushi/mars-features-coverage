@@ -17,7 +17,7 @@ Stretch = tuple[datetime, datetime]
 # Which strategy the panels are drawn under. The search is never configured
 # with one, it is told, so the choice of what to show belongs here. The
 # comparison table draws every strategy whatever this says.
-SHOWN = strategies.IMAGED
+SHOWN = strategies.named("imaged")
 
 # How many searches are kept, so every panel of a feature shares one. A
 # feature is searched once per strategy the comparison draws, so the cache
