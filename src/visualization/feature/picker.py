@@ -88,6 +88,8 @@ class TilePicker(Areas[TileView | None]):
         self._status = widgets.VBox()
         self._choice.observe(self._picked, names="value")
         picker.when_chosen(self._follows)
+        if picker.selection is not None:
+            self._follows(picker.chosen)
 
     @property
     def chosen(self) -> TileView | None:

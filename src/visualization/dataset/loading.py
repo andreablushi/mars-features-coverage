@@ -1,0 +1,117 @@
+"""Reading the computed features off disk and searching each of them."""
+
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
+from concurrent.futures import ProcessPoolExecutor
+from dataclasses import dataclass
+
+from storage import summary
+from survey import strategies, studying
+from visualization.common import sets, tiles
+from visualization.common.tiles import TileStats
+
+Named = tuple[str, str]
+Progress = Callable[[int, int], None]
+
+
+@dataclass(frozen=True, slots=True)
+class Searched:
+    """One feature of the dataset, searched under one strategy.
+
+    Attributes:
+        feature_class: The feature class, such as Crater.
+        name: The feature name as ODE spells it.
+        strategy: The strategy it was searched under.
+        tiles: How many tiles hold any of the feature, which the search may
+            not have reached all of.
+        iids: The instruments it holds, in the order they are drawn.
+        measured: The tiles the search ran over, as it left them.
+    """
+
+    feature_class: str
+    name: str
+    strategy: str
+    tiles: int
+    iids: list[str]
+    measured: list[TileStats]
+
+
+def catalogued() -> list[Named]:
+    """Name every feature with coverage computed locally.
+
+    Returns:
+        The class and name of each, in catalogue order.
+    """
+    return summary.catalogued_features()
+
+
+def sweep(
+    wanted: Sequence[Named],
+    workers: int = 8,
+    progress: Progress | None = None,
+) -> list[Searched]:
+    """Search every named feature under every strategy written.
+
+    The features are read one at a time and dropped again, so a run over the
+    whole catalogue costs what one feature costs however many there are.
+
+    Args:
+        wanted: The features to search, as class and name.
+        workers: How many processes to search on at once.
+        progress: Called with how many features are done and how many there
+            are, after each one.
+
+    Returns:
+        One entry per feature and strategy, in the order the features came in.
+    """
+    found: list[Searched] = []
+    with ProcessPoolExecutor(max_workers=workers) as pool:
+        for done, searched in enumerate(pool.map(_searched, wanted, chunksize=1), 1):
+            found.extend(searched)
+            if progress is not None:
+                progress(done, len(wanted))
+    return found
+
+
+def _searched(named: Named) -> list[Searched]:
+    """Search one feature under every strategy written.
+
+    Args:
+        named: The feature's class and name.
+
+    Returns:
+        One entry per strategy, and nothing at all when the feature has no
+        instrument set on disk.
+    """
+    feature_class, name = named
+    coverage = sets.plotted(summary.load_feature(feature_class, name))
+    if not coverage:
+        return []
+    return [
+        _under(feature_class, name, coverage, strategy)
+        for strategy in strategies.STRATEGIES.values()
+    ]
+
+
+def _under(feature_class, name, coverage, strategy) -> Searched:
+    """Search one feature under one strategy.
+
+    Args:
+        feature_class: The feature class, such as Crater.
+        name: The feature name as ODE spells it.
+        coverage: Its instrument sets, in the order they are drawn.
+        strategy: What its tiles are asked for.
+
+    Returns:
+        What the search left on it.
+    """
+    study = studying.study(coverage, strategy)
+    return Searched(
+        feature_class=feature_class,
+        name=name,
+        strategy=strategy.name,
+        tiles=study.tiles,
+        iids=tiles.instruments(study),
+        measured=tiles.measured(study),
+    )

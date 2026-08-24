@@ -30,7 +30,7 @@ TILE_UNSEARCHED = "#8a8a8a"
 TILE_REFUSED_FILL = 0.18
 TILE_WIDTH = 1.1
 
-_UNKNOWN = "the catalogue holds no box for this feature"
+_UNKNOWN = "this feature has no lon/lat box to crop the mosaic to"
 _LEGEND = (
     (TILE_KEPT, "tile kept"),
     (TILE_REFUSED, "tile refused"),

@@ -91,6 +91,28 @@ def computed_features(root: Path = paths.COVERAGE_ROOT) -> set[tuple[str, str]]:
     }
 
 
+def catalogued_features(root: Path = paths.ARTIFACTS_ROOT) -> list[tuple[str, str]]:
+    """Name every feature the computed artifacts hold, as the catalogue spells it.
+
+    Args:
+        root: The artifacts root directory holding the catalogue index.
+
+    Returns:
+        The class and name of each feature, once each and in order, and empty
+        when there is no index.
+    """
+    path = catalog_summary_path(root)
+    if not path.exists():
+        return []
+    table = _summary_table(path)
+    named = zip(
+        table.column("feature_class").to_pylist(),
+        table.column("feature_name").to_pylist(),
+        strict=True,
+    )
+    return sorted(dict.fromkeys(named))
+
+
 def catalogued_sets(root: Path = paths.ARTIFACTS_ROOT) -> list[str]:
     """Return every instrument set the computed artifacts hold anywhere.
 

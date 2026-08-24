@@ -25,7 +25,7 @@ BOX_WIDTH = 1.0
 BOX_ALPHA = 0.85
 
 _NO_WINDOW = "This tile holds no window worth keeping, so nothing is boxed."
-_UNKNOWN = "the catalogue holds no box for this feature"
+_UNKNOWN = "this feature has no lon/lat box to crop the mosaic to"
 
 
 def plot(chosen: TileView | None) -> widgets.Widget:

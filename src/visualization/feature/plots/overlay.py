@@ -31,6 +31,9 @@ MIN_SPAN_DEG = 0.5
 # line in the projection is a curve in lon and lat.
 RING_SAMPLES = 17
 
+# The widest a grid may run in longitude and still crop to a lon/lat box.
+HALF_TURN_DEG = 180.0
+
 
 @dataclass(frozen=True, slots=True)
 class Box:
@@ -159,6 +162,17 @@ class Placed:
         """
         return _around(*self.ring(0, 0, self.side, self.side))
 
+    @property
+    def drawable(self) -> bool:
+        """Report whether the grid can be drawn on a plate carree mosaic.
+
+        Returns:
+            False for a feature wrapping the planet, such as one circling a
+            pole, whose grid has no lon/lat box to crop to.
+        """
+        lon, _ = self.ring(0, 0, self.side, self.side)
+        return bool(lon.max() - lon.min() <= HALF_TURN_DEG)
+
     def tile_box(self, row: int, column: int) -> Box:
         """Return the lon/lat box one tile falls in.
 
@@ -182,10 +196,14 @@ def placed(feature_class: str, name: str, side: int, across: int) -> Placed | No
         across: How many tiles it is cut into along each axis.
 
     Returns:
-        The placed grid, or None when the catalogue holds no box for it.
+        The placed grid, or None when the catalogue holds no box for it or
+        the feature wraps the planet.
     """
     feature = _catalogue().get((slugify(feature_class), slugify(name)))
-    return None if feature is None else Placed(feature, side, across)
+    if feature is None:
+        return None
+    grid = Placed(feature, side, across)
+    return grid if grid.drawable else None
 
 
 def _around(lon: np.ndarray, lat: np.ndarray) -> Box:
