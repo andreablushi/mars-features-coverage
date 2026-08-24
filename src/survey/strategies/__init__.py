@@ -73,6 +73,9 @@ def _strategy(name: str, spec: Any, path: Path) -> Strategy:
     timeless = spec.get("timeless") or []
     if isinstance(timeless, str) or not isinstance(timeless, Sequence):
         raise ValueError(f"{path.name}: `{name}` wants `timeless` as a list")
+    admits = spec.get("admits") or {}
+    if not isinstance(admits, Mapping):
+        raise ValueError(f"{path.name}: `{name}` wants `admits` as instrument to cells")
     return Strategy(
         name=name,
         demands=tuple(
@@ -82,7 +85,10 @@ def _strategy(name: str, spec: Any, path: Path) -> Strategy:
             }
             for demand in demands
         ),
-        crossing_km=_number(name, "crossing_km", spec.get("crossing_km"), path),
+        admits={
+            str(iid): int(_number(name, "admits", cells, path))
+            for iid, cells in admits.items()
+        },
         span_days=_number(name, "span_days", spec.get("span_days"), path),
         timeless=frozenset(str(iid) for iid in timeless),
     )

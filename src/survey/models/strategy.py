@@ -25,10 +25,10 @@ class Strategy:
             and the share of the tile each of them has to reach, so any one of
             them answering meets it. An instrument named nowhere is welcome in
             a window but never asked for.
-        crossing_km: How far a sounder's line has to run inside a tile before
-            it is a look at the tile rather than a clip of its edge. A line is
-            asked for a length rather than a share of the ground, since a swath
-            a few kilometres wide cannot fill a tile however far it runs.
+        admits: The cells each instrument has to leave on a whole tile before
+            it counts as a look at it rather than a clip of its edge, by
+            instrument id. An instrument named nowhere has to leave a cell,
+            which is to say it has only to reach the tile.
         span_days: How long a window may run. A Mars year is every season the
             ground has, but a surface reading holds far longer than that, so
             what the span should be is one of the things a comparison settles.
@@ -41,7 +41,7 @@ class Strategy:
 
     name: str
     demands: tuple[dict[str, float], ...]
-    crossing_km: float
+    admits: dict[str, int]
     span_days: float
     timeless: frozenset[str] = frozenset()
 

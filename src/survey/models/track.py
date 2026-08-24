@@ -34,9 +34,8 @@ class Track:
         cell_km2: How much ground one cell covers, which is what turns a count
             of cells into the square kilometres every floor is asked in.
         refused: The observations left off the axis, oldest first, so that a
-            window can say how many fell inside it. Only a sounder can be left
-            off, since reaching a tile at all is the whole of what an imager is
-            asked.
+            window can say how many fell inside it. What is left off is
+            whatever the strategy asked more of a tile than it left.
     """
 
     tile: int
@@ -53,7 +52,7 @@ class Track:
 
 
 def build(
-    coverage: Sequence[SetCoverage], patchwork: Patchwork, crossing_km: float
+    coverage: Sequence[SetCoverage], patchwork: Patchwork, admits: dict[str, int]
 ) -> list[Track]:
     """Merge a feature's instrument sets into one timeline per tile.
 
@@ -64,8 +63,8 @@ def build(
     Args:
         coverage: The feature's instrument sets, in any order.
         patchwork: The feature cut into tiles.
-        crossing_km: How far a sounder's line has to run inside a whole tile,
-            which a tile holding less of the feature is asked a share of.
+        admits: The cells each instrument has to leave on a whole tile, which
+            a tile holding less of the feature is asked a share of.
 
     Returns:
         One timeline per tile that holds anything measurable, in the order the
@@ -73,21 +72,21 @@ def build(
     """
     held: list[Held] = [[] for _ in patchwork.tiles]
     refused: list[list[Event]] = [[] for _ in patchwork.tiles]
-    crossings = [
-        admissible.crossing(crossing_km, patch, patchwork.cell_km2)
+    labels = [instrument.label for instrument in coverage]
+    iids = [instrument.summary.iid for instrument in coverage]
+    # What each set has to leave on each tile, worked out once for the feature
+    floors = [
+        [admissible.least(admits, iid, patch, patchwork.cell_km2) for iid in iids]
         for patch in patchwork.tiles
     ]
     for owner, instrument in enumerate(coverage):
         for observation in instrument.events:
             filled = packing.cells_of(observation.mask).tolist()
             for tile, cells in patchwork.scatter_cells(filled).items():
-                ground_km2 = len(cells) * patchwork.cell_km2
-                if admissible.admissible(observation, ground_km2, crossings[tile]):
+                if len(cells) >= floors[tile][owner]:
                     held[tile].append((observation, owner, cells))
                 else:
                     refused[tile].append(observation)
-    labels = [instrument.label for instrument in coverage]
-    iids = [instrument.summary.iid for instrument in coverage]
     return [
         _track(tile, patchwork, held[tile], refused[tile], labels, iids)
         for tile in range(len(patchwork.tiles))

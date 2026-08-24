@@ -38,7 +38,7 @@ def assess(coverage: Sequence[SetCoverage], strategy: Strategy) -> Verdict:
         summary.cell_km2,
         summary.grid_mask,
     )
-    tracks = timeline.build(coverage, patchwork, strategy.crossing_km)
+    tracks = timeline.build(coverage, patchwork, strategy.admits)
     if not tracks:
         return _nothing()
     found: Found = [
@@ -82,9 +82,8 @@ def _nothing() -> Verdict:
 def _sounders(tracks: Sequence[Track]) -> int:
     """Count the sounder tracks that were too small to count.
 
-    Only a sounder is asked to cross a tile, and reaching one at all is the
-    whole of what an imager is asked, so everything left off an axis is a
-    sounder track and counting them is counting the lot.
+    An instrument the strategy asks only to reach a tile is never left off,
+    so with the strategies as written it is the sounder that is turned away.
 
     Args:
         tracks: The feature's tiles, each on its own time axis.
