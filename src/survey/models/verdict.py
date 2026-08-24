@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from models.results import Event
 from survey import configs
+from survey.models.look import Look
 from survey.models.survey import Survey
 
 
@@ -28,10 +28,12 @@ class Verdict:
             different reason than one no sounder ever flew over.
         smallest: The smallest look each instrument set left inside a window,
             by set name, least ground first, so that whatever the windows are
-            thinnest on comes first. The ground it covers and the pixels it
-            landed there are the two floors an observation is asked to clear,
-            and one does not follow from the other: a pixel is a quarter of a
-            metre across for HiRISE and more than a kilometre for SHARAD.
+            thinnest on comes first. Each is measured on the tile its window
+            was found over, not over the whole feature. The ground it covers
+            and the pixels it landed there are the two floors an observation is
+            asked to clear, and one does not follow from the other: a pixel is
+            a quarter of a metre across for HiRISE and more than a kilometre
+            for SHARAD.
         refused: How many looks were too small to count inside the windows,
             counting an observation once per tile it reached.
         taken: How many were counted inside them, counted the same way.
@@ -44,7 +46,7 @@ class Verdict:
     across: int
     gridded: bool
     sounders_refused: int
-    smallest: dict[str, Event]
+    smallest: dict[str, Look]
     refused: int
     taken: int
     overlaps: dict[int, float]

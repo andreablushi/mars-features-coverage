@@ -20,7 +20,7 @@ DAY_SECONDS = 86400.0
 # It has to bring ground enough to crop.
 MIN_AREA_KM2 = 1.0
 
-# A sounder reports a line, so it also has to cross this share of the feature
+# A sounder reports a line, so it also has to cross this share of the tile
 # rather than stopping just inside it.
 MIN_CROSSING = 0.10
 

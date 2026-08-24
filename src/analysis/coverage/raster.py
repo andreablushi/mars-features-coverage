@@ -13,6 +13,8 @@ from analysis import configs
 from analysis.geometry.region import FeatureRegion
 from utils.maths import mask as packing
 
+_NONE = np.empty(0, dtype=np.int64)
+
 
 def grid_for(span_m: float, tile_km: int, tile_cells: int) -> tuple[int, int]:
     """Cut a feature into tiles, and give every tile the same grid.
@@ -69,7 +71,7 @@ class FeatureRaster:
         self._northings = south + (np.arange(side) + 0.5) * (north - south) / side
         self._cell_area = (east - west) * (north - south) / side**2
         self.cell_km2 = self._cell_area / 1e6
-        self.cells = int(self._filled(region.shape).sum())
+        self.cells = int(self._filled(region.shape).size)
 
     def burn(self, shape: BaseGeometry) -> bytes:
         """Record which of the feature's cells one footprint fills.
@@ -80,7 +82,7 @@ class FeatureRaster:
         Returns:
             The cells it fills, packed as whichever form is smaller.
         """
-        return packing.encode(self._filled(shape))
+        return packing.encode(self._filled(shape), self.side**2)
 
     def _filled(self, shape: BaseGeometry) -> np.ndarray:
         """Find the cells whose centre a shape covers.
@@ -89,11 +91,10 @@ class FeatureRaster:
             shape: The projected shape to burn.
 
         Returns:
-            One flag per cell, row by row, flattened.
+            The indices of the cells it fills, in ascending order.
         """
-        grid = np.zeros((self.side, self.side), dtype=bool)
         if shape.is_empty:
-            return grid.ravel()
+            return _NONE
         west, south, east, north = shape.bounds
         columns = _between(self._eastings, west, east)
         rows = _between(self._northings, south, north)
@@ -102,12 +103,15 @@ class FeatureRaster:
                 self._eastings[columns], self._northings[rows]
             )
             prepare(shape)
-            grid[np.ix_(rows, columns)] = contains_xy(shape, eastings, northings)
-        if not grid.any() and shape.area >= self._cell_area * configs.MIN_CELL_SHARE:
-            self._nearest(grid, shape)
-        return grid.ravel()
+            inside = contains_xy(shape, eastings, northings)
+            if inside.any():
+                down, crosswise = np.nonzero(inside)
+                return rows[down] * self.side + columns[crosswise]
+        if shape.area >= self._cell_area * configs.MIN_CELL_SHARE:
+            return self._nearest(shape)
+        return _NONE
 
-    def _nearest(self, grid: np.ndarray, shape: BaseGeometry) -> None:
+    def _nearest(self, shape: BaseGeometry) -> np.ndarray:
         """Give a footprint holding no cell centre the one cell it sits in.
 
         Only a footprint worth about a cell is given one. On a feature whose
@@ -115,16 +119,15 @@ class FeatureRaster:
         more ground than it reached, so it is left holding none.
 
         Args:
-            grid: The cells found so far, written in place.
             shape: The projected shape being burned.
 
         Returns:
-            None.
+            The one cell it sits in.
         """
         point = shape.representative_point()
         row = int(np.abs(self._northings - point.y).argmin())
         column = int(np.abs(self._eastings - point.x).argmin())
-        grid[row, column] = True
+        return np.array([row * self.side + column])
 
 
 def _between(values: np.ndarray, low: float, high: float) -> np.ndarray:

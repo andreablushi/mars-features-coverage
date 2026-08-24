@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from models.results import Event, SetCoverage
 from survey import algorithm, configs, strategies
 from survey.models import track as timeline
+from survey.models.look import Look
 from survey.models.strategy import Strategy
 from survey.models.survey import Survey
 from survey.models.track import Track
@@ -114,8 +115,12 @@ def _overlaps(found: Found) -> dict[int, float]:
     }
 
 
-def _smallest(found: Found) -> dict[str, Event]:
+def _smallest(found: Found) -> dict[str, Look]:
     """Find the least an instrument's single observation covers in a window.
+
+    An observation is judged on the tile it landed in, so it is measured there
+    too: the ground it covers over the whole feature is a different number and
+    would name a different observation as the thinnest.
 
     Args:
         found: Every tile that earned a window, with the window it earned.
@@ -125,15 +130,39 @@ def _smallest(found: Found) -> dict[str, Event]:
         ground first, so that whatever the windows are thinnest on comes
         first.
     """
-    least: dict[str, Event] = {}
+    least: dict[str, Look] = {}
     for track, picked in found:
-        for owner, observation in zip(track.owners, track.observations, strict=True):
+        for index, observation in enumerate(track.observations):
             if picked.start <= observation.t_start <= picked.end:
-                label = track.labels[owner]
+                label = track.labels[track.owners[index]]
+                ground_km2 = len(track.cells[index]) * track.cell_km2
                 held = least.get(label)
-                if held is None or observation.own_km2 < held.own_km2:
-                    least[label] = observation
-    return dict(sorted(least.items(), key=lambda found: found[1].own_km2))
+                if held is None or ground_km2 < held.ground_km2:
+                    least[label] = Look(
+                        observation=observation,
+                        ground_km2=ground_km2,
+                        pixels=_landed(observation, ground_km2),
+                    )
+    return dict(sorted(least.items(), key=lambda found: found[1].ground_km2))
+
+
+def _landed(observation: Event, ground_km2: float) -> float | None:
+    """Work out how many pixels an observation landed on one tile.
+
+    A footprint's pixels are spread evenly over the ground it covers, so the
+    share of them that fell on one tile is the share of its ground that did.
+
+    Args:
+        observation: The observation, carrying the pixels it landed on the
+            whole feature.
+        ground_km2: How much ground it covers inside the tile.
+
+    Returns:
+        The pixels it landed there, or None when none were counted for it.
+    """
+    if observation.pixels is None or not observation.own_km2:
+        return None
+    return observation.pixels * ground_km2 / observation.own_km2
 
 
 def _refused(found: Found) -> int:

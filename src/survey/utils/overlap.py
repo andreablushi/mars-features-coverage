@@ -9,14 +9,14 @@ from survey.models.track import Track
 
 
 def reached(track: Track, picked: Survey) -> list[int]:
-    """Count how many instrument sets reach each cell of the feature.
+    """Count how many instrument sets reach each cell of the tile.
 
     Args:
-        track: The feature's admissible observations on one time axis.
+        track: The tile's admissible observations on one time axis.
         picked: The window they are counted inside.
 
     Returns:
-        How many sets reach each cell of the feature's grid, cell by cell.
+        How many sets reach each cell of the tile's grid, cell by cell.
     """
     held: list[set[int]] = [set() for _ in track.labels]
     for owner, observation, filled in zip(
@@ -35,7 +35,7 @@ def ground(counted: Sequence[int], wanted: int, cell_km2: float) -> float:
     """Work out how much ground that many instrument sets all reach.
 
     Args:
-        counted: How many sets reach each cell of the feature's grid.
+        counted: How many sets reach each cell of the tile's grid.
         wanted: The least number of sets a cell has to be reached by to count,
             so asking for two counts the ground three reach as well.
         cell_km2: How much ground one cell of that grid covers.
