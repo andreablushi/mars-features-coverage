@@ -9,5 +9,6 @@ demands:
   - {CRISM: 0.10}
   - {SHARAD: 0.0}
 admits: {CTX: 5, CRISM: 5, SHARAD: 16}
+together: 0.25
 span_days: 687.0
 timeless: [SHARAD]

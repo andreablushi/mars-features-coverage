@@ -29,6 +29,9 @@ class Strategy:
             it counts as a look at it rather than a clip of its edge, by
             instrument id. An instrument named nowhere has to leave a cell,
             which is to say it has only to reach the tile.
+        together: The share of the tile every instrument has to reach at
+            once, so a window is kept only when that much of the ground is
+            looked at by all of them rather than by each of them somewhere.
         span_days: How long a window may run. A Mars year is every season the
             ground has, but a surface reading holds far longer than that, so
             what the span should be is one of the things a comparison settles.
@@ -42,6 +45,7 @@ class Strategy:
     name: str
     demands: tuple[dict[str, float], ...]
     admits: dict[str, int]
+    together: float
     span_days: float
     timeless: frozenset[str] = frozenset()
 

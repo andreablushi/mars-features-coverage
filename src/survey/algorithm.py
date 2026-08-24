@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 from survey import configs
 from survey.filters import redundancy
 from survey.models.counter import Counter
@@ -28,7 +30,7 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
     # What time cannot change is asked of the whole record rather than a window
     if standing and not _standing(track, standing):
         return None
-    picked = _best(track, demands, strategy.span_days)
+    picked = _best(track, demands, strategy, together(track, strategy))
     if picked is None:
         return None
     kept, reach = redundancy.trimmed(track, picked, demands)
@@ -59,7 +61,22 @@ def _standing(track: Track, standing: Demands) -> bool:
     return scoring.scored(track, standing, whole.cells_reached) is not None
 
 
-def _best(track: Track, demands: Demands, span_days: float) -> Window | None:
+def together(track: Track, strategy: Strategy) -> int:
+    """Work out the cells every instrument has to reach at once.
+
+    Args:
+        track: The admissible observations on one time axis.
+        strategy: What the window is asked for.
+
+    Returns:
+        The cells of the tile all the instruments have to share.
+    """
+    return math.ceil(strategy.together * track.area_km2 / track.cell_km2)
+
+
+def _best(
+    track: Track, demands: Demands, strategy: Strategy, shared: int
+) -> Window | None:
     """Take the window worth the most, at the price a day of waiting costs.
 
     Every window the demands allow is weighed, so the one returned is the best
@@ -68,21 +85,25 @@ def _best(track: Track, demands: Demands, span_days: float) -> Window | None:
     Args:
         track: The admissible observations on one time axis.
         demands: The cells each instrument insisted on has to reach.
-        span_days: How long the window may run.
+        strategy: What the window is asked for, which caps how long it runs.
+        shared: The cells every instrument has to reach at once.
 
     Returns:
         The window worth the most, or None when no window is worth keeping.
     """
     price = 0.01 / configs.DAYS_PER_PERCENT
+    span_days = strategy.span_days
     best: Window | None = None
     worth = float("-inf")
     for left in range(len(track.observations)):
-        counter = Counter.empty(len(track.labels), track.grid)
+        counter = Counter.empty(track.iids, track.grid)
         for right in range(left, len(track.observations)):
             counter.hold(track.owners[right], track.cells[right])
             reach = scoring.scored(track, demands, counter.cells_reached)
             if reach is None:
                 continue  # the window does not hold what the strategy asks
+            if counter.cells_together < shared:
+                continue  # too little ground is looked at by all of them at once
             days = track.times[right] - track.times[left]
             paid = reach - price * days
             if days <= span_days and paid > worth:
