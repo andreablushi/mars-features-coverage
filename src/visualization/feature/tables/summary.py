@@ -94,7 +94,7 @@ def _observations(held: Aggregate) -> list[Row]:
         ),
         (
             "Looks too small inside a window",
-            f"{held.refused:,} of {held.turned_away:,} too small for a tile at all",
+            f"{held.refused:,}, with {held.turned_away:,} too small for a tile at all",
         ),
         (
             "Pixels the windows hold",

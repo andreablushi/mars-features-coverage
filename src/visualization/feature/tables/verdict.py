@@ -82,7 +82,7 @@ def _row(tile: TileStats) -> Row:
         f"{tile.taken:,} of {tile.taken + tile.dropped:,}",
         quantities.duration(tile.days) if tile.kept else _NONE,
         f"{tile.reach:.0%}" if tile.kept else _NONE,
-        wording.pixels(_pixels(tile)),
+        wording.pixels(_pixels(tile)) if tile.kept else _NONE,
         mark,
     )
 
@@ -97,6 +97,6 @@ def _pixels(tile: TileStats) -> float | None:
         The total, or None when any instrument carries no count.
     """
     counted: Sequence[float | None] = [reach.pixels for reach in tile.reached.values()]
-    if not counted or any(count is None for count in counted):
-        return None if counted else 0.0
+    if any(count is None for count in counted):
+        return None
     return sum(count for count in counted if count is not None)
