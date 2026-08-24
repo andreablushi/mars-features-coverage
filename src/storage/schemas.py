@@ -43,5 +43,8 @@ SUMMARY = pa.schema(
         ("span_days", pa.float64()),
         ("mask_cells", pa.int64()),
         ("pixels", pa.float64()),
+        ("grid_side", pa.int64()),
+        ("tiles_across", pa.int64()),
+        ("cell_km2", pa.float64()),
     ]
 )

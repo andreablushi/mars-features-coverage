@@ -8,30 +8,33 @@ import numpy as np
 from shapely import contains_xy, prepare
 from shapely.geometry.base import BaseGeometry
 
+import utils.disk.settings as settings
 from analysis import configs
 from analysis.geometry.region import FeatureRegion
 from utils.maths import mask as packing
 
 
-def side_for(area_m2: float) -> int:
-    """Choose how many cells a feature's grid gets along each axis.
+def grid_for(span_m: float, tile_km: int, tile_cells: int) -> tuple[int, int]:
+    """Cut a feature into tiles, and give every tile the same grid.
 
-    The count follows the cube root of the feature's width, which is the
-    compromise between a fixed cell count, that leaves a continent's cells
-    hundreds of kilometres across, and a fixed cell size, that would ask a
-    continent for millions of them.
+    The tiles come first and the cells follow them, so a cell is the same
+    share of a tile whatever the feature was cut from, and one measurement of
+    a tile means what it means anywhere else. A feature narrower than a tile
+    is one tile, and keeps a whole tile's worth of cells.
 
     Args:
-        area_m2: The feature's area in square metres.
+        span_m: How wide the feature's box is, as the geometric mean of its
+            two axes in metres.
+        tile_km: How wide one tile is, in kilometres.
+        tile_cells: How many cells one tile holds along each axis.
 
     Returns:
-        The number of cells along each axis, never fewer than two.
+        How many tiles the feature is cut into along each axis, and how many
+        cells that gives the grid along each axis.
     """
-    width_km = math.sqrt(max(area_m2, 0.0)) / 1000.0
-    if width_km <= 0.0:
-        return 2
-    side = configs.RASTER_CELL_FACTOR * width_km**configs.RASTER_CELL_EXPONENT
-    return max(2, round(side))
+    span_km = max(span_m, 0.0) / 1000.0
+    across = max(1, math.ceil(span_km / tile_km))
+    return across, across * tile_cells
 
 
 class FeatureRaster:
@@ -40,6 +43,9 @@ class FeatureRaster:
     Attributes:
         cells: How many of the grid's cells fall inside the feature, which is
             what a covered count is a share of.
+        side: How many cells the grid holds along each axis.
+        across: How many tiles the feature is cut into along each axis.
+        cell_km2: How much ground one cell covers.
     """
 
     def __init__(self, region: FeatureRegion) -> None:
@@ -51,12 +57,18 @@ class FeatureRaster:
         Returns:
             None.
         """
-        side = side_for(region.area_m2)
         west, south, east, north = region.shape.bounds
-        self._side = side
+        config = settings.load()
+        self.across, side = grid_for(
+            math.sqrt((east - west) * (north - south)),
+            config.tile_km,
+            config.tile_cells,
+        )
+        self.side = side
         self._eastings = west + (np.arange(side) + 0.5) * (east - west) / side
         self._northings = south + (np.arange(side) + 0.5) * (north - south) / side
         self._cell_area = (east - west) * (north - south) / side**2
+        self.cell_km2 = self._cell_area / 1e6
         self.cells = int(self._filled(region.shape).sum())
 
     def burn(self, shape: BaseGeometry) -> bytes:
@@ -79,7 +91,7 @@ class FeatureRaster:
         Returns:
             One flag per cell, row by row, flattened.
         """
-        grid = np.zeros((self._side, self._side), dtype=bool)
+        grid = np.zeros((self.side, self.side), dtype=bool)
         if shape.is_empty:
             return grid.ravel()
         west, south, east, north = shape.bounds

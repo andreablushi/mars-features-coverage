@@ -12,6 +12,10 @@ class Settings:
     """The settled choices for a run, read from one flat config file.
 
     Attributes:
+        tile_km: How wide a tile of a feature is, in kilometres, which is what
+            a window is searched over one of.
+        tile_cells: Cells along each axis of one tile, which is what the
+            feature's grid is cut to hold.
         instrument_sets: The instrument sets to download for every feature.
         plot_instrument_sets: The sets the notebook figures draw, or None to
             draw every set the artifacts hold. Nothing about a run reads it.
@@ -30,6 +34,8 @@ class Settings:
             coverage on processes.
     """
 
+    tile_km: int
+    tile_cells: int
     instrument_sets: tuple[InstrumentSet, ...]
     plot_instrument_sets: tuple[InstrumentSet, ...] | None
     feature_names: tuple[str, ...] | None

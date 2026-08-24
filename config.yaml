@@ -12,14 +12,28 @@ force: false
 # Re-fetch the ODE feature and instrument catalogues instead of the cache.
 refresh_catalog: false
 
+# How wide a tile of a feature is, in kilometres. A CTX swath is some tens of
+# kilometres across, so a tile this wide is a few images across: narrower, and
+# a single image fills it and the share of it asked for stops meaning anything;
+# wider, and one window stretches over ground nothing looked at together.
+tile_km: 100
+
+# Cells along each axis of one tile. The grid is cut for the tiling rather than
+# for the feature, so every tile holds this many cells whatever it was cut
+# from, and a tile of a continent is measured as finely as a tile of a crater.
+# Thirty two puts a cell at about ten square kilometres on a full tile, which
+# is sized for the instruments below: CTX, CRISM msp and SHARAD leave
+# footprints of thousands of square kilometres and land within a percent or
+# two of the ground they really cover. An instrument leaving smaller
+# footprints is measured far more coarsely, HiRISE at about thirty square
+# kilometres spanning three cells, so bringing one back means raising this.
+tile_cells: 32
+
 # IHID/IID/PT, and a colon plus an ODE product id pattern to narrow the type.
 instruments:
   - MRO/CTX/EDR
-  - MRO/HIRISE/RDRV11
-  - MRO/CRISM/MTRDR
   - MRO/CRISM/TRDR:msp*      # the multispectral survey only, not hyperspectral
   - MRO/SHARAD/USRDRV2
-  - MGS/MOLA/MEGDR
 
 # Which of the downloaded sets the notebook figures draw. Comment out for all.
 plot_instruments:

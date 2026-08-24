@@ -43,7 +43,7 @@ def plot(coverage: Sequence[SetCoverage]) -> widgets.Widget:
     if not verdict.surveys:
         return panels.unavailable(_NO_WINDOW)
     summary = coverage[0].summary
-    cell_km2 = summary.feature_area_km2 / summary.mask_cells
+    cell_km2 = summary.cell_km2
     open_for = surveys.stretches(verdict.surveys)
     rows = "".join(_row(instrument, open_for, cell_km2) for instrument in coverage)
     return widgets.HTML(

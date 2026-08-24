@@ -70,6 +70,11 @@ class Summary:
         span_days: How long the row's observations span.
         mask_cells: How many of the feature's grid cells fall inside it, which
             is what a count of covered cells is a share of.
+        grid_side: How many cells the feature's grid holds along each axis.
+        tiles_across: How many tiles the feature was cut into along each axis,
+            which the grid was sized for so that every tile holds the same
+            cells.
+        cell_km2: How much ground one cell of that grid covers.
         pixels: How many pixels the set landed inside the feature in total,
             counting a revisit again.
     """
@@ -89,6 +94,9 @@ class Summary:
     span_days: float
     mask_cells: int
     pixels: float
+    grid_side: int
+    tiles_across: int
+    cell_km2: float
 
 
 @dataclass(frozen=True, slots=True)

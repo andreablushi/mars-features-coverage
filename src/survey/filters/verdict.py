@@ -34,7 +34,7 @@ def assess(
     summary = coverage[0].summary
     if not summary.mask_cells:
         return _nothing()
-    patchwork = tiling.split(summary.feature_area_km2, summary.mask_cells)
+    patchwork = tiling.split(summary.grid_side, summary.tiles_across, summary.cell_km2)
     tracks = timeline.build(coverage, patchwork)
     if not tracks:
         return _nothing()

@@ -51,7 +51,7 @@ def measure_set(
         region,
         cumulative,
         observations,
-        grid.cells,
+        grid,
     )
 
 
@@ -104,7 +104,7 @@ def _set_summary_row(
     region: FeatureRegion,
     cumulative: np.ndarray,
     observations: Sequence[Event],
-    cells: int,
+    grid: FeatureRaster,
 ) -> Summary:
     """Build the one row describing a finished instrument set.
 
@@ -116,7 +116,7 @@ def _set_summary_row(
         region: That feature projected into equal-area metres.
         cumulative: The running total behind every observation.
         observations: The set's observation rows, in chronological order.
-        cells: How many of the feature's grid cells fall inside it.
+        grid: The feature's cells, which the coverage was measured on.
 
     Returns:
         The summary row.
@@ -137,6 +137,9 @@ def _set_summary_row(
         t_first=first,
         t_last=last,
         span_days=(last - first).total_seconds() / 86400.0,
-        mask_cells=cells,
+        mask_cells=grid.cells,
         pixels=sum(observation.pixels for observation in observations),
+        grid_side=grid.side,
+        tiles_across=grid.across,
+        cell_km2=grid.cell_km2,
     )
