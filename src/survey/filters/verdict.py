@@ -54,7 +54,7 @@ def assess(coverage: Sequence[SetCoverage], strategy: Strategy) -> Verdict:
         turned_away=_turned_away(tracks),
         smallest=_smallest(found),
         refused=_refused(found),
-        overlaps=_overlaps(found, len(strategy.demands)),
+        overlaps=_overlaps(found),
     )
 
 
@@ -93,30 +93,21 @@ def _turned_away(tracks: Sequence[Track]) -> int:
     return sum(len(track.refused) for track in tracks)
 
 
-def _overlaps(found: Found, wanted: int) -> dict[int, float]:
-    """Measure how much ground several instruments reach between them.
-
-    How many are asked for is the strategy's own count of demands, since that
-    is what the dataset wanted of the ground in the first place.
+def _overlaps(found: Found) -> dict[tuple[str, ...], float]:
+    """Measure how much ground each set of instruments reaches between them.
 
     Args:
         found: Every tile that earned a window, with the window it earned.
-        wanted: How many sets have to reach a piece of ground for it to count.
 
     Returns:
-        The ground in square kilometres reached by at least that many sets
-        inside the windows, by that count, and nothing at all when no tile
-        earned a window or the feature holds too few sets to reach it. The
-        tiles are disjoint, so their ground adds up.
+        The ground in square kilometres, by the instruments that reach it, most
+        ground first. The tiles are disjoint, so their grounds add up.
     """
-    if not found or wanted > len(found[0][0].labels):
-        return {}
-    return {
-        wanted: sum(
-            overlap.ground(overlap.reached(track, picked), wanted, track.cell_km2)
-            for track, picked in found
-        )
-    }
+    merged: dict[tuple[str, ...], float] = {}
+    for track, picked in found:
+        for names, km2 in overlap.reached(track, picked).items():
+            merged[names] = merged.get(names, 0.0) + km2
+    return dict(sorted(merged.items(), key=lambda ground: -ground[1]))
 
 
 def _smallest(found: Found) -> dict[str, Look]:

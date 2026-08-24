@@ -17,7 +17,6 @@ _UNCOUNTED = "not counted"
 _NONE = "none"
 
 # What each count of instruments is called in the shared ground rows.
-_WORDS = {3: "three", 2: "two"}
 
 
 def rows(verdict: Verdict, area_km2: float) -> list[Row]:
@@ -151,17 +150,17 @@ def _overlaps(verdict: Verdict, area_km2: float) -> list[Row]:
             is read back as a share of.
 
     Returns:
-        One row per count of instruments, each there to be read rather than to
-        be met.
+        One row per set of instruments, each there to be read rather than to be
+        met.
     """
     return [
         (
-            f"Ground at least {_WORDS.get(wanted, str(wanted))} instruments reach",
+            f"Ground {' and '.join(names)} reach",
             f"{quantities.area(shared)}, {shared / area_km2:.0%} of the feature",
             "",
             None,
         )
-        for wanted, shared in verdict.overlaps.items()
+        for names, shared in verdict.overlaps.items()
     ]
 
 

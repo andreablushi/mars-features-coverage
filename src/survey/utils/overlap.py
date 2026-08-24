@@ -1,43 +1,34 @@
-"""How much of a feature more than one instrument set reaches inside a window."""
+"""Which instruments reach the ground a window holds, and how much of it."""
 
 from __future__ import annotations
-
-from collections.abc import Sequence
 
 from survey.models.survey import Survey
 from survey.models.track import Track
 
 
-def reached(track: Track, picked: Survey) -> list[int]:
-    """Count how many instrument sets reach each cell of the tile.
+def reached(track: Track, picked: Survey) -> dict[tuple[str, ...], float]:
+    """Work out how much ground each set of instruments reaches between them.
 
     Args:
         track: The tile's admissible observations on one time axis.
         picked: The window they are counted inside.
 
     Returns:
-        How many sets reach each cell of the tile's grid, cell by cell.
+        The ground in square kilometres, by the instruments that reach it,
+        named in order. A cell counts once, under the instruments that are
+        really there, so the grounds do not overlap and add up to what the
+        window covers.
     """
-    held: list[set[int]] = [set() for _ in track.labels]
+    filled: list[set[int]] = [set() for _ in track.labels]
     for index in picked.kept:
-        held[track.owners[index]].update(track.cells[index])
-    counted = [0] * track.grid
-    for filled in held:
-        for cell in filled:
-            counted[cell] += 1
-    return counted
-
-
-def ground(counted: Sequence[int], wanted: int, cell_km2: float) -> float:
-    """Work out how much ground that many instrument sets all reach.
-
-    Args:
-        counted: How many sets reach each cell of the tile's grid.
-        wanted: The least number of sets a cell has to be reached by to count,
-            so asking for two counts the ground three reach as well.
-        cell_km2: How much ground one cell of that grid covers.
-
-    Returns:
-        The ground in square kilometres.
-    """
-    return sum(1 for sets in counted if sets >= wanted) * cell_km2
+        filled[track.owners[index]].update(track.cells[index])
+    here: list[set[str]] = [set() for _ in range(track.grid)]
+    for owner, cells in enumerate(filled):
+        for cell in cells:
+            here[cell].add(track.iids[owner])
+    found: dict[tuple[str, ...], float] = {}
+    for instruments in here:
+        if instruments:
+            names = tuple(sorted(instruments))
+            found[names] = found.get(names, 0.0) + track.cell_km2
+    return found
