@@ -34,7 +34,9 @@ class Track:
         cell_km2: How much ground one cell covers, which is what turns a count
             of cells into the square kilometres every floor is asked in.
         refused: The observations left off the axis, oldest first, so that a
-            window can say how many fell inside it.
+            window can say how many fell inside it. Only a sounder can be left
+            off, since reaching a tile at all is the whole of what an imager is
+            asked.
     """
 
     tile: int

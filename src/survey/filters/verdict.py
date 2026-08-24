@@ -82,16 +82,18 @@ def _nothing() -> Verdict:
 def _sounders(tracks: Sequence[Track]) -> int:
     """Count the sounder tracks that were too small to count.
 
+    Only a sounder is asked to cross a tile, and reaching one at all is the
+    whole of what an imager is asked, so everything left off an axis is a
+    sounder track and counting them is counting the lot.
+
     Args:
         tracks: The feature's tiles, each on its own time axis.
 
     Returns:
-        How many of the looks left off the axes were sounder tracks, counting
-        a track once per tile it was turned away from.
+        How many looks were left off the axes, counting a track once per tile
+        it was turned away from.
     """
-    return sum(
-        bool(observation.width_km) for track in tracks for observation in track.refused
-    )
+    return sum(len(track.refused) for track in tracks)
 
 
 def _overlaps(found: Found, wanted: int) -> dict[int, float]:
