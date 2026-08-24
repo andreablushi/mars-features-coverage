@@ -5,7 +5,6 @@ from __future__ import annotations
 import statistics
 from collections.abc import Sequence
 
-from survey import configs
 from survey.models.look import Look
 from survey.models.survey import Survey
 from survey.models.verdict import Verdict
@@ -45,7 +44,7 @@ def rows(verdict: Verdict, area_km2: float) -> list[Row]:
         (
             "Tiles leaving a window worth keeping",
             _emitted(verdict),
-            f"{configs.MIN_TILES}",
+            "any",
             verdict.kept,
         )
     ]

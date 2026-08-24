@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from survey import configs
 from survey.models.look import Look
 from survey.models.survey import Survey
 
@@ -62,9 +61,8 @@ class Verdict:
         """Report whether the feature belongs in the dataset.
 
         Returns:
-            True when tiles enough earned a window. Nothing else is asked
-            here: the search gives a tile a window only when it is worth
-            keeping, so counting the tiles that earned one is the whole
-            judgment.
+            True when any tile earned a window. Nothing else is asked here:
+            the search gives a tile a window only when it is worth keeping, so
+            a feature that left one anywhere has something to put in a dataset.
         """
-        return len(self.surveys) >= configs.MIN_TILES
+        return bool(self.surveys)
