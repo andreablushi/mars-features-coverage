@@ -32,9 +32,7 @@ def scored(
     """
     product = 1
     for answering, floor in demands:
-        reached = cells_reached[answering[0]]
-        if len(answering) > 1:
-            reached = max(cells_reached[owner] for owner in answering)
+        reached = max((cells_reached[owner] for owner in answering), default=0)
         if reached < floor:
             return None
         product *= reached

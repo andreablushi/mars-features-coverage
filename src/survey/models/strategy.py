@@ -37,7 +37,7 @@ class Strategy:
 
     def floors(
         self, iids: Sequence[str], area_km2: float, cell_km2: float
-    ) -> tuple[Demands, Demands] | None:
+    ) -> tuple[Demands, Demands]:
         """Work out how much ground each instrument insisted on has to reach.
 
         Args:
@@ -50,15 +50,14 @@ class Strategy:
             What a window is scored on and what the whole record answers for,
             each holding the sets that can answer for one instrument and the
             cells any one of them has to reach, tightest demand first so that
-            a window fails on it soonest. None when the record holds no set at
-            all for one of them.
+            a window fails on it soonest. Every demand is mandatory, so an
+            instrument no set answers for is left with nothing answering for
+            it and no window can ever meet it.
         """
         windowed: Demands = []
         standing: Demands = []
         for iid, share in self.demands.items():
             answering = tuple(index for index, owner in enumerate(iids) if owner == iid)
-            if not answering:
-                return None
             demand = (answering, max(1, math.ceil(share * area_km2 / cell_km2)))
             held = standing if iid in self.timeless else windowed
             held.append(demand)

@@ -24,11 +24,8 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
     Returns:
         The chosen window, or None when no window is worth keeping.
     """
-    # Pick up the strategy's requirements
-    asked = strategy.floors(track.iids, track.area_km2, track.cell_km2)
-    if asked is None:
-        return None
-    demands, standing = asked
+    # Pick up the strategy's requirements, every one of which is mandatory
+    demands, standing = strategy.floors(track.iids, track.area_km2, track.cell_km2)
     # What time cannot change is asked of the whole record rather than a window
     if standing and not _standing(track, standing):
         return None
