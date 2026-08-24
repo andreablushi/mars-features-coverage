@@ -34,7 +34,7 @@ def assess(coverage: Sequence[SetCoverage], strategy: Strategy) -> Verdict:
         return _nothing()
     patchwork = tiling.split(
         summary.grid_side,
-        summary.tiles_across,
+        strategy.tile_km,
         summary.cell_km2,
         summary.grid_mask,
     )

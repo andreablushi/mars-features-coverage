@@ -16,6 +16,9 @@ import yaml
 
 from survey.models.strategy import Strategy
 
+# How wide a tile is when a strategy does not say, in kilometres.
+TILE_KM = 100.0
+
 STRATEGIES_ROOT = Path(__file__).parent
 
 
@@ -89,6 +92,7 @@ def _strategy(name: str, spec: Any, path: Path) -> Strategy:
             str(iid): int(_number(name, "admits", cells, path))
             for iid, cells in admits.items()
         },
+        tile_km=_number(name, "tile_km", spec.get("tile_km", TILE_KM), path),
         together=_number(name, "together", spec.get("together"), path),
         span_days=_number(name, "span_days", spec.get("span_days"), path),
         timeless=frozenset(str(iid) for iid in timeless),

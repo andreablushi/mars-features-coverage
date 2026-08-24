@@ -29,6 +29,10 @@ class Strategy:
             it counts as a look at it rather than a clip of its edge, by
             instrument id. An instrument named nowhere has to leave a cell,
             which is to say it has only to reach the tile.
+        tile_km: How wide a tile of a feature is, in kilometres, which is
+            what a window is searched over one of. The cells were sized by the
+            run that measured the feature, so a tile is cut to the nearest
+            whole number of them.
         together: The share of the tile every instrument has to reach at
             once, so a window is kept only when that much of the ground is
             looked at by all of them rather than by each of them somewhere.
@@ -45,6 +49,7 @@ class Strategy:
     name: str
     demands: tuple[dict[str, float], ...]
     admits: dict[str, int]
+    tile_km: float
     together: float
     span_days: float
     timeless: frozenset[str] = frozenset()
