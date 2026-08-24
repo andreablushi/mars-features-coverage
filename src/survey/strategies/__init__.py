@@ -1,9 +1,9 @@
 """The weightings of the instruments a search can be run under, side by side.
 
-Every strategy is one file of the strategies directory, named after it, so a
-strategy that loses the comparison is removed by deleting its file. Nothing
-here says which one a run uses: a search is handed the strategy it runs under,
-never configured with one.
+Every strategy is one YAML file beside this one, named after it, so a strategy
+that loses the comparison is removed by deleting its file. Nothing here says
+which one a run uses: a search is handed the strategy it runs under, never
+configured with one.
 """
 
 from __future__ import annotations
@@ -14,11 +14,12 @@ from typing import Any
 
 import yaml
 
-import utils.disk.paths as paths
 from survey.models.strategy import Strategy
 
+STRATEGIES_ROOT = Path(__file__).parent
 
-def load(root: Path = paths.STRATEGIES_ROOT) -> dict[str, Strategy]:
+
+def load(root: Path = STRATEGIES_ROOT) -> dict[str, Strategy]:
     """Read every strategy the comparison can be run over.
 
     Args:
@@ -61,19 +62,26 @@ def _strategy(name: str, spec: Any, path: Path) -> Strategy:
             f"{path.name}: `{name}` should hold its settings, found {spec!r}"
         )
     demands = spec.get("demands")
-    if not isinstance(demands, Mapping) or not demands:
-        raise ValueError(
-            f"{path.name}: `{name}` needs `demands` of instrument to share"
-        )
+    if isinstance(demands, str) or not isinstance(demands, Sequence) or not demands:
+        raise ValueError(f"{path.name}: `{name}` needs a list of `demands`")
+    for demand in demands:
+        if not isinstance(demand, Mapping) or not demand:
+            raise ValueError(
+                f"{path.name}: `{name}` wants each demand as instrument to "
+                f"share, found {demand!r}"
+            )
     timeless = spec.get("timeless") or []
     if isinstance(timeless, str) or not isinstance(timeless, Sequence):
         raise ValueError(f"{path.name}: `{name}` wants `timeless` as a list")
     return Strategy(
         name=name,
-        demands={
-            str(iid): _number(name, "demands", share, path)
-            for iid, share in demands.items()
-        },
+        demands=tuple(
+            {
+                str(iid): _number(name, "demands", share, path)
+                for iid, share in demand.items()
+            }
+            for demand in demands
+        ),
         crossing_km=_number(name, "crossing_km", spec.get("crossing_km"), path),
         span_days=_number(name, "span_days", spec.get("span_days"), path),
         timeless=frozenset(str(iid) for iid in timeless),

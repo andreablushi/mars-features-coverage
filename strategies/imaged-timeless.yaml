@@ -1,7 +1,0 @@
-# Imaged, with SHARAD asked of the whole record. A sounder reads the rock under
-# the ground, which the seasons do not turn, so the window is left to CTX and
-# no longer stretches to the next time SHARAD flew over.
-demands: {SHARAD: 0.0, CTX: 0.25}
-crossing_km: 50.0
-span_days: 687.0
-timeless: [SHARAD]

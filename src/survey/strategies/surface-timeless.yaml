@@ -1,0 +1,10 @@
+# The same demands, with the sounder asked of the whole record rather than the
+# window. What a sounder reads is the rock under the ground, which the seasons
+# do not turn, so the window closes around the imagery alone instead of
+# stretching to the next time SHARAD flew over.
+demands:
+  - {CTX: 0.25, CRISM: 0.10}
+  - {SHARAD: 0.0}
+crossing_km: 50.0
+span_days: 687.0
+timeless: [SHARAD]

@@ -1,7 +1,0 @@
-# The strictest strategy, with SHARAD asked of the whole record. CTX and CRISM
-# both read the surface, so they stay inside the window and have to agree in
-# time; only the sounder is let out of it.
-demands: {SHARAD: 0.0, CTX: 0.25, CRISM: 0.10}
-crossing_km: 50.0
-span_days: 687.0
-timeless: [SHARAD]

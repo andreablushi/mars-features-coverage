@@ -11,7 +11,6 @@ from utils.disk.slugify import slugify
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 CONFIG_PATH = REPO_ROOT / "config.yaml"
-STRATEGIES_ROOT = REPO_ROOT / "strategies"
 
 DATA_ROOT = REPO_ROOT / "data"
 METADATA_ROOT = DATA_ROOT / "metadata"

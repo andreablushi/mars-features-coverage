@@ -116,7 +116,8 @@ def _asked(name: str) -> str:
         Each instrument and the share of a tile it has to reach.
     """
     return ", ".join(
-        f"{iid} {share:.0%}" for iid, share in strategies.named(name).demands.items()
+        " or ".join(f"{iid} {share:.0%}" for iid, share in demand.items())
+        for demand in strategies.named(name).demands
     )
 
 
