@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from models.results import Event, SetCoverage
 from survey import configs
 from survey.filters import admissible
-from survey.utils.tiles import Tiling
+from survey.models.tiles import Patchwork
 from utils.maths import mask as packing
 
 Held = list[tuple[Event, int, list[int]]]
@@ -50,7 +50,7 @@ class Track:
     refused: list[Event]
 
 
-def build(coverage: Sequence[SetCoverage], tiling: Tiling) -> list[Track]:
+def build(coverage: Sequence[SetCoverage], patchwork: Patchwork) -> list[Track]:
     """Merge a feature's instrument sets into one timeline per tile.
 
     A footprint is cut to the tiles it reaches and judged inside each of them
@@ -59,20 +59,20 @@ def build(coverage: Sequence[SetCoverage], tiling: Tiling) -> list[Track]:
 
     Args:
         coverage: The feature's instrument sets, in any order.
-        tiling: The feature cut into tiles.
+        patchwork: The feature cut into tiles.
 
     Returns:
         One timeline per tile that holds anything measurable, in the order the
-        tiling lays the tiles out.
+        patchwork lays the tiles out.
     """
-    held: list[Held] = [[] for _ in tiling.tiles]
-    refused: list[list[Event]] = [[] for _ in tiling.tiles]
+    held: list[Held] = [[] for _ in patchwork.tiles]
+    refused: list[list[Event]] = [[] for _ in patchwork.tiles]
     for owner, instrument in enumerate(coverage):
         for observation in instrument.events:
             filled = packing.cells_of(observation.mask).tolist()
-            for tile, cells in tiling.sort(filled).items():
-                patch = tiling.tiles[tile]
-                ground_km2 = len(cells) * tiling.cell_km2
+            for tile, cells in patchwork.scatter_cells(filled).items():
+                patch = patchwork.tiles[tile]
+                ground_km2 = len(cells) * patchwork.cell_km2
                 if admissible.admissible(observation, ground_km2, patch.width_km):
                     held[tile].append((observation, owner, cells))
                 else:
@@ -80,15 +80,15 @@ def build(coverage: Sequence[SetCoverage], tiling: Tiling) -> list[Track]:
     labels = [instrument.label for instrument in coverage]
     iids = [instrument.summary.iid for instrument in coverage]
     return [
-        _track(tile, tiling, held[tile], refused[tile], labels, iids)
-        for tile in range(len(tiling.tiles))
+        _track(tile, patchwork, held[tile], refused[tile], labels, iids)
+        for tile in range(len(patchwork.tiles))
         if held[tile]
     ]
 
 
 def _track(
     tile: int,
-    tiling: Tiling,
+    patchwork: Patchwork,
     held: Held,
     refused: list[Event],
     labels: list[str],
@@ -98,7 +98,7 @@ def _track(
 
     Args:
         tile: Which tile of the feature they were cut to.
-        tiling: The feature cut into tiles.
+        patchwork: The feature cut into tiles.
         held: The observations the tile keeps, in no particular order.
         refused: The ones it turned away for being too small.
         labels: The name of every instrument set of the feature.
@@ -108,7 +108,7 @@ def _track(
         The timeline.
     """
     held.sort(key=lambda item: item[0].t_start)
-    patch = tiling.tiles[tile]
+    patch = patchwork.tiles[tile]
     return Track(
         tile=tile,
         observations=[observation for observation, _, _ in held],
@@ -122,6 +122,6 @@ def _track(
         iids=iids,
         grid=patch.cells,
         area_km2=patch.area_km2,
-        cell_km2=tiling.cell_km2,
+        cell_km2=patchwork.cell_km2,
         refused=sorted(refused, key=lambda observation: observation.t_start),
     )

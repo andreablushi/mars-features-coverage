@@ -11,7 +11,7 @@ from survey.models.strategy import Strategy
 from survey.models.survey import Survey
 from survey.models.track import Track
 from survey.models.verdict import Verdict
-from survey.utils import overlap, tiles
+from survey.utils import overlap, tiling
 
 Found = list[tuple[Track, Survey]]
 
@@ -34,8 +34,8 @@ def assess(
     summary = coverage[0].summary
     if not summary.mask_cells:
         return _nothing()
-    tiling = tiles.split(summary.feature_area_km2, summary.mask_cells)
-    tracks = timeline.build(coverage, tiling)
+    patchwork = tiling.split(summary.feature_area_km2, summary.mask_cells)
+    tracks = timeline.build(coverage, patchwork)
     if not tracks:
         return _nothing()
     found: Found = [
@@ -45,7 +45,7 @@ def assess(
     ]
     return Verdict(
         surveys=[picked for _, picked in found],
-        across=tiling.across,
+        across=patchwork.across,
         gridded=True,
         sounders_refused=_sounders(tracks),
         smallest=_smallest(found),
