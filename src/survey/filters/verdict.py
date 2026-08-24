@@ -35,7 +35,12 @@ def assess(
     summary = coverage[0].summary
     if not summary.mask_cells:
         return _nothing()
-    patchwork = tiling.split(summary.grid_side, summary.tiles_across, summary.cell_km2)
+    patchwork = tiling.split(
+        summary.grid_side,
+        summary.tiles_across,
+        summary.cell_km2,
+        summary.grid_mask,
+    )
     tracks = timeline.build(coverage, patchwork)
     if not tracks:
         return _nothing()
@@ -47,6 +52,7 @@ def assess(
     return Verdict(
         surveys=[picked for _, picked in found],
         across=patchwork.across,
+        tiles=sum(1 for tile in patchwork.tiles if tile.area_km2),
         gridded=True,
         sounders_refused=_sounders(tracks),
         smallest=_smallest(found),
@@ -66,6 +72,7 @@ def _nothing() -> Verdict:
     return Verdict(
         surveys=[],
         across=0,
+        tiles=0,
         gridded=False,
         sounders_refused=0,
         smallest={},

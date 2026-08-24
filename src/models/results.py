@@ -75,6 +75,11 @@ class Summary:
             which the grid was sized for so that every tile holds the same
             cells.
         cell_km2: How much ground one cell of that grid covers.
+        grid_mask: Which cells of that grid fall inside the feature, packed
+            as an observation's cells are. The grid covers the box the
+            feature was projected into, which a feature far from the
+            equator does not fill, so a tile is credited with the cells of
+            it that are really the feature.
         pixels: How many pixels the set landed inside the feature in total,
             counting a revisit again.
     """
@@ -97,6 +102,7 @@ class Summary:
     grid_side: int
     tiles_across: int
     cell_km2: float
+    grid_mask: bytes
 
 
 @dataclass(frozen=True, slots=True)

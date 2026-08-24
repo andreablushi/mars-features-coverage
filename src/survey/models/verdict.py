@@ -19,7 +19,11 @@ class Verdict:
             worth keeping was found over it, so these are what the feature
             would put in a dataset.
         across: How many tiles the feature was cut into along each axis, which
-            is how they are laid out as well as how many there are.
+            is how they are laid out.
+        tiles: How many of those tiles hold any of the feature at all. The grid
+            covers the box the feature was projected into, so a tile at a
+            corner of it can hold no feature to survey and is no more a failure
+            than it is a success.
         gridded: Whether any instrument set filled a cell of the feature at
             all, which is the one way a feature can fail before it is
             searched.
@@ -44,22 +48,13 @@ class Verdict:
 
     surveys: list[Survey]
     across: int
+    tiles: int
     gridded: bool
     sounders_refused: int
     smallest: dict[str, Look]
     refused: int
     taken: int
     overlaps: dict[int, float]
-
-    @property
-    def tiles(self) -> int:
-        """Report how many tiles the feature was cut into.
-
-        Returns:
-            The count, which the tiles that earned a window are counted
-            against.
-        """
-        return self.across**2
 
     @property
     def kept(self) -> bool:

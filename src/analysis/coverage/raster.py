@@ -45,6 +45,9 @@ class FeatureRaster:
     Attributes:
         cells: How many of the grid's cells fall inside the feature, which is
             what a covered count is a share of.
+        mask: Which of them those are, packed as one footprint's cells are, so
+            a tile can be credited with the ground the feature really has in
+            it rather than with its whole block of the grid.
         side: How many cells the grid holds along each axis.
         across: How many tiles the feature is cut into along each axis.
         cell_km2: How much ground one cell covers.
@@ -71,7 +74,9 @@ class FeatureRaster:
         self._northings = south + (np.arange(side) + 0.5) * (north - south) / side
         self._cell_area = (east - west) * (north - south) / side**2
         self.cell_km2 = self._cell_area / 1e6
-        self.cells = int(self._filled(region.shape).size)
+        inside = self._filled(region.shape)
+        self.cells = int(inside.size)
+        self.mask = packing.encode(inside, side**2)
 
     def burn(self, shape: BaseGeometry) -> bytes:
         """Record which of the feature's cells one footprint fills.

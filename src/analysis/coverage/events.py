@@ -142,4 +142,5 @@ def _set_summary_row(
         grid_side=grid.side,
         tiles_across=grid.across,
         cell_km2=grid.cell_km2,
+        grid_mask=grid.mask,
     )

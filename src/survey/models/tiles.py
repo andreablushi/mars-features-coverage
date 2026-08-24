@@ -11,8 +11,11 @@ class Tile:
     """One patch of a feature, and what a window over it is measured against.
 
     Attributes:
-        cells: How many cells of the feature's grid it holds.
-        area_km2: How much ground it covers.
+        cells: How many cells of the feature's grid its block holds, which
+            is what a window's counts are laid out over. Some of them may fall
+            outside the feature.
+        area_km2: How much ground the feature really has inside it, which is
+            what a window over it reaches a share of.
         width_km: How wide it is, which a sounder track has to cross enough of.
     """
 
