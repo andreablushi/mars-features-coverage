@@ -10,5 +10,8 @@ from survey.models.strategy import Strategy
 # holds both instruments at once. Its sounder track has to run a quarter of a
 # tile's width, which is the least that reads as a crossing rather than a clip.
 PRESENCE = Strategy(
-    name="presence", demands={"SHARAD": 0.0, "CTX": 0.0}, crossing_km=25.0
+    name="presence",
+    demands={"SHARAD": 0.0, "CTX": 0.0},
+    crossing_km=25.0,
+    span_days=687.0,
 )

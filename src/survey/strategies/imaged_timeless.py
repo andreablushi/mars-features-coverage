@@ -11,5 +11,6 @@ IMAGED_TIMELESS = Strategy(
     name="imaged-timeless",
     demands={"SHARAD": 0.0, "CTX": 0.25},
     crossing_km=50.0,
+    span_days=687.0,
     timeless=frozenset({"SHARAD"}),
 )

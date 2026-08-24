@@ -8,4 +8,9 @@ from survey.models.strategy import Strategy
 # for a quarter of the ground asks for what it can give. SHARAD draws a line
 # a few kilometres wide, so it is asked for a length rather than a share: half
 # a tile's width, which is a track running properly through the ground.
-IMAGED = Strategy(name="imaged", demands={"SHARAD": 0.0, "CTX": 0.25}, crossing_km=50.0)
+IMAGED = Strategy(
+    name="imaged",
+    demands={"SHARAD": 0.0, "CTX": 0.25},
+    crossing_km=50.0,
+    span_days=687.0,
+)

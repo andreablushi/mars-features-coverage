@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-# Mars Year as a maximum span of time windows
-MAX_SPAN_DAYS = 687.0
-
 # How many days of waiting one more percentage point of ground is worth.
 DAYS_PER_PERCENT = 10.0
 

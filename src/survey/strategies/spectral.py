@@ -11,4 +11,5 @@ SPECTRAL = Strategy(
     name="spectral",
     demands={"SHARAD": 0.0, "CTX": 0.25, "CRISM": 0.10},
     crossing_km=50.0,
+    span_days=687.0,
 )

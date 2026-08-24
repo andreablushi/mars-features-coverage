@@ -23,6 +23,9 @@ class Strategy:
             it is a look at the tile rather than a clip of its edge. A line is
             asked for a length rather than a share of the ground, since a swath
             a few kilometres wide cannot fill a tile however far it runs.
+        span_days: How long a window may run. A Mars year is every season the
+            ground has, but a surface reading holds far longer than that, so
+            what the span should be is one of the things a comparison settles.
         timeless: The instruments the ground answers for whenever they came,
             rather than inside the window. What a sounder reads is the rock
             under the ground, which does not turn with the seasons, so asking
@@ -33,6 +36,7 @@ class Strategy:
     name: str
     demands: dict[str, float]
     crossing_km: float
+    span_days: float
     timeless: frozenset[str] = frozenset()
 
     def floors(

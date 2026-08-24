@@ -10,5 +10,6 @@ PRESENCE_TIMELESS = Strategy(
     name="presence-timeless",
     demands={"SHARAD": 0.0, "CTX": 0.0},
     crossing_km=25.0,
+    span_days=687.0,
     timeless=frozenset({"SHARAD"}),
 )

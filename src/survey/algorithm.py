@@ -28,7 +28,7 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
     # What time cannot change is asked of the whole record rather than a window
     if standing and not _standing(track, standing):
         return None
-    picked = _best(track, demands)
+    picked = _best(track, demands, strategy.span_days)
     if picked is None:
         return None
     kept, reach = redundancy.trimmed(track, picked, demands)
@@ -59,7 +59,7 @@ def _standing(track: Track, standing: Demands) -> bool:
     return scoring.scored(track, standing, whole.cells_reached) is not None
 
 
-def _best(track: Track, demands: Demands) -> Window | None:
+def _best(track: Track, demands: Demands, span_days: float) -> Window | None:
     """Take the window worth the most, at the price a day of waiting costs.
 
     Every window the demands allow is weighed, so the one returned is the best
@@ -68,6 +68,7 @@ def _best(track: Track, demands: Demands) -> Window | None:
     Args:
         track: The admissible observations on one time axis.
         demands: The cells each instrument insisted on has to reach.
+        span_days: How long the window may run.
 
     Returns:
         The window worth the most, or None when no window is worth keeping.
@@ -84,6 +85,6 @@ def _best(track: Track, demands: Demands) -> Window | None:
                 continue  # the window does not hold what the strategy asks
             days = track.times[right] - track.times[left]
             paid = reach - price * days
-            if days <= configs.MAX_SPAN_DAYS and paid > worth:
+            if days <= span_days and paid > worth:
                 best, worth = Window(left, right, days, reach), paid
     return best
