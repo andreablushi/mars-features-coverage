@@ -50,7 +50,9 @@ class Track:
     refused: list[Event]
 
 
-def build(coverage: Sequence[SetCoverage], patchwork: Patchwork) -> list[Track]:
+def build(
+    coverage: Sequence[SetCoverage], patchwork: Patchwork, crossing_km: float
+) -> list[Track]:
     """Merge a feature's instrument sets into one timeline per tile.
 
     A footprint is cut to the tiles it reaches and judged inside each of them
@@ -60,6 +62,7 @@ def build(coverage: Sequence[SetCoverage], patchwork: Patchwork) -> list[Track]:
     Args:
         coverage: The feature's instrument sets, in any order.
         patchwork: The feature cut into tiles.
+        crossing_km: How far a sounder's line has to run inside a tile.
 
     Returns:
         One timeline per tile that holds anything measurable, in the order the
@@ -71,9 +74,8 @@ def build(coverage: Sequence[SetCoverage], patchwork: Patchwork) -> list[Track]:
         for observation in instrument.events:
             filled = packing.cells_of(observation.mask).tolist()
             for tile, cells in patchwork.scatter_cells(filled).items():
-                patch = patchwork.tiles[tile]
                 ground_km2 = len(cells) * patchwork.cell_km2
-                if admissible.admissible(observation, ground_km2, patch.width_km):
+                if admissible.admissible(observation, ground_km2, crossing_km):
                     held[tile].append((observation, owner, cells))
                 else:
                     refused[tile].append(observation)

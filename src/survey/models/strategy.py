@@ -19,10 +19,15 @@ class Strategy:
         demands: The share of the tile each instrument the strategy insists on
             has to reach inside a window, by instrument id. An instrument it
             does not name is welcome in a window but never asked for.
+        crossing_km: How far a sounder's line has to run inside a tile before
+            it is a look at the tile rather than a clip of its edge. A line is
+            asked for a length rather than a share of the ground, since a swath
+            a few kilometres wide cannot fill a tile however far it runs.
     """
 
     name: str
     demands: dict[str, float]
+    crossing_km: float
 
     def floors(
         self, iids: Sequence[str], area_km2: float, cell_km2: float

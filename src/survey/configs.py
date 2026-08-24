@@ -20,10 +20,6 @@ DAY_SECONDS = 86400.0
 # It has to bring ground enough to crop.
 MIN_AREA_KM2 = 1.0
 
-# A sounder reports a line, so it also has to cross this share of the tile
-# rather than stopping just inside it.
-MIN_CROSSING = 0.10
-
 # Which weighting of the instruments the search runs under, by the name the
 # strategy's own file gives it. The others stay for the comparison.
 STRATEGY = "imaged"

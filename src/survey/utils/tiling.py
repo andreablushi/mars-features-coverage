@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import math
-
 import numpy as np
 
 from survey.models.tiles import Patchwork, Tile
@@ -66,5 +64,4 @@ def _tile(inside: int, wide: int, cell_km2: float) -> Tile:
     Returns:
         The tile.
     """
-    area_km2 = inside * cell_km2
-    return Tile(cells=wide * wide, area_km2=area_km2, width_km=math.sqrt(area_km2))
+    return Tile(cells=wide * wide, area_km2=inside * cell_km2)

@@ -41,7 +41,7 @@ def assess(
         summary.cell_km2,
         summary.grid_mask,
     )
-    tracks = timeline.build(coverage, patchwork)
+    tracks = timeline.build(coverage, patchwork, strategy.crossing_km)
     if not tracks:
         return _nothing()
     found: Found = [

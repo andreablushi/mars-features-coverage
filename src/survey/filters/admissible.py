@@ -6,15 +6,15 @@ from models.results import Event
 from survey import configs
 
 
-def admissible(observation: Event, ground_km2: float, width_km: float) -> bool:
+def admissible(observation: Event, ground_km2: float, crossing_km: float) -> bool:
     """Report whether one observation says enough about a tile to be counted.
 
     Args:
         observation: The observation, which carries its swath width when it is
             a sounder track.
         ground_km2: The ground it lands inside the tile.
-        width_km: How wide the tile is, which only a sounder is measured
-            against.
+        crossing_km: How far a line has to run inside the tile, which only a
+            sounder is measured against.
 
     Returns:
         True when the observation clears every floor asked of it.
@@ -27,4 +27,4 @@ def admissible(observation: Event, ground_km2: float, width_km: float) -> bool:
         return True
     # The SHARAD line and not the width as to cross the tile
     crossed = ground_km2 / observation.width_km
-    return crossed >= configs.MIN_CROSSING * width_km
+    return crossed >= crossing_km
