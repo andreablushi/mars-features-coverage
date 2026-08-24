@@ -62,7 +62,8 @@ def build(
     Args:
         coverage: The feature's instrument sets, in any order.
         patchwork: The feature cut into tiles.
-        crossing_km: How far a sounder's line has to run inside a tile.
+        crossing_km: How far a sounder's line has to run inside a whole tile,
+            which a tile holding less of the feature is asked a share of.
 
     Returns:
         One timeline per tile that holds anything measurable, in the order the
@@ -70,12 +71,16 @@ def build(
     """
     held: list[Held] = [[] for _ in patchwork.tiles]
     refused: list[list[Event]] = [[] for _ in patchwork.tiles]
+    crossings = [
+        admissible.crossing(crossing_km, patch, patchwork.cell_km2)
+        for patch in patchwork.tiles
+    ]
     for owner, instrument in enumerate(coverage):
         for observation in instrument.events:
             filled = packing.cells_of(observation.mask).tolist()
             for tile, cells in patchwork.scatter_cells(filled).items():
                 ground_km2 = len(cells) * patchwork.cell_km2
-                if admissible.admissible(observation, ground_km2, crossing_km):
+                if admissible.admissible(observation, ground_km2, crossings[tile]):
                     held[tile].append((observation, owner, cells))
                 else:
                     refused[tile].append(observation)
