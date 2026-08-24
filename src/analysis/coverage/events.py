@@ -29,8 +29,8 @@ def measure_set(
         One observation row per observation and the summary row for the set.
 
     Note:
-        The union runs tile by tile so each insert touches a small shape and
-        the tiles run in parallel; the cost is rounding where a footprint
+        The union runs sector by sector so each insert touches a small shape
+        and the sectors run in parallel; the cost is rounding where a footprint
         crosses a seam, which leaves the ground it is credited with within a
         part in 10^10 of the ground it actually covers.
     """

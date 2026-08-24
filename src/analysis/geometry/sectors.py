@@ -1,4 +1,9 @@
-"""A grid of tiles laid over one feature, so a union stays local to a tile."""
+"""A grid of sectors laid over one feature, so a union stays local to a sector.
+
+These are not the tiles a feature is surveyed in. A sector exists only to keep
+each insert into the running union small, is sized to the footprints rather than
+to the ground, and is thrown away once the union is measured.
+"""
 
 from __future__ import annotations
 
@@ -13,11 +18,11 @@ from analysis import configs
 from analysis.geometry.region import FeatureRegion
 
 
-class TileGrid:
-    """A grid of disjoint tiles covering one feature, and what reaches them.
+class SectorGrid:
+    """A grid of disjoint sectors covering one feature, and what reaches them.
 
     Attributes:
-        caps: The ground in square metres each tile could ever hold, being its
+        caps: The ground in square metres each sector could ever hold, being its
             own overlap with the feature.
     """
 
@@ -25,24 +30,24 @@ class TileGrid:
         self,
         region: FeatureRegion,
         shapes: Sequence[BaseGeometry],
-        tiles: int | None = None,
+        sectors: int | None = None,
     ) -> None:
-        """Lay a tile grid over one feature and index the shapes against it.
+        """Lay a sector grid over one feature and index the shapes against it.
 
         Args:
-            region: The projected feature the tiles cover.
+            region: The projected feature the sectors cover.
             shapes: The projected footprints to be indexed, in the order their
                 observations are to be walked.
-            tiles: How many tiles to use along each axis, or None to size the
+            sectors: How many sectors to use along each axis, or None to size
                 grid to the footprints.
 
         Returns:
             None.
         """
         min_x, min_y, max_x, max_y = region.shape.bounds
-        if tiles is None:
-            tiles = _tiles_per_axis(max_x - min_x, max_y - min_y, shapes)
-        step_x, step_y = (max_x - min_x) / tiles, (max_y - min_y) / tiles
+        if sectors is None:
+            sectors = _sectors_per_axis(max_x - min_x, max_y - min_y, shapes)
+        step_x, step_y = (max_x - min_x) / sectors, (max_y - min_y) / sectors
         self._shapes = np.asarray(shapes, dtype=object)
         self._rectangles = np.asarray(
             [
@@ -52,8 +57,8 @@ class TileGrid:
                     min_x + (column + 1) * step_x,
                     min_y + (row + 1) * step_y,
                 )
-                for row in range(tiles)
-                for column in range(tiles)
+                for row in range(sectors)
+                for column in range(sectors)
             ],
             dtype=object,
         )
@@ -61,10 +66,10 @@ class TileGrid:
         self._index = STRtree(self._shapes)
 
     def __iter__(self) -> Iterator[tuple[BaseGeometry, float, np.ndarray]]:
-        """Walk the tiles that can hold ground, with what reaches each one.
+        """Walk the sectors that can hold ground, with what reaches each one.
 
         Yields:
-            Each tile's rectangle, the ground in square metres it could hold,
+            Each sector's rectangle, the ground in square metres it could hold,
             and the indices of the shapes reaching it, in their original order.
         """
         for rectangle, cap in zip(self._rectangles, self.caps, strict=True):
@@ -77,11 +82,11 @@ class TileGrid:
     def clip(
         self, reaching: np.ndarray, rectangle: BaseGeometry
     ) -> tuple[np.ndarray, np.ndarray]:
-        """Cut the given shapes to one tile, dropping the ones that miss it.
+        """Cut the given shapes to one sector, dropping the ones that miss it.
 
         Args:
             reaching: The indices of the shapes to cut.
-            rectangle: The tile to cut them to.
+            rectangle: The sector to cut them to.
 
         Returns:
             The kept indices and their clipped shapes, as a pair of arrays.
@@ -91,8 +96,10 @@ class TileGrid:
         return reaching[kept], pieces[kept]
 
 
-def _tiles_per_axis(width: float, height: float, shapes: Sequence[BaseGeometry]) -> int:
-    """Choose how many tiles a feature needs along each axis.
+def _sectors_per_axis(
+    width: float, height: float, shapes: Sequence[BaseGeometry]
+) -> int:
+    """Choose how many sectors a feature needs along each axis.
 
     Args:
         width: The feature's projected width in metres.
@@ -100,7 +107,7 @@ def _tiles_per_axis(width: float, height: float, shapes: Sequence[BaseGeometry])
         shapes: The projected footprints the grid will hold.
 
     Returns:
-        The tile count per axis, within the configured bounds.
+        The sector count per axis, within the configured bounds.
     """
     boxes = bounds(np.asarray(shapes, dtype=object))
     spans = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
@@ -108,6 +115,6 @@ def _tiles_per_axis(width: float, height: float, shapes: Sequence[BaseGeometry])
         float(np.sqrt(np.median(spans[spans > 0.0]))) if (spans > 0.0).any() else 0.0
     )
     if typical <= 0.0:
-        return configs.MAX_UNION_TILES
+        return configs.MAX_UNION_SECTORS
     wanted = round(math.sqrt(width * height) / typical)
-    return int(min(max(wanted, configs.MIN_UNION_TILES), configs.MAX_UNION_TILES))
+    return int(min(max(wanted, configs.MIN_UNION_SECTORS), configs.MAX_UNION_SECTORS))
