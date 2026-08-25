@@ -23,7 +23,6 @@ _HEADINGS = (
 _ASKED = (
     "Strategy",
     "Instruments insisted on",
-    "Together",
     "Longest window",
     "Timeless",
 )
@@ -113,7 +112,6 @@ def _demanded(name: str) -> Row:
             " or ".join(f"{iid} {share:.0%}" for iid, share in demand.items())
             for demand in strategy.demands
         ),
-        f"{strategy.together:.0%}",
         quantities.duration(strategy.span_days),
         ", ".join(sorted(strategy.timeless)) or wording.NOTHING,
     )

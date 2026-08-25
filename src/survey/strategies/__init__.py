@@ -93,7 +93,6 @@ def _strategy(name: str, spec: Any, path: Path) -> Strategy:
             for iid, cells in admits.items()
         },
         tile_km=_number(name, "tile_km", spec.get("tile_km", TILE_KM), path),
-        together=_number(name, "together", spec.get("together"), path),
         span_days=_number(name, "span_days", spec.get("span_days"), path),
         timeless=frozenset(str(iid) for iid in timeless),
     )

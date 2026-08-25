@@ -33,9 +33,6 @@ class Strategy:
             what a window is searched over one of. The cells were sized by the
             run that measured the feature, so a tile is cut to the nearest
             whole number of them.
-        together: The share of the tile every instrument has to reach at
-            once, so a window is kept only when that much of the ground is
-            looked at by all of them rather than by each of them somewhere.
         span_days: How long a window may run. A Mars year is every season the
             ground has, but a surface reading holds far longer than that, so
             what the span should be is one of the things a comparison settles.
@@ -50,7 +47,6 @@ class Strategy:
     demands: tuple[dict[str, float], ...]
     admits: dict[str, int]
     tile_km: float
-    together: float
     span_days: float
     timeless: frozenset[str] = frozenset()
 

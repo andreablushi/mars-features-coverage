@@ -7,7 +7,7 @@ from collections.abc import Sequence
 import ipywidgets as widgets
 
 from utils.maths import quantities
-from visualization.common import panels, tables, wording
+from visualization.common import panels, tables, tiles, wording
 from visualization.common.tables import Row
 from visualization.common.tiles import TileStats
 from visualization.feature import picker
@@ -59,8 +59,11 @@ def _rows(stats: TileStats) -> list[Row]:
         for iid in sorted(stats.reached)
     ]
     written += [
-        (f"Ground {' and '.join(names)} reach", wording.ground(km2, stats.area_km2))
-        for names, km2 in stats.overlaps.items()
+        (
+            f"Ground reached by {counted} instrument{'' if counted == 1 else 's'}",
+            wording.ground(km2, stats.area_km2),
+        )
+        for counted, km2 in tiles.shared(stats.overlaps).items()
     ]
     return written
 

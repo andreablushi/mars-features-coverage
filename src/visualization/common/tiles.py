@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -218,6 +219,24 @@ def _overlaps(track: Track, picked: Survey | None) -> dict[tuple[str, ...], floa
             names = tuple(sorted(reaching))
             found[names] = found.get(names, 0.0) + track.cell_km2
     return dict(sorted(found.items(), key=lambda ground: -ground[1]))
+
+
+def shared(overlaps: Mapping[tuple[str, ...], float]) -> dict[int, float]:
+    """Add up the ground each number of instruments reaches at once.
+
+    Args:
+        overlaps: The ground each set of instruments reaches between them, by
+            the instruments really there. A cell counts once, so the grounds
+            do not overlap and add up.
+
+    Returns:
+        The ground in square kilometres, by how many instruments reach it,
+        fewest first.
+    """
+    counted: dict[int, float] = {}
+    for names, km2 in overlaps.items():
+        counted[len(names)] = counted.get(len(names), 0.0) + km2
+    return dict(sorted(counted.items()))
 
 
 def instruments(study: Study) -> list[str]:
