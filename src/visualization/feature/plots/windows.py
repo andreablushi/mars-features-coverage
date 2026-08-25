@@ -145,18 +145,22 @@ def _rings(grid: Grid) -> list[tuple[int, str, float]]:
     Args:
         grid: The scored candidate windows.
 
+    A ring is drawn solid where it holds every instrument the tile has, and
+    dashed where it holds fewer, whatever the most any one window turned out
+    to hold. A tile no window ever gathered them all on therefore draws no
+    solid ring rather than promoting its best to one.
+
     Returns:
-        The count, the line style, and the line width of every ring, the one
-        holding every instrument last and drawn solid.
+        The count, the line style, and the line width of every ring the panel
+        has anything to draw for.
     """
-    most = int(grid.instruments.max())
     return [
         (
             count,
-            "solid" if count == most else "dashed",
-            WINDOW_RING_ALL if count == most else WINDOW_RING,
+            "solid" if count == grid.held else "dashed",
+            WINDOW_RING_ALL if count == grid.held else WINDOW_RING,
         )
-        for count in range(2, most + 1)
+        for count in range(2, int(grid.instruments.max()) + 1)
     ]
 
 

@@ -33,6 +33,9 @@ class Grid:
             window, shaped as reached.
         sounded: Whether every window holds a sounder track, shaped as
             reached.
+        held: How many instruments the tile could hold at once, which is what
+            a window holding every one of them counts, however few any single
+            window turned out to hold.
     """
 
     centres: np.ndarray
@@ -40,6 +43,7 @@ class Grid:
     reached: np.ndarray
     instruments: np.ndarray
     sounded: np.ndarray
+    held: int
 
 
 def build(track: Track, strategy: Strategy) -> Grid | None:
@@ -76,6 +80,7 @@ def build(track: Track, strategy: Strategy) -> Grid | None:
         reached=np.array([reached for reached, _, _ in rows]),
         instruments=np.array([counted for _, counted, _ in rows]),
         sounded=np.array([sounded for _, _, sounded in rows]),
+        held=len(set(track.iids)),
     )
 
 
