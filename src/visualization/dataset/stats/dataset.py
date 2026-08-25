@@ -10,6 +10,9 @@ from visualization.common.aggregate import Aggregate
 from visualization.common.spread import Spread
 from visualization.dataset.loading import Searched
 
+# The shares of a tile the bands count the kept tiles reaching, loosest first.
+BANDS = (0.5, 0.75, 0.9)
+
 
 @dataclass(frozen=True, slots=True)
 class DatasetStats:
@@ -28,6 +31,10 @@ class DatasetStats:
             them, over the tiles kept, by how many of them reach it. A cell
             counts once, so the shares do not overlap and add up to what the
             window reaches.
+        reaching: How many kept tiles hold at least so many instruments, by
+            how many of them the tile holds.
+        covered: How many kept tiles have at least that share of their ground
+            reached by two instruments at once, by the share asked.
         iids: The instruments reported on, in the order they are drawn.
         classes: How many tiles of each feature class were kept, and how many
             were searched, by feature class. A strategy admits a tile and
@@ -42,6 +49,8 @@ class DatasetStats:
     sizes: Spread
     offered: dict[str, Spread]
     shared: dict[int, Spread]
+    reaching: dict[int, int]
+    covered: dict[float, int]
     iids: list[str]
     classes: dict[str, tuple[int, int]]
 
@@ -76,7 +85,12 @@ def _under(strategy: str, held: Sequence[Searched]) -> DatasetStats:
     measured = [tile for searched in held for tile in searched.measured]
     # The kept tiles carrying ground, and how much of each so many instruments reach
     grounded = [tile for tile in measured if tile.kept and tile.area_km2]
-    reaching = [tiles.shared(tile.overlaps) for tile in grounded]
+    overlapping = [tiles.shared(tile.overlaps) for tile in grounded]
+    # The share of each of those tiles two instruments or more reach at once
+    together = [
+        sum(km2 for counted, km2 in found.items() if counted > 1) / tile.area_km2
+        for tile, found in zip(grounded, overlapping, strict=True)
+    ]
     return DatasetStats(
         strategy=strategy,
         features=len(held),
@@ -92,11 +106,16 @@ def _under(strategy: str, held: Sequence[Searched]) -> DatasetStats:
             counted: spread.over(
                 [
                     found.get(counted, 0.0) / tile.area_km2
-                    for tile, found in zip(grounded, reaching, strict=True)
+                    for tile, found in zip(grounded, overlapping, strict=True)
                 ]
             )
             for counted in range(1, len(iids) + 1)
         },
+        reaching={
+            counted: sum(1 for tile in grounded if len(tile.reached) >= counted)
+            for counted in range(1, len(iids) + 1)
+        },
+        covered={band: sum(1 for share in together if share >= band) for band in BANDS},
         iids=iids,
         classes=_classes(held),
     )

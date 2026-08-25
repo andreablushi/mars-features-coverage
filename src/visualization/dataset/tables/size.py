@@ -1,0 +1,78 @@
+"""How big a dataset each strategy would leave, and how good its tiles are."""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+
+import ipywidgets as widgets
+
+from visualization.common import tables, wording
+from visualization.common.tables import Row
+from visualization.dataset.stats.dataset import DatasetStats
+
+_HEADINGS = ("Strategy", "Tiles searched", "Tiles kept", "Ground kept")
+_NOTE = (
+    "A tile holds an instrument when the window kept any look of it. The "
+    "shared columns count the tiles where two instruments or more reach that "
+    "much of the tile at once."
+)
+
+
+def final(read: Mapping[str, DatasetStats]) -> widgets.Widget:
+    """Tabulate the dataset each strategy would leave behind.
+
+    Args:
+        read: What each strategy made of the features swept, by strategy name.
+
+    Returns:
+        The table as a widget.
+    """
+    if not read:
+        return tables.written("The dataset each strategy would leave", _HEADINGS, [])
+    first = next(iter(read.values()))
+    headings = (
+        _HEADINGS
+        + tuple(_holding(counted) for counted in first.reaching)
+        + tuple(f"{band:.0%} shared" for band in first.covered)
+    )
+    return tables.written(
+        "The dataset each strategy would leave",
+        headings,
+        [_row(stats) for stats in read.values()],
+        lead=f"{first.features:,} features swept, every tile of each of them",
+        note=_NOTE,
+    )
+
+
+def _holding(counted: int) -> str:
+    """Name the column counting the tiles holding so many instruments.
+
+    Args:
+        counted: How many instruments a tile has to hold.
+
+    Returns:
+        The heading.
+    """
+    return "1 instrument" if counted == 1 else f"{counted} instruments"
+
+
+def _row(stats: DatasetStats) -> Row:
+    """Write one strategy's row.
+
+    Args:
+        stats: What it made of the features swept.
+
+    Returns:
+        The row.
+    """
+    held = stats.held
+    return (
+        (
+            stats.strategy,
+            f"{held.searched:,}",
+            f"{held.kept:,}",
+            wording.ground(held.kept_km2, held.area_km2),
+        )
+        + tuple(f"{tiles:,}" for tiles in stats.reaching.values())
+        + tuple(f"{tiles:,}" for tiles in stats.covered.values())
+    )
