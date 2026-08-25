@@ -6,7 +6,7 @@ import threading
 
 import ipywidgets as widgets
 from matplotlib.axes import Axes
-from matplotlib.patches import Patch
+from matplotlib.lines import Line2D
 
 from visualization.common import panels, series, tiles
 from visualization.feature import picker
@@ -19,32 +19,33 @@ MAP_FIGURE_SIZE = (9.0, 6.0)
 # How the tile itself is drawn under the footprints.
 TILE_EDGE = "#ffffff"
 TILE_WIDTH = 1.4
-TRACE_WIDTH = 0.8
-TRACE_ALPHA = 0.9
+TRACE_WIDTH = 1.2
+TRACE_ALPHA = 0.85
 
-# How solid the ground a footprint covers is filled in. A footprint is filled
-# and not merely outlined, so what the map shows is the ground the shares
-# beside it are counted over.
-FILL_ALPHA = 0.25
+# How the note is written over a tile with nothing to trace on it.
+NOTE_COLOUR = "#ffffff"
+NOTE_SIZE = 11
 
-_NO_WINDOW = "This tile holds no window worth keeping, so nothing is drawn."
 _UNKNOWN = "this feature has no lon/lat box to crop the mosaic to"
-_UNPUBLISHED = "The footprints of this feature are no longer on disk."
+_NOTHING = "No footprints available"
 
 
 def plot(chosen: TileView | None) -> widgets.Widget:
     """Show the tile with the footprint of every observation it keeps.
 
+    A tile that earned no window is still drawn, as the ground it covers with
+    nothing traced on it, since where the tile sits is worth seeing whether or
+    not the search kept anything there.
+
     Args:
         chosen: The tile on show, or None while none is picked.
 
     Returns:
-        The map as a widget, or the grey panel when there is none to draw.
+        The map as a widget, or the grey panel when no tile is picked or the
+        feature has no box to crop the mosaic to.
     """
     if chosen is None:
         return panels.unavailable(picker.NO_TILE)
-    if chosen.survey is None:
-        return panels.unavailable(_NO_WINDOW)
     summary = chosen.view.coverage[0].summary
     grid = overlay.placed(
         summary.feature_class,
@@ -104,17 +105,27 @@ def _figure(grid: Placed, chosen: TileView, box: Box, image: bytes) -> widgets.W
         image: The crop as PNG bytes.
 
     Returns:
-        The figure as a widget, or the grey panel when the footprints were
-        discarded once the feature was measured.
+        The figure as a widget, carrying the crop alone under a note where
+        there is no footprint to trace on it, whether because the tile earned
+        no window or because its records are no longer on disk.
     """
     shapes = outlines.read(chosen.view.coverage)
-    if not shapes:
-        return panels.unavailable(_UNPUBLISHED)
     figure, axis = panels.board(MAP_FIGURE_SIZE)
     basemap.mosaic(axis, box, image)
     lon, lat = grid.tile(chosen.stats.row, chosen.stats.column)
     axis.plot(lon, lat, color=TILE_EDGE, linewidth=TILE_WIDTH)
     colours = _traces(axis, grid, chosen, shapes)
+    if not colours:
+        axis.text(
+            0.5,
+            0.5,
+            _NOTHING,
+            transform=axis.transAxes,
+            ha="center",
+            va="center",
+            color=NOTE_COLOUR,
+            fontsize=NOTE_SIZE,
+        )
     axis.set_title(chosen.name, fontsize=12, loc="left")
     axis.set_xlabel("Longitude")
     axis.set_ylabel("Latitude")
@@ -122,7 +133,7 @@ def _figure(grid: Placed, chosen: TileView, box: Box, image: bytes) -> widgets.W
     panels.key_beside(
         figure,
         [
-            Patch(facecolor=colour, edgecolor=colour, alpha=TRACE_ALPHA, label=label)
+            Line2D([], [], color=colour, linewidth=TRACE_WIDTH, label=label)
             for label, colour in colours.items()
         ],
     )
@@ -132,7 +143,7 @@ def _figure(grid: Placed, chosen: TileView, box: Box, image: bytes) -> widgets.W
 def _traces(
     axis: Axes, grid: Placed, chosen: TileView, shapes: dict
 ) -> dict[str, tuple]:
-    """Fill the ground every observation the tile keeps covers.
+    """Trace the footprint of every observation the tile keeps.
 
     Args:
         axis: The panel to draw on.
@@ -149,19 +160,17 @@ def _traces(
     colours = panels.colours(series.over_tile(track))
     drawn: dict[str, tuple] = {}
     for index in tiles.held(chosen.survey):
-        observation = track.observations[index]
-        shape = shapes.get(observation.pdsid)
+        shape = shapes.get(track.observations[index].pdsid)
         if shape is None:
             continue
         label = track.labels[track.owners[index]]
-        for lon, lat in outlines.traced(shape, observation.width_km):
-            axis.fill(
+        for lon, lat in outlines.traced(shape):
+            axis.plot(
                 grid.around(lon),
                 lat,
-                facecolor=colours[label],
-                edgecolor=colours[label],
+                color=colours[label],
                 linewidth=TRACE_WIDTH,
-                alpha=FILL_ALPHA,
+                alpha=TRACE_ALPHA,
             )
             drawn[label] = colours[label]
     return drawn
