@@ -1,9 +1,9 @@
-# The default, cut into gigantic tiles: one tile is a whole feature for all but
-# the largest, so a sample is a place rather than a patch of one.
+# The default cut into gigantic tiles, where one tile is a whole feature for
+# all but the largest, so a sample is a place rather than a patch of one.
 demands:
+  - {CTX: 0.50}
   - {CTX: 0.50, CRISM: 0.30}
-admits: {CTX: 1000000, CRISM: 800, SHARAD: 20}
-answering: all
+admits: {CTX: 1000000, CRISM: 800, SHARAD: 50}
 tile_km: 400.0
 gain: 1
 breadth: 0.7
