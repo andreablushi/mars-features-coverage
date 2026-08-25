@@ -21,21 +21,15 @@ class Track:
     Attributes:
         tile: Which tile of the feature the observations were cut to.
         observations: The observations the search may pick from, oldest first.
-        times: When each of them started, in days, which is what a span is
-            measured in.
+        times: When each of them started, in days, which is what a span is measured in.
         owners: The instrument set each belongs to, as its index into labels.
         cells: The tile's own cells each fills, in the same order.
         labels: The name of each set, in the order owners index them.
-        iids: The instrument each set belongs to, in the same order, which is
-            what a strategy asks its demands of.
+        iids: The instrument each set belongs to, in the same order.
         grid: How many cells the tile holds.
-        area_km2: How much ground the tile covers, which is what the reach of
-            a window over it is a share of.
-        cell_km2: How much ground one cell covers, which is what turns a count
-            of cells into the square kilometres every floor is asked in.
-        refused: The observations left off the axis, oldest first, so that a
-            window can say how many fell inside it. What is left off is
-            whatever the strategy asked more of a tile than it left.
+        area_km2: How much ground the tile covers.
+        cell_km2: How much ground one cell covers.
+        refused: The observations left off the axis, oldest first.
     """
 
     tile: int
@@ -52,38 +46,41 @@ class Track:
 
 
 def build(
-    coverage: Sequence[SetCoverage], patchwork: Patchwork, admits: dict[str, int]
+    coverage: Sequence[SetCoverage], patchwork: Patchwork, admits: dict[str, float]
 ) -> list[Track]:
     """Merge a feature's instrument sets into one timeline per tile.
-
-    A footprint is cut to the tiles it reaches and judged inside each of them
-    on its own, so a strip clipping the corner of one tile can still be a
-    proper look at the next.
 
     Args:
         coverage: The feature's instrument sets, in any order.
         patchwork: The feature cut into tiles.
-        admits: The cells each instrument has to leave on a whole tile, which
-            a tile holding less of the feature is asked a share of.
+        admits: The pixels each instrument has to land on a whole tile.
 
     Returns:
-        One timeline per tile that holds anything measurable, in the order the
-        patchwork lays the tiles out.
+        One timeline per tile holding anything measurable, in patchwork order.
     """
     held: list[Held] = [[] for _ in patchwork.tiles]
     refused: list[list[Event]] = [[] for _ in patchwork.tiles]
     labels = [instrument.label for instrument in coverage]
     iids = [instrument.summary.iid for instrument in coverage]
-    # What each set has to leave on each tile, worked out once for the feature
+    # A set publishing a swath width is a sounder, whose pixels lie along a line
+    linear = [
+        any(observation.width_km is not None for observation in instrument.events)
+        for instrument in coverage
+    ]
+    # What each set has to land on each tile, worked out once for the feature
     floors = [
-        [admissible.least(admits, iid, patch, patchwork.cell_km2) for iid in iids]
+        [
+            admissible.least(admits, iid, patch, patchwork.cell_km2, linear=along_track)
+            for iid, along_track in zip(iids, linear, strict=True)
+        ]
         for patch in patchwork.tiles
     ]
     for owner, instrument in enumerate(coverage):
         for observation in instrument.events:
             filled = packing.cells_of(observation.mask).tolist()
             for tile, cells in patchwork.scatter_cells(filled).items():
-                if len(cells) >= floors[tile][owner]:
+                landed = admissible.landed(observation, len(cells), patchwork.cell_km2)
+                if landed >= floors[tile][owner]:
                     held[tile].append((observation, owner, cells))
                 else:
                     refused[tile].append(observation)

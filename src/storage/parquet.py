@@ -17,12 +17,8 @@ def write(
 ) -> None:
     """Write dataclass rows, or ready-made columns, to a parquet file atomically.
 
-    Rows are read column by column rather than turned into dictionaries,
-    because arrow wants columns anyway and a row is only ever read once.
-
     Args:
-        data: The dataclass rows to write, whose fields match the schema, or
-            the columns themselves keyed by the schema's field names.
+        data: The dataclass rows to write, or the columns keyed by the schema's fields.
         schema: The schema to write them under.
         path: The destination parquet file.
 

@@ -61,32 +61,24 @@ that image, and then starts the job. It prints the run key and returns.
 | `--mem` | `8Gi` | memory to request |
 | `--disk` | `16Gi` | disk to request, sized for a whole catalogue |
 
-### What a finished run leaves behind
-
-Three entities, each gaining a new version per run rather than replacing the
-last:
-
-```
-coverage-artifacts   the measurements, as the data/artifacts tree
-coverage-metadata    the ODE records they were computed from
-coverage-summary     summary.parquet again, as a table dataitem
-```
-
 ## Downloading the results
 
-`dhcli` makes each of the three entities available on your local machine, so
-you can run the analysis locally. Each downloads the latest version.
+`dhcli` makes each of the three entities available on your local machine, so you can run the analysis locally.
+Each download retrieves the latest version.
+
+The downloads are packaged as `.tar.gz` archives and are automatically extracted into the expected directories by the download script.
 
 ```bash
-# the measurements, which is what the notebook reads
-dhcli download -p mars-features-coverage artifact -n coverage-artifacts -d data/artifacts
-
-# the ODE records they were computed from, gigabytes of them
-dhcli download -p mars-features-coverage artifact -n coverage-metadata -d data/metadata
-
-# the summary on its own, one row per feature and instrument set
-dhcli download -p mars-features-coverage dataitem -n coverage-summary -d data/artifacts
+chmod +x scripts/dh_download.sh # Only once, to make it executable
+./scripts/dh_download.sh
 ```
+
+This downloads:
+
+* **Measurements**: the coverage artifacts read by the notebook, extracted to `data/artifacts/`.
+* **ODE records**: the metadata used to compute the measurements, extracted to `data/metadata/`.
+* **Coverage summary**: one row per feature and instrument set, extracted to `data/artifacts/`.
+
 
 ## Exploratory Notebook
 

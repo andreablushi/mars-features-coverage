@@ -1,10 +1,4 @@
-"""What a stored record says about where it came from, written and read back.
-
-The download half stamps every record with the feature box it was asked for
-and the set it belongs to; the analysis half reads that back to know what it
-is measuring against. Both sides name those fields here, so neither can drift
-from the other.
-"""
+"""What a stored record says about where it came from, written and read back."""
 
 from __future__ import annotations
 
@@ -46,8 +40,7 @@ def feature_of(item: dict[str, Any]) -> Feature:
         item: One stored observation record.
 
     Returns:
-        The feature box the record was downloaded for, which is what its
-        coverage is measured against.
+        The feature box the record was downloaded for.
     """
     return Feature(
         name=item["feature_name"],

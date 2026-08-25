@@ -12,26 +12,17 @@ class Settings:
     """The settled choices for a run, read from one flat config file.
 
     Attributes:
-        tile_km: How wide a tile of a feature is, in kilometres, which is what
-            a window is searched over one of.
-        tile_cells: Cells along each axis of one tile, which is what the
-            feature's grid is cut to hold.
+        tile_km: How wide a tile of a feature is, in kilometres.
+        tile_cells: Cells along each axis of one tile.
         instrument_sets: The instrument sets to download for every feature.
-        plot_instrument_sets: The sets the notebook figures draw, or None to
-            draw every set the artifacts hold. Nothing about a run reads it.
-        feature_names: The features to restrict the run to, or None for the
-            whole catalogue.
-        loc: Which products ODE returns for a feature box, "f" for every
-            footprint that overlaps it and "o" for only those fully inside.
-        keep_metadata: Whether to keep a set's downloaded JSONL once its
-            coverage is computed. Deleting it makes the artifacts final, since
-            nothing can be recomputed without downloading again.
+        plot_instrument_sets: The sets the figures draw, or None for every one held.
+        feature_names: The features to run over, or None for the whole catalogue.
+        loc: "f" for every footprint overlapping the box, "o" for only those inside.
+        keep_metadata: Whether to keep a set's JSONL once its coverage is computed.
         force: Whether to redo finished work rather than skip it, which covers
-            both halves at once: a set is downloaded again and measured again.
-        refresh_catalog: Whether to re-fetch the ODE catalogues rather than
-            reading the cached copies.
-        workers: How many jobs each half runs at once, downloads on threads and
-            coverage on processes.
+        both halves at once: a set is downloaded again and measured again.
+        refresh_catalog: Whether to re-fetch the ODE catalogues, not read the cache.
+        workers: How many jobs each half runs at once.
     """
 
     tile_km: int

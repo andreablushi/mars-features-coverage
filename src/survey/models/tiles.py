@@ -11,11 +11,8 @@ class Tile:
     """One patch of a feature, and what a window over it is measured against.
 
     Attributes:
-        cells: How many cells of the feature's grid its block holds, which
-            is what a window's counts are laid out over. Some of them may fall
-            outside the feature.
-        area_km2: How much ground the feature really has inside it, which is
-            what a window over it reaches a share of.
+        cells: How many cells of the feature's grid its block holds.
+        area_km2: How much ground the feature really has inside it.
     """
 
     cells: int
@@ -47,8 +44,7 @@ class Patchwork:
             cells: The cells of the feature's grid the footprint fills.
 
         Returns:
-            The cells it fills in each tile it reaches, in that tile's own
-            numbering, by tile.
+            The cells it fills in each tile it reaches, in that tile's numbering.
         """
         found: dict[int, list[int]] = {}
         for cell in cells:

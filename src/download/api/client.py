@@ -48,8 +48,7 @@ class ODEClient:
             The ODEResults object from the response body.
 
         Raises:
-            ODEError: If ODE reports an error, refuses the request, or all
-                attempts fail.
+            ODEError: If ODE errors, refuses the request, or every attempt fails.
         """
         merged = {**params, "output": "JSON"}
         last_error: Exception | None = None

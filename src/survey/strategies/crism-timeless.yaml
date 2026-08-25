@@ -1,0 +1,11 @@
+# The default with the spectrometer taken from the whole record too, which
+# asks whether surface mineralogy has to be contemporary with the image.
+demands:
+  - {CTX: 0.50}
+  - {CTX: 0.50, CRISM: 0.30}
+admits: {CTX: 1000000, CRISM: 800, SHARAD: 50}
+tile_km: 100.0
+gain: 1
+breadth: 0.7
+span_days: 687.0
+timeless: [SHARAD, CRISM]

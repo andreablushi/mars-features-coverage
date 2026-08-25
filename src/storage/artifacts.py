@@ -13,9 +13,6 @@ from storage.schemas import EVENTS, SUMMARY
 def write_coverage(job: Job, events: Sequence[Event], summary: Summary) -> None:
     """Write one set's observation rows and the single row describing it.
 
-    The summary goes last, so its presence marks the set as finished only once
-    the events it describes are safely on disk.
-
     Args:
         job: The instrument set that was computed, naming both destinations.
         events: The set's observation rows, in chronological order.

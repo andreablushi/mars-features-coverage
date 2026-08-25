@@ -1,10 +1,4 @@
-"""The weightings of the instruments a search can be run under, side by side.
-
-Every strategy is one YAML file beside this one, named after it, so a strategy
-that loses the comparison is removed by deleting its file. Nothing here says
-which one a run uses: a search is handed the strategy it runs under, never
-configured with one.
-"""
+"""The weightings of the instruments a search can be run under, side by side."""
 
 from __future__ import annotations
 
@@ -19,6 +13,12 @@ from survey.models.strategy import Strategy
 # How wide a tile is when a strategy does not say, in kilometres.
 TILE_KM = 100.0
 
+# What an observation has to bring a window when a strategy does not say, in cells.
+GAIN = 5
+
+# What a window gains per extra answering instrument when a strategy does not say.
+BREADTH = 0.5
+
 STRATEGIES_ROOT = Path(__file__).parent
 
 
@@ -32,8 +32,7 @@ def load(root: Path = STRATEGIES_ROOT) -> dict[str, Strategy]:
         The strategies, by the name each file goes by.
 
     Raises:
-        ValueError: When the directory holds no strategy, or one of them is
-            written in a way it cannot be read.
+        ValueError: When the directory holds no strategy, or one cannot be read.
     """
     found = {
         path.stem: _strategy(
@@ -78,7 +77,9 @@ def _strategy(name: str, spec: Any, path: Path) -> Strategy:
         raise ValueError(f"{path.name}: `{name}` wants `timeless` as a list")
     admits = spec.get("admits") or {}
     if not isinstance(admits, Mapping):
-        raise ValueError(f"{path.name}: `{name}` wants `admits` as instrument to cells")
+        raise ValueError(
+            f"{path.name}: `{name}` wants `admits` as instrument to pixels"
+        )
     return Strategy(
         name=name,
         demands=tuple(
@@ -89,11 +90,12 @@ def _strategy(name: str, spec: Any, path: Path) -> Strategy:
             for demand in demands
         ),
         admits={
-            str(iid): int(_number(name, "admits", cells, path))
-            for iid, cells in admits.items()
+            str(iid): _number(name, "admits", pixels, path)
+            for iid, pixels in admits.items()
         },
         tile_km=_number(name, "tile_km", spec.get("tile_km", TILE_KM), path),
-        together=_number(name, "together", spec.get("together"), path),
+        gain=int(_number(name, "gain", spec.get("gain", GAIN), path)),
+        breadth=_number(name, "breadth", spec.get("breadth", BREADTH), path),
         span_days=_number(name, "span_days", spec.get("span_days"), path),
         timeless=frozenset(str(iid) for iid in timeless),
     )

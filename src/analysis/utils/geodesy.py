@@ -27,10 +27,6 @@ def normalise_longitude(lon: np.ndarray | float) -> np.ndarray:
 def longitude_stretch(lat: float) -> float:
     """Return how much a degree of longitude shrinks at one latitude.
 
-    A degree of longitude covers cos(lat) of the ground a degree of latitude
-    does, so a fixed ground distance needs that many more degrees of it. The
-    cosine is floored, since near a pole the correction runs away.
-
     Args:
         lat: The latitude in degrees.
 
@@ -166,3 +162,39 @@ def haversine_length(lon: np.ndarray, lat: np.ndarray) -> float:
     )
     steps = 2.0 * configs.MARS_RADIUS_M * np.arcsin(np.sqrt(np.clip(hav, 0.0, 1.0)))
     return float(steps.sum())
+
+
+def laea_inverse(
+    x: np.ndarray | float,
+    y: np.ndarray | float,
+    centre_lon: float,
+    centre_lat: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Turn Lambert azimuthal equal-area metres back into lon/lat degrees.
+
+    Args:
+        x: The projected eastings in metres.
+        y: The projected northings in metres.
+        centre_lon: The projection centre longitude in degrees.
+        centre_lat: The projection centre latitude in degrees.
+
+    Returns:
+        The longitudes and latitudes in degrees, longitudes wrapped to -180 to 180.
+    """
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    phi0 = math.radians(centre_lat)
+    rho = np.hypot(x, y)
+    safe = np.where(rho == 0.0, 1.0, rho)
+    c = 2.0 * np.arcsin(np.clip(rho / (2.0 * configs.MARS_RADIUS_M), -1.0, 1.0))
+    sin_c, cos_c = np.sin(c), np.cos(c)
+    lat = np.arcsin(
+        np.clip(cos_c * math.sin(phi0) + y * sin_c * math.cos(phi0) / safe, -1.0, 1.0)
+    )
+    lon = np.radians(centre_lon) + np.arctan2(
+        x * sin_c,
+        safe * math.cos(phi0) * cos_c - y * math.sin(phi0) * sin_c,
+    )
+    return normalise_longitude(np.degrees(lon)), np.degrees(
+        np.where(rho == 0.0, phi0, lat)
+    )

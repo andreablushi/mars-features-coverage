@@ -14,8 +14,7 @@ def encode(cells: np.ndarray, total: int) -> bytes:
     """Pack the cells a footprint fills into whichever form is smaller.
 
     Args:
-        cells: The indices of the cells the footprint fills, in ascending
-            order.
+        cells: The indices of the cells the footprint fills, in ascending order.
         total: How many cells the grid holds in all.
 
     Returns:

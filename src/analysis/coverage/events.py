@@ -21,18 +21,11 @@ def measure_set(
     """Measure how one instrument set covers one feature over time.
 
     Args:
-        loaded: The set's projected observations in chronological order, with
-            the feature and the set identifier they belong to.
+        loaded: The set's projected observations in chronological order.
         region: That feature projected into equal-area metres.
 
     Returns:
         One observation row per observation and the summary row for the set.
-
-    Note:
-        The union runs sector by sector so each insert touches a small shape
-        and the sectors run in parallel; the cost is rounding where a footprint
-        crosses a seam, which leaves the ground it is credited with within a
-        part in 10^10 of the ground it actually covers.
     """
     feature, observations = loaded.feature, loaded.observations
     fresh = union.new_ground(region, [o.shape for o in observations])
@@ -111,8 +104,7 @@ def _set_summary_row(
     Args:
         feature: The feature the coverage was measured against.
         set_key: The instrument set identifier the records were asked for by.
-        observation: Any of the set's observations, which all name the same
-            instrument host, instrument, and product type.
+        observation: Any of the set's observations, which all name the same set.
         region: That feature projected into equal-area metres.
         cumulative: The running total behind every observation.
         observations: The set's observation rows, in chronological order.

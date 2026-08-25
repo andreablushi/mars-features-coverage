@@ -4,31 +4,45 @@ from __future__ import annotations
 
 import math
 
+from models.results import Event
 from survey.models.tiles import Tile
 
 
-def least(admits: dict[str, int], iid: str, patch: Tile, cell_km2: float) -> int:
-    """Work out the cells one instrument has to leave on one tile.
-
-    The strategy names what a whole tile is asked for. A tile at the edge of a
-    feature holds a corner of it rather than a whole block, and nothing can
-    fill more of a tile than there is feature in it, so a tile holding less is
-    asked for the same share of what it has. The share is rooted because a
-    sounder's cells lie along a line, which shortens with the width of the
-    ground rather than with the ground itself.
+def least(
+    admits: dict[str, float],
+    iid: str,
+    patch: Tile,
+    cell_km2: float,
+    *,
+    linear: bool = False,
+) -> float:
+    """Work out the pixels one instrument has to land on one tile.
 
     Args:
-        admits: The cells each instrument has to leave on a whole tile, by
-            instrument id.
+        admits: The pixels each instrument has to land on a whole tile, by iid.
         iid: The instrument the observation belongs to.
-        patch: The tile, holding its block of cells and the feature ground in
-            it.
+        patch: The tile, holding its block of cells and the feature ground in it.
         cell_km2: How much ground one cell of the block covers.
+        linear: Whether the instrument lays its pixels along a line, as a sounder does.
 
     Returns:
-        The cells it has to leave on that tile. An instrument the strategy
-        names nowhere is asked for nothing, and a tile too small to be asked
-        the strategy's count is asked less of it.
+        The pixels it has to land on that tile, and nothing where it is named nowhere.
     """
     share = patch.area_km2 / (patch.cells * cell_km2)
-    return round(admits.get(iid, 0) * math.sqrt(share))
+    return admits.get(iid, 0.0) * (math.sqrt(share) if linear else share)
+
+
+def landed(observation: Event, cells: int, cell_km2: float) -> float:
+    """Work out the pixels one observation leaves on one tile.
+
+    Args:
+        observation: The observation, carrying its pixels and the ground it covers.
+        cells: How many of the tile's cells its footprint fills.
+        cell_km2: How much ground one of them covers.
+
+    Returns:
+        The pixels it leaves there, and nothing where it covers no ground to spread.
+    """
+    if not observation.own_km2 or observation.pixels is None:
+        return 0.0
+    return observation.pixels * cells * cell_km2 / observation.own_km2

@@ -64,8 +64,7 @@ def clipped_surface_parts(
         widths_m: The cross-track width to give each footprint's track.
 
     Returns:
-        The clipped single-part shapes, the index of the footprint each came
-        from, and the buffer radius in metres to draw it with.
+        The clipped shapes, the footprint each came from, and its buffer radius.
     """
     parts, owners = single_parts(geoms)
     kinds = get_type_id(parts)
@@ -88,8 +87,7 @@ def single_parts(geoms: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         geoms: The geometries to expand, including nested collections.
 
     Returns:
-        The flat single-part geometries and the index of the input each came
-        from.
+        The flat single-part geometries and the index of the input each came from.
     """
     parts = np.asarray(geoms, dtype=object)
     owners = np.arange(parts.size)

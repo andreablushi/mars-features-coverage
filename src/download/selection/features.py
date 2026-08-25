@@ -13,25 +13,12 @@ def select_features(
 ) -> tuple[list[Feature], list[Feature]]:
     """Filter the catalog to the requested features and size the point ones.
 
-    Matching is case insensitive, and the catalog's own spelling is preserved
-    for querying. When no names are given, every feature is selected.
-
-    A feature the catalogue gives no extent at all is a named position, and ODE
-    rejects a query for one outright. Where the position stands for something
-    with a real edge, a crater or a landing site, a box of
-    configs.POINT_RADIUS_DEG is put around it and recorded as the box coverage
-    is measured against. Where it stands for a classical albedo name, Arabia or
-    Amazonis, there is no edge to recover: those names cover thousands of
-    kilometres of diffuse ground, and any radius would be invented rather than
-    measured.
-
     Args:
         features: The full feature catalog.
         names: Optional feature names to keep.
 
     Returns:
-        A pair (usable, sizeless) where sizeless features carry no extent that
-        could be recovered and were left unqueried.
+        The usable features, and the sizeless ones left unqueried for want of an extent.
     """
     # Format the requested names into a set
     wanted = {name.strip().lower() for name in names} if names else None

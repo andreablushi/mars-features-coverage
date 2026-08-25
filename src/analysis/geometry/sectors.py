@@ -1,9 +1,4 @@
-"""A grid of sectors laid over one feature, so a union stays local to a sector.
-
-These are not the tiles a feature is surveyed in. A sector exists only to keep
-each insert into the running union small, is sized to the footprints rather than
-to the ground, and is thrown away once the union is measured.
-"""
+"""A grid of sectors laid over one feature, so a union stays local to a sector."""
 
 from __future__ import annotations
 
@@ -22,8 +17,7 @@ class SectorGrid:
     """A grid of disjoint sectors covering one feature, and what reaches them.
 
     Attributes:
-        caps: The ground in square metres each sector could ever hold, being its
-            own overlap with the feature.
+        caps: The ground in square metres each sector could ever hold.
     """
 
     def __init__(
@@ -36,10 +30,8 @@ class SectorGrid:
 
         Args:
             region: The projected feature the sectors cover.
-            shapes: The projected footprints to be indexed, in the order their
-                observations are to be walked.
-            sectors: How many sectors to use along each axis, or None to size
-                grid to the footprints.
+            shapes: The projected footprints to index, in the order they are walked.
+            sectors: The sectors per axis, or None to size the grid to the footprints.
 
         Returns:
             None.
@@ -69,8 +61,7 @@ class SectorGrid:
         """Walk the sectors that can hold ground, with what reaches each one.
 
         Yields:
-            Each sector's rectangle, the ground in square metres it could hold,
-            and the indices of the shapes reaching it, in their original order.
+            Each sector's rectangle, the ground it holds, and the shapes reaching it.
         """
         for rectangle, cap in zip(self._rectangles, self.caps, strict=True):
             if cap <= 0.0:

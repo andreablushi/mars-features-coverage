@@ -22,17 +22,14 @@ def _setting(
     Args:
         config: The settings the config file holds, keyed by name.
         key: The setting's name.
-        kind: What the value has to be: bool for a flag, int for a count above
-            zero, str for a spelling, or list for a sequence of them.
+        kind: What the value has to be: bool, int above zero, str, or list.
         required: Whether the file has to give the setting.
 
     Returns:
-        The configured value, or None when an optional setting is absent. A
-        list comes back as a tuple of strings.
+        The configured value, or None when an optional setting is absent.
 
     Raises:
-        ValueError: When a required setting is missing, or a value is not what
-            its kind asks for.
+        ValueError: When a setting is missing, or is not what its kind asks for.
     """
     found = config.get(key)
     if found is None or found == []:
@@ -62,8 +59,7 @@ def load(path: Path = paths.CONFIG_PATH) -> Settings:
         The settled choices for the run.
 
     Raises:
-        ValueError: When the file does not hold a mapping of settings, or holds
-            one it cannot honour.
+        ValueError: When the file holds no mapping of settings, or one it cannot honour.
     """
     config = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     if not isinstance(config, dict):

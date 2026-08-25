@@ -82,13 +82,48 @@ def computed_features(root: Path = paths.COVERAGE_ROOT) -> set[tuple[str, str]]:
         root: The coverage artifacts root directory.
 
     Returns:
-        The class and name slug of each feature holding at least one computed
-        instrument set.
+        The class and name slug of each feature with a computed instrument set.
     """
     return {
         (path.parent.parent.name, path.parent.name)
         for path in root.glob(f"*/*/*{paths.EVENTS_SUFFIX}")
     }
+
+
+def catalogued_features(root: Path = paths.ARTIFACTS_ROOT) -> list[tuple[str, str]]:
+    """Name every feature the computed artifacts hold, as the catalogue spells it.
+
+    Args:
+        root: The artifacts root directory holding the catalogue index.
+
+    Returns:
+        The class and name of each feature, once each and in order.
+    """
+    path = catalog_summary_path(root)
+    if not path.exists():
+        return []
+    table = _summary_table(path)
+    named = zip(
+        table.column("feature_class").to_pylist(),
+        table.column("feature_name").to_pylist(),
+        strict=True,
+    )
+    return sorted(dict.fromkeys(named))
+
+
+def catalogued_rows(root: Path = paths.ARTIFACTS_ROOT) -> list[Summary]:
+    """Read every row the computed artifacts hold anywhere.
+
+    Args:
+        root: The artifacts root directory holding the catalogue index.
+
+    Returns:
+        One row per feature and instrument set measured, in index order.
+    """
+    path = catalog_summary_path(root)
+    if not path.exists():
+        return []
+    return [Summary(**row) for row in _summary_table(path).to_pylist()]
 
 
 def catalogued_sets(root: Path = paths.ARTIFACTS_ROOT) -> list[str]:
@@ -98,8 +133,7 @@ def catalogued_sets(root: Path = paths.ARTIFACTS_ROOT) -> list[str]:
         root: The artifacts root directory holding the catalogue index.
 
     Returns:
-        The identifier of each set, in the order the index first mentions it,
-        and empty when there is no index.
+        The identifier of each set, in the order the index first mentions it.
     """
     path = catalog_summary_path(root)
     if not path.exists():
@@ -115,13 +149,6 @@ def load_feature(
 ) -> list[SetCoverage]:
     """Read every instrument set for one feature, observed or not.
 
-    A set that reached this feature is read from its artifacts. A set the
-    dataset carries elsewhere but that has no artifact here observed none of
-    it, and is returned holding no events, so a figure can say so rather than
-    leave the instrument out and let a missing line read as missing data. Its
-    summary spans the feature's measured period, which is the axis the flat
-    line has to be drawn against; nothing about it is ever written to disk.
-
     Args:
         feature_class: The feature class, such as Crater.
         name: The feature name as ODE spells it.
@@ -129,8 +156,7 @@ def load_feature(
         artifacts_root: The artifacts root holding the catalogue index.
 
     Returns:
-        One entry per instrument set, widest coverage first, and the busiest
-        first among the sets that reached the same share of it.
+        One entry per instrument set, widest coverage first, then busiest.
     """
     directory = feature_artifacts_dir(root, feature_class, name)
     measured = [
@@ -150,10 +176,6 @@ def load_feature(
 def _summary_table(path: Path) -> pa.Table:
     """Read a summary file under the current schema.
 
-    A file written before a column existed simply carries nothing in it, since
-    reading under a schema fills what is missing and drops what it does not
-    name.
-
     Args:
         path: The summary parquet file.
 
@@ -170,8 +192,7 @@ def _load_set(events_path: Path) -> SetCoverage | None:
         events_path: The set's events parquet file.
 
     Returns:
-        The set's coverage, or None when its summary is missing, which marks a
-        set whose computation never finished.
+        The set's coverage, or None when its summary is missing.
     """
     summary_path = events_path.with_name(
         events_path.name.replace(paths.EVENTS_SUFFIX, paths.SET_SUMMARY_SUFFIX)
@@ -190,19 +211,13 @@ def _unobserved(
 ) -> list[SetCoverage]:
     """Build an empty instrument for every set with no measurement of this feature.
 
-    A set with records downloaded but no artifact beside them was never
-    measured, and saying it observed nothing would be as misleading as leaving
-    it out, so it is marked as still pending instead.
-
     Args:
-        measured: The sets that did reach it, at least one of which is needed
-            to know the feature and the period the empty ones are drawn over.
+        measured: The sets that did reach it, at least one of which is needed.
         catalogued: Every instrument set the artifacts hold anywhere.
         directory: The feature's artifacts directory.
 
     Returns:
-        One entry per catalogued set with no measurement here, holding no
-        events and no covered ground.
+        One entry per catalogued set with no measurement here, holding no events.
     """
     if not measured:
         return []

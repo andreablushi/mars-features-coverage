@@ -11,18 +11,15 @@ def ground_pixel_km2(
     """Return the ground one pixel of an observation covers.
 
     Args:
-        set_key: The instrument set the observation was asked for by, which
-            names the observing mode when a run narrowed a product type to it.
-        map_scale_m: The ground size of one pixel, or None when unpublished,
-            in which case the size configured for the set is used.
+        set_key: The instrument set the observation was asked for by.
+        map_scale_m: The ground size of one pixel, or None to use the configured one.
         width_km: The swath width, set only for a sounder's track.
 
     Returns:
         The ground one pixel covers in square kilometres.
 
     Raises:
-        KeyError: When a set publishes no scale and none is configured for it,
-            which every one of its observations fails on rather than one.
+        KeyError: When a set publishes no scale and none is configured for it.
     """
     if width_km is not None:
         return width_km * configs.SHARAD_ALONG_TRACK_M / 1000.0
