@@ -1,40 +1,30 @@
-"""Sweeping the features with a note of how far it has got."""
+"""Reading the prediction with a note of how far any sweep it runs has got."""
 
 from __future__ import annotations
 
 import time
-from collections.abc import Sequence
 
 import ipywidgets as widgets
 from IPython.display import display
 
-from storage import summary
+from prediction import predicting
+from prediction.stats.dataset import DatasetStats
 from visualization.common import panels
-from visualization.dataset import loading
-from visualization.dataset.loading import Named, Searched
 
 
-def swept(
-    under: Sequence[str], wanted: Sequence[Named] | None = None, workers: int = 8
-) -> list[Searched]:
-    """Search features under the strategies named, showing how far it has got.
+def read(workers: int = 8) -> dict[str, DatasetStats]:
+    """Read what every strategy makes of the dataset, showing any sweep it runs.
 
     Args:
-        under: The strategies to search under, by name.
-        wanted: The features to search, or None for every one computed locally.
         workers: How many processes to search on at once.
 
     Returns:
-        One entry per feature and strategy.
+        The stats each strategy leaves, by name, in the order they are written.
     """
-    wanted = list(summary.catalogued_features() if wanted is None else wanted)
-    bar = widgets.IntProgress(min=0, max=len(wanted), bar_style="info")
-    note = widgets.HTML()
-    display(widgets.HBox([bar, note]))
-    started = time.monotonic()
+    shown: dict[str, object] = {}
 
     def moved(done: int, total: int) -> None:
-        """Move the bar on and say how long the sweep has left.
+        """Move the bar on, claiming it the first time a sweep reports anything.
 
         Args:
             done: How many features are searched.
@@ -43,18 +33,25 @@ def swept(
         Returns:
             None.
         """
-        left = (time.monotonic() - started) / done * (total - done)
-        note.value = _note(
+        if not shown:
+            shown["bar"] = widgets.IntProgress(min=0, max=total, bar_style="info")
+            shown["note"] = widgets.HTML()
+            shown["started"] = time.monotonic()
+            display(widgets.HBox([shown["bar"], shown["note"]]))
+        elapsed = time.monotonic() - shown["started"]
+        left = elapsed / done * (total - done)
+        shown["bar"].value = done
+        shown["note"].value = _note(
             f"{done:,} of {total:,} features, about {left / 60:.0f} min left"
         )
-        bar.value = done
 
-    found = loading.sweep(under, wanted, workers, moved)
-    bar.bar_style = "success"
-    note.value = _note(
-        f"{len(wanted):,} features searched in "
-        f"{(time.monotonic() - started) / 60:.1f} min"
-    )
+    found = predicting.read(workers, moved)
+    if shown:
+        shown["bar"].bar_style = "success"
+        elapsed = time.monotonic() - shown["started"]
+        shown["note"].value = _note(
+            f"{shown['bar'].max:,} features searched in {elapsed / 60:.1f} min"
+        )
     return found
 
 

@@ -14,10 +14,10 @@ from digitalhub_runtime_python import handler
 import console
 import utils.disk.paths as paths
 import utils.disk.settings as settings
+from prediction import storing, sweeping
+from prediction.stats import dataset
 from storage import summary
 from survey import strategies
-from visualization.dataset import loading, saving
-from visualization.dataset.stats import dataset
 
 FUNCTION_NAME = "features-prediction"
 HANDLER = "scripts.dh_prediction_pipeline:save_predictions"
@@ -51,8 +51,8 @@ def save_predictions(project):
         f"strategies on {workers} workers",
         flush=True,
     )
-    found = loading.sweep(list(strategies.STRATEGIES), named, workers)
-    saving.written(dataset.read(found))
+    found = sweeping.sweep(list(strategies.STRATEGIES), named, workers)
+    storing.written(dataset.read(found))
 
     print("uploading the prediction", flush=True)
     packed = dh_pipeline.archive(paths.PREDICTIONS_ROOT, PREDICTIONS_NAME)

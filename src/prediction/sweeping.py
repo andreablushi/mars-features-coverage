@@ -7,10 +7,11 @@ from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from functools import partial
 
+from prediction import sets
+from prediction.models import tiles
+from prediction.models.tiles import TileStats
 from storage import summary
 from survey import strategies, studying
-from visualization.common import sets, tiles
-from visualization.common.tiles import TileStats
 
 Named = tuple[str, str]
 Progress = Callable[[int, int], None]

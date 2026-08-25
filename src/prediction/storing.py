@@ -8,10 +8,10 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import utils.disk.paths as paths
+from prediction.models.aggregate import Aggregate
+from prediction.models.spread import Spread
+from prediction.stats.dataset import DatasetStats
 from survey import strategies
-from visualization.common.aggregate import Aggregate
-from visualization.common.spread import Spread
-from visualization.dataset.stats.dataset import DatasetStats
 
 # What separates the instruments naming one piece of shared ground in a key.
 JOINED = "|"

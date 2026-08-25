@@ -6,9 +6,9 @@ from collections.abc import Mapping
 
 import ipywidgets as widgets
 
+from prediction.stats.dataset import DatasetStats
 from visualization.common import tables, wording
 from visualization.common.tables import Row
-from visualization.dataset.stats.dataset import DatasetStats
 
 _HEADINGS = ("Strategy", "Tiles searched", "Tiles kept", "Ground kept")
 _NOTE = (

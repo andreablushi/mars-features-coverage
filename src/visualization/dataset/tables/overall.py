@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import ipywidgets as widgets
 
+from prediction.stats.catalogue import CatalogueStats, Held
 from utils.maths import quantities
 from visualization.common import tables, wording
 from visualization.common.tables import Row
-from visualization.dataset.stats.catalogue import CatalogueStats, Held
 
 _FEATURES = ("Statistic", "Value")
 _INSTRUMENTS = (

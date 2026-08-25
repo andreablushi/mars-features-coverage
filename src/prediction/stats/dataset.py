@@ -5,10 +5,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from visualization.common import aggregate, spread, tiles
-from visualization.common.aggregate import Aggregate
-from visualization.common.spread import Spread
-from visualization.dataset.loading import Searched
+from prediction.models import aggregate, spread, tiles
+from prediction.models.aggregate import Aggregate
+from prediction.models.spread import Spread
+from prediction.sweeping import Searched
 
 # The shares of a tile the bands count the kept tiles reaching, loosest first.
 BANDS = (0.5, 0.75, 0.9)

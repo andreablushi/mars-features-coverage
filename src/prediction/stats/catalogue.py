@@ -6,9 +6,9 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from models.results import Summary
+from prediction.models import spread
+from prediction.models.spread import Spread
 from storage import summary as index
-from visualization.common import spread
-from visualization.common.spread import Spread
 
 
 @dataclass(frozen=True, slots=True)

@@ -7,12 +7,13 @@ from dataclasses import dataclass
 import ipywidgets as widgets
 from IPython.display import display
 
+from prediction.models import tiles
+from prediction.models.tiles import TileStats
 from survey.models.survey import Survey
 from survey.models.track import Track
-from visualization.common import panels, surveys, tiles
+from visualization.common import panels, surveys
 from visualization.common.picker import Areas, FeaturePicker, View
 from visualization.common.surveys import Stretch
-from visualization.common.tiles import TileStats
 
 NO_TILE = "Confirm a feature above and pick one of its tiles to fill this in."
 NO_TILES = "No tile of this feature holds anything to search."

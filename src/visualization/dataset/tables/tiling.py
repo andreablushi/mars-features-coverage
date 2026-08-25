@@ -6,11 +6,11 @@ from collections.abc import Mapping
 
 import ipywidgets as widgets
 
+from prediction.stats.dataset import DatasetStats
 from survey import strategies
 from utils.maths import quantities
 from visualization.common import tables
 from visualization.common.tables import Row
-from visualization.dataset.stats.dataset import DatasetStats
 
 _TILES = (
     "Strategy",

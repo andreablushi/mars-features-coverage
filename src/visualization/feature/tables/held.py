@@ -6,10 +6,11 @@ from collections.abc import Sequence
 
 import ipywidgets as widgets
 
+from prediction.models import tiles
+from prediction.models.tiles import TileStats
 from utils.maths import quantities
-from visualization.common import panels, tables, tiles, wording
+from visualization.common import panels, tables, wording
 from visualization.common.tables import Row
-from visualization.common.tiles import TileStats
 from visualization.feature import picker
 from visualization.feature.picker import TileView
 

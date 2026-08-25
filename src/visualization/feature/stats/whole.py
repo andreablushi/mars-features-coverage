@@ -5,10 +5,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from prediction.models import aggregate, tiles
+from prediction.models.aggregate import Aggregate
+from prediction.models.tiles import TileStats
 from survey.models.study import Study
-from visualization.common import aggregate, tiles
-from visualization.common.aggregate import Aggregate
-from visualization.common.tiles import TileStats
 
 
 @dataclass(frozen=True, slots=True)

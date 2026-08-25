@@ -6,11 +6,11 @@ from collections.abc import Mapping
 
 import ipywidgets as widgets
 
+from prediction.models.spread import Spread
+from prediction.stats.dataset import DatasetStats
 from utils.maths import quantities
 from visualization.common import tables, wording
-from visualization.common.spread import Spread
 from visualization.common.tables import Row
-from visualization.dataset.stats.dataset import DatasetStats
 
 _REACHED = ("Strategy", "Instrument", "Mean of a tile", "Spread", "Least", "Most")
 _SHARED = ("Strategy", "Instruments", "Mean of a tile", "Spread", "Least", "Most")

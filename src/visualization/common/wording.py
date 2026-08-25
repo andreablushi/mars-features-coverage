@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from prediction.models.spread import Spread
 from utils.maths import quantities
-from visualization.common.spread import Spread
 
 NOTHING = "none"
 UNCOUNTED = "not counted"
