@@ -1,0 +1,28 @@
+# Every setting a strategy can carry is written out here
+
+# The coverage each instrument is asked of a tile, in percent of its area. 
+# If 0 is asked, the instrument is not required to reach the tile at all
+demands:
+  - {CTX: 0.25, CRISM: 0.10}
+  - {SHARAD: 0.0}
+
+# The cells (area unit) an instrument has to leave to be counted
+# A tile is splitted into 36-64 cells approximately
+admits: {CTX: 1, CRISM: 1, SHARAD: 5}
+
+# How wide a tile of a feature is, in kilometres.
+tile_km: 20.0
+
+# The cells an observation has to bring a window that no other observation of
+# its own set already reaches
+gain: 5
+
+# How much a window is worth for each extra instrument answering the same
+# demand.
+breadth: 0.5
+
+# How long a window may run, in days.
+span_days: 687.0
+
+# What instruments are excluded from the window, and kept for the tile whenever they came. 
+timeless: [SHARAD]

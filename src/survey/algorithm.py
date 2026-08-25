@@ -31,7 +31,7 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
     picked = _best(track, demands, strategy)
     if picked is None:
         return None
-    kept, reach = redundancy.trimmed(track, picked, demands)
+    kept, reach = redundancy.trimmed(track, picked, demands, strategy.gain)
     return Survey(
         tile=track.tile,
         area_km2=track.area_km2,

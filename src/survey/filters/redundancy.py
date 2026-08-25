@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from survey import configs
 from survey.models.counter import Counter
 from survey.models.strategy import Demands
 from survey.models.track import Track
@@ -10,13 +9,17 @@ from survey.models.window import Window
 from survey.utils import scoring
 
 
-def trimmed(track: Track, window: Window, demands: Demands) -> tuple[list[int], float]:
+def trimmed(
+    track: Track, window: Window, demands: Demands, gain: int
+) -> tuple[list[int], float]:
     """Drop the observations a window does not need, its ends first.
 
     Args:
         track: The feature's observations on one time axis.
         window: The window they are counted inside.
         demands: The cells each instrument insisted on has to reach.
+        gain: The cells an observation has to bring that no other observation
+            of its own set already reaches.
 
     Returns:
         The observations worth keeping, oldest first, and how much of the tile
@@ -39,7 +42,7 @@ def trimmed(track: Track, window: Window, demands: Demands) -> tuple[list[int], 
             reverse=True,
         )
         for _, edge in ends:
-            score = _without(track, counter, demands, kept[edge])
+            score = _without(track, counter, demands, kept[edge], gain)
             # If the window can do without the observation
             if score is not None:
                 reach = score
@@ -49,7 +52,7 @@ def trimmed(track: Track, window: Window, demands: Demands) -> tuple[list[int], 
             break
     # The middle costs the window no time at all, so what is spare there goes
     for index in kept[1:-1]:
-        score = _without(track, counter, demands, index)
+        score = _without(track, counter, demands, index, gain)
         if score is not None:
             reach = score
             kept.remove(index)
@@ -57,7 +60,7 @@ def trimmed(track: Track, window: Window, demands: Demands) -> tuple[list[int], 
 
 
 def _without(
-    track: Track, counter: Counter, demands: Demands, index: int
+    track: Track, counter: Counter, demands: Demands, index: int, gain: int
 ) -> float | None:
     """Take one observation out of a window, unless the window needs it.
 
@@ -67,6 +70,8 @@ def _without(
             and put back when it turns out to be needed.
         demands: The cells each instrument insisted on has to reach.
         index: The observation to try the window without.
+        gain: The cells it has to bring that no other observation of its own
+            set already reaches.
 
     Returns:
         How much of the tile the rest reach, or None when the observation
@@ -74,7 +79,7 @@ def _without(
     """
     owner, cells = track.owners[index], track.cells[index]
     filled = counter.observations_per_cell[owner]
-    if sum(1 for cell in cells if filled[cell] == 1) >= configs.MIN_GAIN_CELLS:
+    if sum(1 for cell in cells if filled[cell] == 1) >= gain:
         return None
     held = scoring.scored(track, demands, counter.cells_reached)
     counter.release(owner, cells)

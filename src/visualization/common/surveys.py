@@ -15,7 +15,7 @@ Stretch = tuple[datetime, datetime]
 
 # The strategy a picker opens on. The search is never configured with one, it
 # is told, so the choice of what to show first belongs here.
-DEFAULT_STRATEGY = "surface"
+DEFAULT_STRATEGY = "default"
 
 # How many searches are kept, so every panel of a feature shares one.
 STUDY_CACHE = 8

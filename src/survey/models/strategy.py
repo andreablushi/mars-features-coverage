@@ -33,13 +33,17 @@ class Strategy:
             what a window is searched over one of. The cells were sized by the
             run that measured the feature, so a tile is cut to the nearest
             whole number of them.
-        breadth: What a window gains for each instrument answering a demand
-            beyond the first. Imagery and spectra of the same ground are worth
-            more than either alone, so a window holding both is worth waiting
-            for, though not for ever: at a weight of a half a full window buys
-            a second instrument with about five hundred days. At nought a
-            demand is scored on its best answer alone, and an instrument that
-            answers nothing extra in ground is never waited for.
+        gain: The cells an observation has to bring a window that no other
+            observation of its own set already reaches, or it is dropped from
+            the window as a repeat of ground the window already holds. Raising
+            it thins a window down to the observations that really add ground,
+            and lowering it keeps every look that brought anything at all.
+        breadth: How much a window is worth for each extra instrument
+            answering the same demand. Any one of a demand's instruments meets
+            it, so without this the search has no reason to reach for the
+            others. The higher it is, the longer a window the search will
+            accept in order to gather more of them over the same ground, and
+            at nought it stops reaching for them at all.
         span_days: How long a window may run. A Mars year is every season the
             ground has, but a surface reading holds far longer than that, so
             what the span should be is one of the things a comparison settles.
@@ -54,6 +58,7 @@ class Strategy:
     demands: tuple[dict[str, float], ...]
     admits: dict[str, int]
     tile_km: float
+    gain: int
     breadth: float
     span_days: float
     timeless: frozenset[str] = frozenset()

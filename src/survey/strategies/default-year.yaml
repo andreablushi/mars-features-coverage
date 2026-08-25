@@ -1,0 +1,9 @@
+demands:
+  - {CTX: 0.25, CRISM: 0.10}
+  - {SHARAD: 0.0}
+admits: {CTX: 1, CRISM: 1, SHARAD: 5}
+tile_km: 20.0
+gain: 5
+breadth: 0.5
+span_days: 365.0
+timeless: [SHARAD]
