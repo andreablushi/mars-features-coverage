@@ -84,7 +84,9 @@ def _strategy(name: str, spec: Any, path: Path) -> Strategy:
         raise ValueError(f"{path.name}: `{name}` wants `timeless` as a list")
     admits = spec.get("admits") or {}
     if not isinstance(admits, Mapping):
-        raise ValueError(f"{path.name}: `{name}` wants `admits` as instrument to cells")
+        raise ValueError(
+            f"{path.name}: `{name}` wants `admits` as instrument to pixels"
+        )
     return Strategy(
         name=name,
         demands=tuple(
@@ -95,8 +97,8 @@ def _strategy(name: str, spec: Any, path: Path) -> Strategy:
             for demand in demands
         ),
         admits={
-            str(iid): int(_number(name, "admits", cells, path))
-            for iid, cells in admits.items()
+            str(iid): _number(name, "admits", pixels, path)
+            for iid, pixels in admits.items()
         },
         tile_km=_number(name, "tile_km", spec.get("tile_km", TILE_KM), path),
         gain=int(_number(name, "gain", spec.get("gain", GAIN), path)),

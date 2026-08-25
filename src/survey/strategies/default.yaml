@@ -6,9 +6,9 @@ demands:
   - {CTX: 0.25, CRISM: 0.10}
   - {SHARAD: 0.0}
 
-# The cells (area unit) an instrument has to leave to be counted
-# A tile is splitted into 36-64 cells approximately
-admits: {CTX: 1, CRISM: 1, SHARAD: 5}
+# The pixels an instrument has to land on a tile to be counted
+# The scales sit far apart: an imager lays down millions where a sounder lays down tens
+admits: {CTX: 1000000, CRISM: 1000, SHARAD: 10}
 
 # How wide a tile of a feature is, in kilometres.
 tile_km: 20.0

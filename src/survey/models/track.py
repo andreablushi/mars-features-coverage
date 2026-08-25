@@ -52,7 +52,7 @@ class Track:
 
 
 def build(
-    coverage: Sequence[SetCoverage], patchwork: Patchwork, admits: dict[str, int]
+    coverage: Sequence[SetCoverage], patchwork: Patchwork, admits: dict[str, float]
 ) -> list[Track]:
     """Merge a feature's instrument sets into one timeline per tile.
 
@@ -63,7 +63,7 @@ def build(
     Args:
         coverage: The feature's instrument sets, in any order.
         patchwork: The feature cut into tiles.
-        admits: The cells each instrument has to leave on a whole tile, which
+        admits: The pixels each instrument has to land on a whole tile, which
             a tile holding less of the feature is asked a share of.
 
     Returns:
@@ -74,7 +74,7 @@ def build(
     refused: list[list[Event]] = [[] for _ in patchwork.tiles]
     labels = [instrument.label for instrument in coverage]
     iids = [instrument.summary.iid for instrument in coverage]
-    # What each set has to leave on each tile, worked out once for the feature
+    # What each set has to land on each tile, worked out once for the feature
     floors = [
         [admissible.least(admits, iid, patch, patchwork.cell_km2) for iid in iids]
         for patch in patchwork.tiles
@@ -83,7 +83,8 @@ def build(
         for observation in instrument.events:
             filled = packing.cells_of(observation.mask).tolist()
             for tile, cells in patchwork.scatter_cells(filled).items():
-                if len(cells) >= floors[tile][owner]:
+                landed = admissible.landed(observation, len(cells), patchwork.cell_km2)
+                if landed >= floors[tile][owner]:
                     held[tile].append((observation, owner, cells))
                 else:
                     refused[tile].append(observation)

@@ -1,7 +1,7 @@
 demands:
   - {CTX: 0.25, CRISM: 0.10}
   - {SHARAD: 0.0}
-admits: {CTX: 1, CRISM: 1, SHARAD: 5}
+admits: {CTX: 1000000, CRISM: 1000, SHARAD: 10}
 tile_km: 20.0
 gain: 5
 breadth: 0.5

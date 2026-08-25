@@ -52,11 +52,7 @@ def _rows(stats: TileStats) -> list[Row]:
     ]
     written += _observations(stats)
     written += [
-        (
-            f"Ground {iid} reaches",
-            f"{_share(stats, iid)}, {wording.pixels(stats.reached[iid].pixels)}",
-        )
-        for iid in sorted(stats.reached)
+        (f"Ground {iid} reaches", _reach(stats, iid)) for iid in sorted(stats.reached)
     ]
     written += [
         (
@@ -108,19 +104,21 @@ def _observations(stats: TileStats) -> list[Row]:
     ]
 
 
-def _share(stats: TileStats, iid: str) -> str:
-    """Write how much of the tile one instrument reaches.
+def _reach(stats: TileStats, iid: str) -> str:
+    """Write what one instrument left on the tile.
 
     Args:
         stats: The tile, as the search left it.
-        iid: The instrument the share is written for.
+        iid: The instrument the row is written for.
 
     Returns:
-        The share, or that the tile covers no ground to be a share of.
+        The share of the tile it reaches, the pixels it landed there, and how
+        many of its observations the tile keeps.
     """
-    if not stats.area_km2:
-        return wording.NOTHING
-    return f"{stats.reached[iid].km2 / stats.area_km2:.0%}"
+    reach = stats.reached[iid]
+    share = f"{reach.km2 / stats.area_km2:.0%}" if stats.area_km2 else wording.NOTHING
+    counted = f"{reach.taken:,} observation{'' if reach.taken == 1 else 's'}"
+    return f"{share}, {wording.pixels(reach.pixels)}, from {counted}"
 
 
 def _pixels(stats: TileStats) -> float | None:

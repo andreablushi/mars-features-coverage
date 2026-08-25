@@ -25,10 +25,13 @@ class Strategy:
             and the share of the tile each of them has to reach, so any one of
             them answering meets it. An instrument named nowhere is welcome in
             a window but never asked for.
-        admits: The cells each instrument has to leave on a whole tile before
+        admits: The pixels each instrument has to land on a whole tile before
             it counts as a look at it rather than a clip of its edge, by
-            instrument id. An instrument named nowhere has to leave a cell,
-            which is to say it has only to reach the tile.
+            instrument id. A tile holding less of the feature is asked less of
+            it. The instruments differ by orders of magnitude here, since an
+            imager lays down millions of pixels where a sounder lays down
+            tens. An instrument named nowhere is asked for nothing, so it has
+            only to reach the tile.
         tile_km: How wide a tile of a feature is, in kilometres, which is
             what a window is searched over one of. The cells were sized by the
             run that measured the feature, so a tile is cut to the nearest
@@ -56,7 +59,7 @@ class Strategy:
 
     name: str
     demands: tuple[dict[str, float], ...]
-    admits: dict[str, int]
+    admits: dict[str, float]
     tile_km: float
     gain: int
     breadth: float
