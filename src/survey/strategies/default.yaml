@@ -5,7 +5,7 @@
 # are two demands
 demands:
   - {CTX: 0.50}
-  - {CTX: 0.50, CRISM: 0.30}
+  - {CRISM: 0.30}
 
 # The pixels an instrument has to land on a tile to be counted
 # One ground floor of about 25 km2, read at each instrument's own pixel size

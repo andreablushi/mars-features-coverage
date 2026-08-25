@@ -2,7 +2,7 @@
 # asks whether surface mineralogy has to be contemporary with the image.
 demands:
   - {CTX: 0.50}
-  - {CTX: 0.50, CRISM: 0.30}
+  - {CRISM: 0.30}
 admits: {CTX: 1000000, CRISM: 800, SHARAD: 50}
 tile_km: 100.0
 gain: 1
