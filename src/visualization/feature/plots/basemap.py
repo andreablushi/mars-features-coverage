@@ -7,9 +7,10 @@ import threading
 from html import escape
 
 import ipywidgets as widgets
-import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import image as reading
 from matplotlib.axes import Axes
+from matplotlib.collections import LineCollection, PolyCollection
 from matplotlib.patches import Patch
 
 from analysis.utils import geodesy
@@ -22,6 +23,9 @@ from visualization.feature.plots.overlay import Box, Placed
 
 MAP_FIGURE_SIZE = (7.0, 6.0)
 MAP_PLACEHOLDER = "320px"
+
+# How wide the report beside the map is set, so the map keeps the rest.
+REPORT_WIDTH = "360px"
 
 # How a tile is drawn, by what the search made of it.
 TILE_KEPT = "#2e7d32"
@@ -62,7 +66,9 @@ def plot(view: View) -> widgets.Widget:
         return panels.unavailable(overlay.BASEMAP_FAILED.format(reason=_UNKNOWN))
     return widgets.HBox(
         [_report(view, grid, study), _view(grid, study, panels.title(view.coverage))],
-        layout=widgets.Layout(align_items="flex-start", grid_gap="24px"),
+        layout=widgets.Layout(
+            align_items="flex-start", flex_flow="row nowrap", grid_gap="24px"
+        ),
     )
 
 
@@ -93,7 +99,8 @@ def _report(view: View, grid: Placed, study: Study) -> widgets.HTML:
         f"{box.west:.3f} to {box.east:.3f} lon<br>"
         f"{escape(view.strategy.name)}: cut into {grid.across} by {grid.across} tiles "
         f"of about {quantities.area(view.strategy.tile_km**2)}"
-        f"<pre style='margin: 8px 0 0; line-height: 1.4'>{body}</pre>"
+        f"<pre style='margin: 8px 0 0; line-height: 1.4'>{body}</pre>",
+        layout=widgets.Layout(flex=f"0 0 {REPORT_WIDTH}"),
     )
 
 
@@ -149,25 +156,20 @@ def _figure(
     Returns:
         The figure as a widget.
     """
-    figure, axis = plt.subplots(figsize=MAP_FIGURE_SIZE)
+    figure, axis = panels.board(MAP_FIGURE_SIZE)
     mosaic(axis, box, image)
     _tiles(axis, grid, study)
-    axis.set_title(f"{title}  -  how the search cuts it up", fontsize=12, loc="left")
+    axis.set_title(title, fontsize=12, loc="left")
     axis.set_xlabel("Longitude")
     axis.set_ylabel("Latitude")
     axis.tick_params(labelsize=8)
-    axis.legend(
-        handles=[
+    panels.key_below(
+        figure,
+        [
             Patch(edgecolor=colour, facecolor="none", label=said)
             for colour, said in _LEGEND
         ],
-        fontsize=8,
-        loc="upper left",
-        bbox_to_anchor=(0.0, -0.08),
-        ncols=3,
-        frameon=False,
     )
-    figure.tight_layout()
     return panels.rendered(figure)
 
 
@@ -183,16 +185,23 @@ def mosaic(axis: Axes, box: Box, image: bytes) -> None:
         None.
     """
     axis.imshow(
-        plt.imread(io.BytesIO(image), format="png"),
+        reading.imread(io.BytesIO(image), format="png"),
         extent=box.extent,
         origin="upper",
         cmap="gray",
     )
     axis.set_aspect(1.0 / geodesy.longitude_stretch((box.south + box.north) / 2.0))
+    axis.set_xlim(box.west, box.east)
+    axis.set_ylim(box.south, box.north)
+    # A footprint reaching well past the crop is cut to it rather than framed
+    axis.autoscale(False)
 
 
 def _tiles(axis: Axes, grid: Placed, study: Study) -> None:
     """Outline every tile of the feature, marked by what the search made of it.
+
+    A feature is cut into thousands of tiles, so the outlines are handed to the
+    panel in three batches rather than one at a time.
 
     Args:
         axis: The panel to draw on.
@@ -203,38 +212,46 @@ def _tiles(axis: Axes, grid: Placed, study: Study) -> None:
         None.
     """
     found = {stats.tile: stats.kept for stats in tiles.measured(study)}
+    rings: dict[bool | None, list[np.ndarray]] = {True: [], False: [], None: []}
     for at, patch in enumerate(study.patchwork.tiles):
         if not patch.area_km2:
             continue
         row, column = divmod(at, study.patchwork.across)
         lon, lat = grid.tile(row, column)
-        _outline(axis, lon, lat, found.get(at))
+        rings[found.get(at)].append(np.column_stack([lon, lat]))
+    _outline(axis, rings[True], TILE_KEPT, "solid")
+    _outline(axis, rings[False], TILE_REFUSED, "solid")
+    _outline(axis, rings[None], TILE_UNSEARCHED, (0, (3, 3)))
+    if rings[False]:
+        axis.add_collection(
+            PolyCollection(
+                rings[False],
+                facecolors=TILE_REFUSED,
+                alpha=TILE_REFUSED_FILL,
+                linewidths=0,
+            ),
+            autolim=False,
+        )
 
 
-def _outline(axis: Axes, lon: np.ndarray, lat: np.ndarray, kept: bool | None) -> None:
-    """Draw one tile, marked by what the search made of it.
+def _outline(axis: Axes, rings: list[np.ndarray], colour: str, style: object) -> None:
+    """Draw one batch of tile outlines in the colour their verdict earned.
 
     Args:
         axis: The panel to draw on.
-        lon: The tile's ring longitudes.
-        lat: Its ring latitudes.
-        kept: Whether it earned a window, or None when it was never searched.
+        rings: Each tile's ring, as its lon/lat points.
+        colour: The colour to draw them in.
+        style: The line style to draw them in.
 
     Returns:
         None.
     """
-    if kept is None:
-        axis.plot(
-            lon,
-            lat,
-            color=TILE_UNSEARCHED,
-            linewidth=TILE_WIDTH,
-            linestyle=(0, (3, 3)),
-        )
+    if not rings:
         return
-    axis.plot(lon, lat, color=TILE_KEPT if kept else TILE_REFUSED, linewidth=TILE_WIDTH)
-    if not kept:
-        axis.fill(lon, lat, color=TILE_REFUSED, alpha=TILE_REFUSED_FILL, linewidth=0)
+    axis.add_collection(
+        LineCollection(rings, colors=colour, linewidths=TILE_WIDTH, linestyles=style),
+        autolim=False,
+    )
 
 
 def _placeholder(text: str) -> widgets.HTML:

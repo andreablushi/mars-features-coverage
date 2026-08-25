@@ -25,6 +25,15 @@ FIGURE_WIDTH = 11
 # The ramp a heat panel is coloured by.
 COLORMAP = "YlGnBu"
 
+# The strip left clear under a map for the key naming what it draws.
+KEY_HEIGHT = 0.085
+KEY_DROP = 0.015
+
+# The strip left clear beside a map for the same key, set down its side.
+KEY_WIDTH = 0.78
+KEY_SIDE = 0.80
+KEY_TOP = 0.92
+
 # The windows the tiles earned, marked across the time panels.
 SURVEY_LINE = "#1a1a1a"
 SURVEY_STYLE = (0, (6, 3))
@@ -47,6 +56,65 @@ def colours(drawn: Sequence[Series]) -> dict[str, Colour]:
     """
     wheel = cycle(plt.cm.tab10.colors)
     return {one.label: colour for one, colour in zip(drawn, wheel, strict=False)}
+
+
+def board(size: tuple[float, float]) -> tuple[Figure, Axes]:
+    """Open a figure off pyplot's registry, so a thread may draw on it.
+
+    A figure pyplot owns is shown and closed by the notebook at the end of
+    whichever cell happens to run next, which is not the cell that asked for
+    it when the drawing is done off the main thread.
+
+    Args:
+        size: How wide and tall to draw it, in inches.
+
+    Returns:
+        The figure and the single panel on it.
+    """
+    figure = Figure(figsize=size)
+    return figure, figure.subplots()
+
+
+def key_below(figure: Figure, handles: Sequence) -> None:
+    """Set a key under a map, in a strip left clear of the axis and its label.
+
+    Args:
+        figure: The finished figure, whose panel is laid out above the strip.
+        handles: What the key names, in the order it reads.
+
+    Returns:
+        None.
+    """
+    figure.tight_layout(rect=(0.0, KEY_HEIGHT, 1.0, 1.0))
+    figure.legend(
+        handles=handles,
+        fontsize=8,
+        loc="lower left",
+        bbox_to_anchor=(0.02, KEY_DROP),
+        ncols=3,
+        frameon=False,
+    )
+
+
+def key_beside(figure: Figure, handles: Sequence) -> None:
+    """Set a key beside a map, in a strip left clear down its right side.
+
+    Args:
+        figure: The finished figure, whose panel is laid out left of the
+            strip.
+        handles: What the key names, in the order it reads.
+
+    Returns:
+        None.
+    """
+    figure.tight_layout(rect=(0.0, 0.0, KEY_WIDTH, 1.0))
+    figure.legend(
+        handles=handles,
+        fontsize=8,
+        loc="upper left",
+        bbox_to_anchor=(KEY_SIDE, KEY_TOP),
+        frameon=False,
+    )
 
 
 def tidy(axis: Axes, percent: str, grid: str) -> None:
@@ -100,7 +168,8 @@ def rendered(figure: Figure) -> widgets.Image:
     """
     buffer = io.BytesIO()
     figure.savefig(buffer, format="png", dpi=figure.dpi)
-    plt.close(figure)
+    if figure.canvas.manager is not None:
+        plt.close(figure)
     return widgets.Image(
         value=buffer.getvalue(),
         format="png",

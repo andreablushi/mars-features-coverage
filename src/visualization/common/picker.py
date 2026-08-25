@@ -76,11 +76,18 @@ class Areas[Chosen]:
     def refill(self) -> None:
         """Redraw every claimed area from the current choice.
 
+        Every area is emptied before any of them is drawn, so what was on
+        screen for the last choice goes at once rather than standing until
+        whatever replaces it has been drawn.
+
         Returns:
             None.
         """
+        chosen = self.chosen
+        for area, _ in self._areas:
+            area.children = ()
         for area, render in self._areas:
-            area.children = (render(self.chosen),)
+            area.children = (render(chosen),)
 
 
 class FeaturePicker(Areas[View]):

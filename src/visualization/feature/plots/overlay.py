@@ -151,7 +151,19 @@ class Placed:
             split.
         """
         lon, lat = geodesy.laea_inverse(x, y, *self._centre)
-        return self._centre[0] + geodesy.normalise_longitude(lon - self._centre[0]), lat
+        return self.around(lon), lat
+
+    def around(self, lon: np.ndarray) -> np.ndarray:
+        """Bring longitudes onto the same turn as the feature's own.
+
+        Args:
+            lon: The longitudes in degrees, however they are spelled.
+
+        Returns:
+            The same longitudes, kept contiguous around the projection centre
+            so a feature at the antimeridian does not split.
+        """
+        return self._centre[0] + geodesy.normalise_longitude(lon - self._centre[0])
 
     def box(self) -> Box:
         """Return the lon/lat box the whole grid falls in.
