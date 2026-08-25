@@ -14,7 +14,6 @@ from visualization.dataset.stats.dataset import DatasetStats
 
 _HEADINGS = (
     "Strategy",
-    "Features kept",
     "Tiles searched",
     "Tiles kept",
     "Tiles removed",
@@ -90,7 +89,6 @@ def _row(stats: DatasetStats) -> Row:
     held = stats.held
     return (
         stats.strategy,
-        f"{stats.kept:,} of {stats.features:,}",
         f"{held.searched:,}",
         f"{held.kept:,}",
         f"{held.searched - held.kept:,}",

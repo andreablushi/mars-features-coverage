@@ -65,7 +65,7 @@ def taken(read: Mapping[str, DatasetStats]) -> widgets.Widget:
 
 
 def classes(read: Mapping[str, DatasetStats]) -> widgets.Widget:
-    """Tabulate how many features of each class each strategy keeps.
+    """Tabulate how many tiles of each feature class each strategy keeps.
 
     Args:
         read: What each strategy made of the features swept, by strategy name.
@@ -74,19 +74,14 @@ def classes(read: Mapping[str, DatasetStats]) -> widgets.Widget:
         The table as a widget.
     """
     names = list(read)
-    every = {
-        feature_class: counted
-        for stats in read.values()
-        for feature_class, (_, counted) in stats.classes.items()
-    }
+    every = dict.fromkeys(
+        feature_class for stats in read.values() for feature_class in stats.classes
+    )
     return tables.written(
-        "Which feature classes survive",
+        "Tiles kept by feature class",
         _CLASSES + tuple(names),
-        [
-            _row(feature_class, counted, read)
-            for feature_class, counted in every.items()
-        ],
-        lead="features kept of the features searched, class by class",
+        [_row(feature_class, read) for feature_class in every],
+        lead="tiles kept of the tiles searched, class by class",
     )
 
 
@@ -132,17 +127,18 @@ def _kept(stats: DatasetStats) -> Row:
     )
 
 
-def _row(feature_class: str, counted: int, read: Mapping[str, DatasetStats]) -> Row:
+def _row(feature_class: str, read: Mapping[str, DatasetStats]) -> Row:
     """Write one feature class's row.
 
     Args:
         feature_class: The class, such as Crater.
-        counted: How many features of it were searched.
         read: What each strategy made of the features swept.
 
     Returns:
-        The row, one cell per strategy.
+        The row, one cell per strategy, since a strategy tiles a feature its
+        own way and so searches its own number of tiles.
     """
-    return (f"{feature_class} ({counted:,})",) + tuple(
-        f"{stats.classes.get(feature_class, (0, 0))[0]:,}" for stats in read.values()
+    return (feature_class,) + tuple(
+        "{:,} of {:,}".format(*stats.classes.get(feature_class, (0, 0)))
+        for stats in read.values()
     )
