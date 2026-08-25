@@ -113,6 +113,22 @@ def catalogued_features(root: Path = paths.ARTIFACTS_ROOT) -> list[tuple[str, st
     return sorted(dict.fromkeys(named))
 
 
+def catalogued_rows(root: Path = paths.ARTIFACTS_ROOT) -> list[Summary]:
+    """Read every row the computed artifacts hold anywhere.
+
+    Args:
+        root: The artifacts root directory holding the catalogue index.
+
+    Returns:
+        One row per feature and instrument set measured, in index order, and
+        empty when there is no index.
+    """
+    path = catalog_summary_path(root)
+    if not path.exists():
+        return []
+    return [Summary(**row) for row in _summary_table(path).to_pylist()]
+
+
 def catalogued_sets(root: Path = paths.ARTIFACTS_ROOT) -> list[str]:
     """Return every instrument set the computed artifacts hold anywhere.
 
