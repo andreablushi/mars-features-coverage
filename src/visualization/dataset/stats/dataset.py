@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from visualization.common import aggregate, spread
+from visualization.common import aggregate, spread, tiles
 from visualization.common.aggregate import Aggregate
 from visualization.common.spread import Spread
 from visualization.dataset.loading import Searched
@@ -24,6 +24,10 @@ class DatasetStats:
         sizes: How much ground a tile holds, over the tiles searched.
         offered: How many observations each instrument landed on a tile, over
             the tiles searched, counting a tile it never reached as nothing.
+        shared: The share of a tile exactly so many instruments reach between
+            them, over the tiles kept, by how many of them reach it. A cell
+            counts once, so the shares do not overlap and add up to what the
+            window reaches.
         iids: The instruments reported on, in the order they are drawn.
         classes: How many tiles of each feature class were kept, and how many
             were searched, by feature class. A strategy admits a tile and
@@ -37,6 +41,7 @@ class DatasetStats:
     split: Spread
     sizes: Spread
     offered: dict[str, Spread]
+    shared: dict[int, Spread]
     iids: list[str]
     classes: dict[str, tuple[int, int]]
 
@@ -69,6 +74,9 @@ def _under(strategy: str, held: Sequence[Searched]) -> DatasetStats:
     """
     iids = list(dict.fromkeys(iid for searched in held for iid in searched.iids))
     measured = [tile for searched in held for tile in searched.measured]
+    # The kept tiles carrying ground, and how much of each so many instruments reach
+    grounded = [tile for tile in measured if tile.kept and tile.area_km2]
+    reaching = [tiles.shared(tile.overlaps) for tile in grounded]
     return DatasetStats(
         strategy=strategy,
         features=len(held),
@@ -79,6 +87,15 @@ def _under(strategy: str, held: Sequence[Searched]) -> DatasetStats:
         offered={
             iid: spread.over([tile.offered.get(iid, 0) for tile in measured])
             for iid in iids
+        },
+        shared={
+            counted: spread.over(
+                [
+                    found.get(counted, 0.0) / tile.area_km2
+                    for tile, found in zip(grounded, reaching, strict=True)
+                ]
+            )
+            for counted in range(1, len(iids) + 1)
         },
         iids=iids,
         classes=_classes(held),
