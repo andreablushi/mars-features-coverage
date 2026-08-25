@@ -1,17 +1,15 @@
 # Every setting a strategy can carry is written out here
 
 # The coverage each instrument is asked of a tile, in percent of its area.
-# SHARAD is asked for nothing: it is taken whenever it came, never demanded
+# Any one of the instruments a demand names answers it, so two both insisted on
+# are two demands
 demands:
+  - {CTX: 0.50}
   - {CTX: 0.50, CRISM: 0.30}
 
 # The pixels an instrument has to land on a tile to be counted
 # One ground floor of about 25 km2, read at each instrument's own pixel size
-admits: {CTX: 1000000, CRISM: 800, SHARAD: 20}
-
-# Whether a demand naming more than one instrument wants all of them or any one
-# With all, a tile only one of them ever visited earns nothing
-answering: all
+admits: {CTX: 1000000, CRISM: 800, SHARAD: 50}
 
 # How wide a tile of a feature is, in kilometres.
 # 100 km is where a tile holds the most SHARAD: below it the radar thins out,

@@ -14,7 +14,7 @@ from typing import Any
 
 import yaml
 
-from survey.models.strategy import ALL, ANY, Strategy
+from survey.models.strategy import Strategy
 
 # How wide a tile is when a strategy does not say, in kilometres.
 TILE_KM = 100.0
@@ -82,12 +82,6 @@ def _strategy(name: str, spec: Any, path: Path) -> Strategy:
     timeless = spec.get("timeless") or []
     if isinstance(timeless, str) or not isinstance(timeless, Sequence):
         raise ValueError(f"{path.name}: `{name}` wants `timeless` as a list")
-    answering = str(spec.get("answering", ALL))
-    if answering not in (ALL, ANY):
-        raise ValueError(
-            f"{path.name}: `{name}` wants `answering` as {ALL!r} or {ANY!r}, "
-            f"found {answering!r}"
-        )
     admits = spec.get("admits") or {}
     if not isinstance(admits, Mapping):
         raise ValueError(
@@ -102,7 +96,6 @@ def _strategy(name: str, spec: Any, path: Path) -> Strategy:
             }
             for demand in demands
         ),
-        answering=answering,
         admits={
             str(iid): _number(name, "admits", pixels, path)
             for iid, pixels in admits.items()

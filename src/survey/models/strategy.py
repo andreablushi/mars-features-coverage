@@ -6,10 +6,6 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-# Whether a demand naming several instruments wants all of them or any one.
-ALL = "all"
-ANY = "any"
-
 # One instrument that can answer a demand: the sets that speak for it, and the
 # cells any one of them has to reach.
 Answer = tuple[tuple[int, ...], int]
@@ -26,13 +22,12 @@ class Strategy:
             one comparison is told from another.
         demands: What a window is asked for, as a run of demands it has to
             meet all of. One demand names the instruments that can answer it
-            and the share of the tile each of them has to reach. An instrument
-            named nowhere is welcome in a window but never asked for.
-        answering: Whether a demand naming several instruments wants all of
-            them or any one of them. Asking for all of them holds each to its
-            own share and scores the window on every one, so a tile only one
-            of them ever visited earns nothing. Asking for any one of them
-            takes whichever came, and scores the window on the best of them.
+            and the share of the tile each of them has to reach, and any one
+            of them answering meets it. Two instruments both insisted on are
+            two demands; one instrument insisted on and another welcome beside
+            it is one demand naming the first alone and a second naming both.
+            An instrument named nowhere is welcome in a window but never asked
+            for.
         admits: The pixels each instrument has to land on a whole tile before
             it counts as a look at it rather than a clip of its edge, by
             instrument id. A tile holding less of the feature is asked less of
@@ -67,7 +62,6 @@ class Strategy:
 
     name: str
     demands: tuple[dict[str, float], ...]
-    answering: str
     admits: dict[str, float]
     tile_km: float
     gain: int
@@ -97,27 +91,16 @@ class Strategy:
         windowed: Demands = []
         standing: Demands = []
         for demand in self.demands:
-            # Wanting all of them is wanting each of them, one demand apiece
-            wanted = (
-                [demand]
-                if self.answering == ANY
-                else [{iid: share} for iid, share in demand.items()]
-            )
-            for group in wanted:
-                answers = [
-                    (
-                        tuple(
-                            index for index, owner in enumerate(iids) if owner == iid
-                        ),
-                        max(1, math.ceil(share * area_km2 / cell_km2)),
-                    )
-                    for iid, share in group.items()
-                ]
-                # A demand is out of the window only when everything answering it is
-                held = (
-                    standing if all(iid in self.timeless for iid in group) else windowed
+            answers = [
+                (
+                    tuple(index for index, owner in enumerate(iids) if owner == iid),
+                    max(1, math.ceil(share * area_km2 / cell_km2)),
                 )
-                held.append(answers)
+                for iid, share in demand.items()
+            ]
+            # A demand is out of the window only when everything answering it is
+            held = standing if all(iid in self.timeless for iid in demand) else windowed
+            held.append(answers)
         return (
             sorted(windowed, key=_tightest),
             sorted(standing, key=_tightest),
