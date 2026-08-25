@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
+from functools import partial
 
 from storage import summary
 from survey import strategies, studying
@@ -47,16 +48,18 @@ def catalogued() -> list[Named]:
 
 
 def sweep(
+    under: Sequence[str],
     wanted: Sequence[Named],
     workers: int = 8,
     progress: Progress | None = None,
 ) -> list[Searched]:
-    """Search every named feature under every strategy written.
+    """Search every tile of every named feature under every strategy named.
 
     The features are read one at a time and dropped again, so a run over the
     whole catalogue costs what one feature costs however many there are.
 
     Args:
+        under: The strategies to search under, by name.
         wanted: The features to search, as class and name.
         workers: How many processes to search on at once.
         progress: Called with how many features are done and how many there
@@ -66,19 +69,21 @@ def sweep(
         One entry per feature and strategy, in the order the features came in.
     """
     found: list[Searched] = []
+    searching = partial(_searched, under=tuple(under))
     with ProcessPoolExecutor(max_workers=workers) as pool:
-        for done, searched in enumerate(pool.map(_searched, wanted, chunksize=1), 1):
+        for done, searched in enumerate(pool.map(searching, wanted, chunksize=1), 1):
             found.extend(searched)
             if progress is not None:
                 progress(done, len(wanted))
     return found
 
 
-def _searched(named: Named) -> list[Searched]:
-    """Search one feature under every strategy written.
+def _searched(named: Named, under: Sequence[str]) -> list[Searched]:
+    """Search every tile of one feature under every strategy named.
 
     Args:
         named: The feature's class and name.
+        under: The strategies to search under, by name.
 
     Returns:
         One entry per strategy, and nothing at all when the feature has no
@@ -88,30 +93,17 @@ def _searched(named: Named) -> list[Searched]:
     coverage = sets.plotted(summary.load_feature(feature_class, name))
     if not coverage:
         return []
-    return [
-        _under(feature_class, name, coverage, strategy)
-        for strategy in strategies.STRATEGIES.values()
-    ]
-
-
-def _under(feature_class, name, coverage, strategy) -> Searched:
-    """Search one feature under one strategy.
-
-    Args:
-        feature_class: The feature class, such as Crater.
-        name: The feature name as ODE spells it.
-        coverage: Its instrument sets, in the order they are drawn.
-        strategy: What its tiles are asked for.
-
-    Returns:
-        What the search left on it.
-    """
-    study = studying.study(coverage, strategy)
-    return Searched(
-        feature_class=feature_class,
-        name=name,
-        strategy=strategy.name,
-        tiles=study.tiles,
-        iids=tiles.instruments(study),
-        measured=tiles.measured(study),
-    )
+    found: list[Searched] = []
+    for chosen in under:
+        study = studying.study(coverage, strategies.named(chosen))
+        found.append(
+            Searched(
+                feature_class=feature_class,
+                name=name,
+                strategy=chosen,
+                tiles=study.tiles,
+                iids=tiles.instruments(study),
+                measured=tiles.measured(study),
+            )
+        )
+    return found

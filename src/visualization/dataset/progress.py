@@ -13,10 +13,13 @@ from visualization.dataset import loading
 from visualization.dataset.loading import Named, Searched
 
 
-def swept(wanted: Sequence[Named] | None = None, workers: int = 8) -> list[Searched]:
-    """Search features under every strategy, showing how far the sweep has got.
+def swept(
+    under: Sequence[str], wanted: Sequence[Named] | None = None, workers: int = 8
+) -> list[Searched]:
+    """Search features under the strategies named, showing how far it has got.
 
     Args:
+        under: The strategies to search under, by name.
         wanted: The features to search, or None for every one computed
             locally.
         workers: How many processes to search on at once.
@@ -43,23 +46,10 @@ def swept(wanted: Sequence[Named] | None = None, workers: int = 8) -> list[Searc
         bar.value = done
         note.value = _left(done, total, time.monotonic() - started)
 
-    found = loading.sweep(wanted, workers, moved)
+    found = loading.sweep(under, wanted, workers, moved)
     bar.bar_style = "success"
     note.value = _done(len(wanted), time.monotonic() - started)
     return found
-
-
-def sample(every: int) -> list[Named]:
-    """Take an even sample of the features computed locally.
-
-    Args:
-        every: Keep one feature in this many, so the sample spreads over the
-            whole catalogue rather than stopping at the first class.
-
-    Returns:
-        The sample, in catalogue order.
-    """
-    return loading.catalogued()[::every]
 
 
 def _left(done: int, total: int, elapsed: float) -> str:

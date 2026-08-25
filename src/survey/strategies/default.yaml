@@ -3,19 +3,19 @@
 # The coverage each instrument is asked of a tile, in percent of its area. 
 # If 0 is asked, the instrument is not required to reach the tile at all
 demands:
-  - {CTX: 0.25, CRISM: 0.10}
+  - {CTX: 0.50, CRISM: 0.30}
   - {SHARAD: 0.0}
 
 # The pixels an instrument has to land on a tile to be counted
 # The scales sit far apart: an imager lays down millions where a sounder lays down tens
-admits: {CTX: 1000000, CRISM: 1000, SHARAD: 10}
+admits: {CTX: 10000, CRISM: 1000, SHARAD: 10}
 
 # Whether a demand naming more than one instrument wants all of them or any one
 # With all, a tile only one of them ever visited earns nothing
 answering: all
 
 # How wide a tile of a feature is, in kilometres.
-tile_km: 20.0
+tile_km: 50.0
 
 # The cells an observation has to bring a window that no other observation of
 # its own set already reaches
@@ -23,7 +23,7 @@ gain: 5
 
 # How much a window is worth for each extra instrument answering the same
 # demand.
-breadth: 0.5
+breadth: 0.7
 
 # How long a window may run, in days.
 span_days: 687.0
