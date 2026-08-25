@@ -1,8 +1,11 @@
+# The default with the radar bound to the window instead of taken from the whole
+# record, which asks what insisting the subsurface be contemporary costs.
 demands:
-  - {CTX: 0.5, CRISM: 0.30}
-  - {SHARAD: 0.0}
-admits: {CTX: 10000, CRISM: 1000, SHARAD: 10}
-tile_km: 50.0
+  - {CTX: 0.50, CRISM: 0.30}
+admits: {CTX: 1000000, CRISM: 800, SHARAD: 20}
+answering: all
+tile_km: 100.0
+gain: 1
 breadth: 0.7
 span_days: 687.0
 timeless: []
