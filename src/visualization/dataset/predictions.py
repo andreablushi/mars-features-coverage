@@ -2,14 +2,15 @@
 
 A sweep of the whole catalogue costs minutes, and every section of the
 notebook reads the same one, so the stats a strategy leaves are held here from
-the first section that asks for them. Only a strategy nothing is held for is
-searched again.
+the first section that asks for them. A run of the prediction pipeline leaves
+its own sweep on disk, which is read first, and only a strategy neither of
+them holds is searched again.
 """
 
 from __future__ import annotations
 
 from survey import strategies
-from visualization.dataset import progress
+from visualization.dataset import progress, saving
 from visualization.dataset.stats import dataset
 from visualization.dataset.stats.dataset import DatasetStats
 
@@ -30,6 +31,9 @@ def read(workers: int = 8) -> dict[str, DatasetStats]:
         strategies are written.
     """
     missing = [name for name in strategies.STRATEGIES if name not in _held]
+    if missing:
+        _held.update(saving.loaded())
+        missing = [name for name in missing if name not in _held]
     if missing:
         _held.update(dataset.read(progress.swept(missing, workers=workers)))
     return {name: _held[name] for name in strategies.STRATEGIES}

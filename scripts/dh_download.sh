@@ -23,4 +23,5 @@ download_and_extract() {
 
 download_and_extract artifact coverage-artifacts data/artifacts
 download_and_extract artifact coverage-metadata data/metadata
+download_and_extract artifact coverage-predictions data/predictions
 download_and_extract dataitem coverage-summary data/artifacts

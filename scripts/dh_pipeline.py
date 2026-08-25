@@ -37,7 +37,7 @@ CATALOG_NAME = "coverage-catalog"
 IMAGE_EXTRAS = ["digitalhub>=0.15.6,<0.16", "pandas"]
 
 
-def _archive(source: Path, name: str) -> Path:
+def archive(source: Path, name: str) -> Path:
     """Pack a tree into one file, carrying the directory the pipeline reads it from.
 
     The platform records every uploaded file on the entity, and caps that
@@ -91,7 +91,7 @@ def save_artifacts(project):
 
     # Publish the measurements themselves.
     print("packing the measurements", flush=True)
-    packed = _archive(paths.ARTIFACTS_ROOT, ARTIFACTS_NAME)
+    packed = archive(paths.ARTIFACTS_ROOT, ARTIFACTS_NAME)
     print(
         f"uploading the measurements, {packed.stat().st_size / 1e6:.0f} MB", flush=True
     )
@@ -113,7 +113,7 @@ def save_artifacts(project):
     # Publish the ODE catalogues the run fetched, which the notebooks read.
     if paths.CATALOG_ROOT.exists() and any(paths.CATALOG_ROOT.glob("*.jsonl")):
         print("uploading the catalogues", flush=True)
-        packed = _archive(paths.CATALOG_ROOT, CATALOG_NAME)
+        packed = archive(paths.CATALOG_ROOT, CATALOG_NAME)
         project.log_artifact(
             name=CATALOG_NAME,
             kind="artifact",
@@ -124,7 +124,7 @@ def save_artifacts(project):
     # Publish the records too, unless the run was told to discard them.
     if paths.METADATA_ROOT.exists() and any(paths.METADATA_ROOT.rglob("*.jsonl")):
         print("packing the records", flush=True)
-        packed = _archive(paths.METADATA_ROOT, METADATA_NAME)
+        packed = archive(paths.METADATA_ROOT, METADATA_NAME)
         print(
             f"uploading the records, {packed.stat().st_size / 1e6:.0f} MB", flush=True
         )
@@ -142,7 +142,7 @@ def save_artifacts(project):
     return artifacts, summary
 
 
-def _requirements() -> list[str]:
+def requirements() -> list[str]:
     """Read what the pipeline needs installed, so the image matches the repo.
 
     Returns:
@@ -153,7 +153,7 @@ def _requirements() -> list[str]:
     return tomllib.loads(manifest)["project"]["dependencies"] + IMAGE_EXTRAS
 
 
-def _parser() -> argparse.ArgumentParser:
+def parser() -> argparse.ArgumentParser:
     """Describe what a submission can be told to do.
 
     Returns:
@@ -177,7 +177,7 @@ def main() -> int:
         A process exit code, non zero when the image did not build. The job is
         never waited on, so its own outcome is read from the platform.
     """
-    arguments = _parser().parse_args()
+    arguments = parser().parse_args()
 
     # Register a version of the function pointing at the pushed ref.
     project = dh.get_or_create_project(arguments.project)
@@ -187,7 +187,7 @@ def main() -> int:
         python_version=PYTHON_VERSION,
         code_src=f"git+{REPOSITORY}#{arguments.ref}",
         handler=HANDLER,
-        requirements=_requirements(),
+        requirements=requirements(),
     )
 
     # Build the image first, since the job cannot install anything itself.

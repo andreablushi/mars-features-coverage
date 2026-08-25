@@ -15,6 +15,7 @@ CONFIG_PATH = REPO_ROOT / "config.yaml"
 DATA_ROOT = REPO_ROOT / "data"
 METADATA_ROOT = DATA_ROOT / "metadata"
 CATALOG_ROOT = DATA_ROOT / "_catalog"
+PREDICTIONS_ROOT = DATA_ROOT / "predictions"
 ARTIFACTS_ROOT = DATA_ROOT / "artifacts"
 COVERAGE_ROOT = ARTIFACTS_ROOT / "coverage"
 
