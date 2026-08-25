@@ -39,6 +39,7 @@ def plot(view: View) -> widgets.Widget:
         f"{panels.title(view.coverage)}  -  coverage per observation",
         _FEATURE_GROUND,
         surveys.stretches([picked for _, picked in study.kept]),
+        view.strategy.timeless,
     )
 
 
@@ -58,6 +59,7 @@ def plot_tile(chosen: TileView | None) -> widgets.Widget:
         f"{chosen.name}  -  coverage per observation",
         _TILE_GROUND,
         chosen.open_for,
+        chosen.view.strategy.timeless,
     )
 
 
@@ -66,14 +68,19 @@ def _draw(
     title: str,
     ground: str,
     open_for: Sequence[Stretch],
+    timeless: frozenset[str],
 ) -> widgets.Widget:
     """Draw one stacked panel per instrument set, sharing both axes.
+
+    A window is only ever asked of the instruments the strategy asks inside
+    one, so an instrument it asks of the whole record is left unmarked.
 
     Args:
         drawn: What each set observed of the ground on show.
         title: The line above the top panel.
         ground: What the heights are a share of.
         open_for: The stretches of time the windows are open over.
+        timeless: The instruments the strategy asks of the whole record.
 
     Returns:
         The figure as a widget.
@@ -87,10 +94,13 @@ def _draw(
         sharey=True,
     )
     axes = np.atleast_1d(axes)
+    marked = False
     for axis, one in zip(axes, drawn, strict=True):
         _panel(axis, one, colours[one.label])
-        panels.shade(axis, open_for)
-    _key(axes[0], open_for)
+        if one.iid not in timeless:
+            panels.shade(axis, open_for)
+            marked = True
+    _key(axes[0], open_for if marked else [])
     axes[0].set_ylim(-0.05, 1.05)
     axes[0].set_title(title, fontsize=12, loc="left")
     axes[-1].set_xlabel("Observation start time")

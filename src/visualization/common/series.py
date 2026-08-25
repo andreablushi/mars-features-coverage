@@ -16,6 +16,8 @@ class Series:
 
     Attributes:
         label: The set's short readable name.
+        iid: The instrument it belongs to, which is what a strategy names when
+            it asks the whole record for something rather than a window.
         times: When each of its observations started, oldest first.
         shares: How much of the ground each of them covered on its own, as a
             share of it.
@@ -29,6 +31,7 @@ class Series:
     """
 
     label: str
+    iid: str
     times: list[datetime]
     shares: list[float]
     running: list[float]
@@ -62,6 +65,7 @@ def over_feature(coverage: Sequence[SetCoverage]) -> list[Series]:
     return [
         Series(
             label=instrument.label,
+            iid=instrument.summary.iid,
             times=[observation.t_start for observation in instrument.events],
             shares=[
                 observation.own_km2 / area_km2 for observation in instrument.events
@@ -94,19 +98,19 @@ def over_tile(track: Track) -> list[Series]:
     for index in range(len(track.observations)):
         held[track.owners[index]].append(index)
     return [
-        _tile_series(track, label, held[owner], first, last)
-        for owner, label in enumerate(track.labels)
+        _tile_series(track, owner, held[owner], first, last)
+        for owner in range(len(track.labels))
     ]
 
 
 def _tile_series(
-    track: Track, label: str, held: list[int], first: datetime, last: datetime
+    track: Track, owner: int, held: list[int], first: datetime, last: datetime
 ) -> Series:
     """Read one instrument set's observations of one tile.
 
     Args:
         track: The tile's admissible observations on one time axis.
-        label: The set's short readable name.
+        owner: Which of the feature's sets it is, as the track indexes them.
         held: Where its observations sit on that axis, oldest first.
         first: The earliest moment the tile is drawn from.
         last: The latest moment it is drawn to.
@@ -120,7 +124,8 @@ def _tile_series(
         reached.update(track.cells[index])
         running.append(len(reached) * track.cell_km2 / track.area_km2)
     return Series(
-        label=label,
+        label=track.labels[owner],
+        iid=track.iids[owner],
         times=[track.observations[index].t_start for index in held],
         shares=[
             len(track.cells[index]) * track.cell_km2 / track.area_km2 for index in held
