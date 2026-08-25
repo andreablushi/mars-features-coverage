@@ -6,7 +6,7 @@ import threading
 
 import ipywidgets as widgets
 from matplotlib.axes import Axes
-from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 
 from visualization.common import panels, series, tiles
 from visualization.feature import picker
@@ -19,8 +19,13 @@ MAP_FIGURE_SIZE = (9.0, 6.0)
 # How the tile itself is drawn under the footprints.
 TILE_EDGE = "#ffffff"
 TILE_WIDTH = 1.4
-TRACE_WIDTH = 1.2
-TRACE_ALPHA = 0.85
+TRACE_WIDTH = 0.8
+TRACE_ALPHA = 0.9
+
+# How solid the ground a footprint covers is filled in. A footprint is filled
+# and not merely outlined, so what the map shows is the ground the shares
+# beside it are counted over.
+FILL_ALPHA = 0.25
 
 _NO_WINDOW = "This tile holds no window worth keeping, so nothing is drawn."
 _UNKNOWN = "this feature has no lon/lat box to crop the mosaic to"
@@ -117,7 +122,7 @@ def _figure(grid: Placed, chosen: TileView, box: Box, image: bytes) -> widgets.W
     panels.key_beside(
         figure,
         [
-            Line2D([], [], color=colour, linewidth=TRACE_WIDTH, label=label)
+            Patch(facecolor=colour, edgecolor=colour, alpha=TRACE_ALPHA, label=label)
             for label, colour in colours.items()
         ],
     )
@@ -127,7 +132,7 @@ def _figure(grid: Placed, chosen: TileView, box: Box, image: bytes) -> widgets.W
 def _traces(
     axis: Axes, grid: Placed, chosen: TileView, shapes: dict
 ) -> dict[str, tuple]:
-    """Trace the footprint of every observation the tile keeps.
+    """Fill the ground every observation the tile keeps covers.
 
     Args:
         axis: The panel to draw on.
@@ -144,17 +149,19 @@ def _traces(
     colours = panels.colours(series.over_tile(track))
     drawn: dict[str, tuple] = {}
     for index in tiles.held(chosen.survey):
-        shape = shapes.get(track.observations[index].pdsid)
+        observation = track.observations[index]
+        shape = shapes.get(observation.pdsid)
         if shape is None:
             continue
         label = track.labels[track.owners[index]]
-        for lon, lat in outlines.traced(shape):
-            axis.plot(
+        for lon, lat in outlines.traced(shape, observation.width_km):
+            axis.fill(
                 grid.around(lon),
                 lat,
-                color=colours[label],
+                facecolor=colours[label],
+                edgecolor=colours[label],
                 linewidth=TRACE_WIDTH,
-                alpha=TRACE_ALPHA,
+                alpha=FILL_ALPHA,
             )
             drawn[label] = colours[label]
     return drawn
