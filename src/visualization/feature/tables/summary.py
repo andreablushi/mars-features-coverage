@@ -46,8 +46,7 @@ def _rows(stats: FeatureStats) -> list[Row]:
         stats: The feature read across them.
 
     Returns:
-        Every row, the tiling first, what each instrument reaches after it,
-        and where the instruments meet last.
+        Every row, the tiling first, then each instrument, then where they meet.
     """
     held = stats.held
     written: list[Row] = [

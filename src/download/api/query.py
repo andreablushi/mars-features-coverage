@@ -24,8 +24,7 @@ def query_boxes(feature: Feature) -> tuple[Box, ...]:
         feature: The feature to query.
 
     Returns:
-        One box as (min_lat, max_lat, west_lon, east_lon), or two for a feature
-        that circles a pole.
+        One box as (min_lat, max_lat, west_lon, east_lon), or two around a pole.
     """
     if feature.circles_a_pole:
         return tuple(
@@ -41,8 +40,7 @@ def _base_params(box: Box, instrument_set: InstrumentSet, loc: str) -> dict[str,
     Args:
         box: The lat/lon box to ask for.
         instrument_set: The instrument host, instrument, and product type.
-        loc: Which products the box returns, "f" for every footprint that
-            overlaps it and "o" for only those falling entirely inside.
+        loc: "f" for every footprint overlapping the box, "o" for only those inside.
 
     Returns:
         The parameter dictionary without a results selector.
@@ -111,8 +109,7 @@ def _identity(item: dict[str, Any]) -> tuple[str, str]:
         item: One raw product object from an ODE response.
 
     Returns:
-        The footprint and acquisition time, or an empty footprint and the
-        product id when ODE published no footprint.
+        The footprint and acquisition time, empty when ODE published no footprint.
     """
     footprint = str(item.get("Footprint_C0_geometry") or "")
     if not footprint:

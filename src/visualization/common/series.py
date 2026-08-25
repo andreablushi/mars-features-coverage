@@ -16,16 +16,12 @@ class Series:
 
     Attributes:
         label: The set's short readable name.
-        iid: The instrument it belongs to, which is what a strategy names when
-            it asks the whole record for something rather than a window.
+        iid: The instrument it belongs to, which is what a strategy names.
         times: When each of its observations started, oldest first.
-        shares: How much of the ground each of them covered on its own, as a
-            share of it.
-        running: How much of the ground it had reached by then, as a share of
-            it, counting a revisit once.
+        shares: How much of the ground each of them covered on its own.
+        running: How much of the ground it had reached by then, revisits counted once.
         covered: The share it ends on.
-        first: The earliest moment it is drawn from, which is where a set that
-            observed nothing still starts.
+        first: The earliest moment it is drawn from.
         last: The latest moment it is drawn to.
         reason: Why it holds nothing to draw, and empty when it observed.
     """
@@ -83,15 +79,11 @@ def over_feature(coverage: Sequence[SetCoverage]) -> list[Series]:
 def over_tile(track: Track) -> list[Series]:
     """Read every instrument set's observations of one tile of a feature.
 
-    Only the observations the search may pick from are read, so a look too
-    small for the tile is left off here as it is left off the search.
-
     Args:
         track: The tile's admissible observations on one time axis.
 
     Returns:
-        One series per set of the feature, in the order the track indexes
-        them, holding nothing for a set that left the tile nothing.
+        One series per set, in the order the track indexes them.
     """
     first, last = track.observations[0].t_start, track.observations[-1].t_start
     held: list[list[int]] = [[] for _ in track.labels]

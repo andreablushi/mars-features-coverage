@@ -23,16 +23,10 @@ class DatasetStats:
         features: How many features were searched.
         held: Every tile of every feature, read as one.
         sizes: How much ground a tile holds, over the tiles searched.
-        offered: How many observations each instrument landed on a tile, over
-            the tiles searched, counting a tile it never reached as nothing.
-        shared: The share of a tile exactly so many instruments reach between
-            them, over the tiles kept, by how many of them reach it. A cell
-            counts once, so the shares do not overlap and add up to what the
-            window reaches.
-        reaching: How many kept tiles hold at least so many instruments, by
-            how many of them the tile holds.
-        covered: How many kept tiles have at least that share of their ground
-            reached by two instruments at once, by the share asked.
+        offered: How many observations each instrument landed on a tile searched.
+        shared: The share of a tile exactly so many instruments reach, over the kept.
+        reaching: How many kept tiles hold at least so many instruments.
+        covered: How many kept tiles two instruments reach that share of at once.
         iids: The instruments reported on, in the order they are drawn.
     """
 
@@ -54,8 +48,7 @@ def read(found: Sequence[Searched]) -> dict[str, DatasetStats]:
         found: What the sweep left, one entry per feature and strategy.
 
     Returns:
-        What each strategy would make of them, by strategy name, in the order
-        the sweep first mentions each.
+        What each strategy would make of them, by name, in the order swept.
     """
     grouped: dict[str, list[Searched]] = {}
     for searched in found:

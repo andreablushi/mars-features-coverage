@@ -61,10 +61,6 @@ def colours(drawn: Sequence[Series]) -> dict[str, Colour]:
 def board(size: tuple[float, float]) -> tuple[Figure, Axes]:
     """Open a figure off pyplot's registry, so a thread may draw on it.
 
-    A figure pyplot owns is shown and closed by the notebook at the end of
-    whichever cell happens to run next, which is not the cell that asked for
-    it when the drawing is done off the main thread.
-
     Args:
         size: How wide and tall to draw it, in inches.
 
@@ -100,8 +96,7 @@ def key_beside(figure: Figure, handles: Sequence) -> None:
     """Set a key beside a map, in a strip left clear down its right side.
 
     Args:
-        figure: The finished figure, whose panel is laid out left of the
-            strip.
+        figure: The finished figure, whose panel is laid out left of the strip.
         handles: What the key names, in the order it reads.
 
     Returns:

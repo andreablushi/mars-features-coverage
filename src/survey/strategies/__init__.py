@@ -1,10 +1,4 @@
-"""The weightings of the instruments a search can be run under, side by side.
-
-Every strategy is one YAML file beside this one, named after it, so a strategy
-that loses the comparison is removed by deleting its file. Nothing here says
-which one a run uses: a search is handed the strategy it runs under, never
-configured with one.
-"""
+"""The weightings of the instruments a search can be run under, side by side."""
 
 from __future__ import annotations
 
@@ -38,8 +32,7 @@ def load(root: Path = STRATEGIES_ROOT) -> dict[str, Strategy]:
         The strategies, by the name each file goes by.
 
     Raises:
-        ValueError: When the directory holds no strategy, or one of them is
-            written in a way it cannot be read.
+        ValueError: When the directory holds no strategy, or one cannot be read.
     """
     found = {
         path.stem: _strategy(

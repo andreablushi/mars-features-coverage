@@ -13,10 +13,8 @@ class Counter:
     """What one window holds, kept true as the window slides along the axis.
 
     Attributes:
-        observations_per_cell: How many of the window's observations fill each
-            cell of the tile, per instrument set.
-        cells_reached: How many cells of the tile each set reaches, which is
-            what the window is scored on.
+        observations_per_cell: The window's observations filling each cell, per set.
+        cells_reached: How many cells of the tile each set reaches.
     """
 
     observations_per_cell: list[list[int]]
@@ -41,9 +39,6 @@ class Counter:
     @classmethod
     def over(cls, track: Track, first: int, last: int) -> Counter:
         """Count afresh everything one stretch of the axis holds.
-
-        It takes bare indices rather than a window, since the search counts the
-        whole record this way before it has a window to speak of.
 
         Args:
             track: The feature's observations on one time axis.

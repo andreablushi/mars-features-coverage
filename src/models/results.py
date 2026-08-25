@@ -27,9 +27,7 @@ class Event:
         cum_frac: The same as a share of the feature.
         width_km: The swath width used, or None when the footprint had area.
         pixels: How many of the instrument's pixels landed inside the feature.
-        mask: The feature's cells this footprint fills, packed as a bitmap or
-            as a list of cells, whichever is smaller, so any set of
-            observations can be unioned by merging their cells.
+        mask: The feature's cells this footprint fills, packed as a bitmap or a list.
     """
 
     feature_class: str
@@ -56,8 +54,7 @@ class Summary:
     Attributes:
         feature_class: The feature class, such as Crater or Collis.
         feature_name: The feature name as ODE spells it.
-        set_key: The instrument set the records were asked for by, which names
-            the observing mode when a run narrowed one product type to it.
+        set_key: The instrument set the records were asked for by.
         ihid: The instrument host identifier.
         iid: The instrument identifier.
         pt: The product type.
@@ -68,20 +65,12 @@ class Summary:
         t_first: When the earliest of them started.
         t_last: When the latest of them started.
         span_days: How long the row's observations span.
-        mask_cells: How many of the feature's grid cells fall inside it, which
-            is what a count of covered cells is a share of.
+        mask_cells: How many of the feature's grid cells fall inside it.
         grid_side: How many cells the feature's grid holds along each axis.
-        tiles_across: How many tiles the feature was cut into along each axis,
-            which the grid was sized for so that every tile holds the same
-            cells.
+        tiles_across: How many tiles the feature was cut into along each axis.
         cell_km2: How much ground one cell of that grid covers.
-        grid_mask: Which cells of that grid fall inside the feature, packed
-            as an observation's cells are. The grid covers the box the
-            feature was projected into, which a feature far from the
-            equator does not fill, so a tile is credited with the cells of
-            it that are really the feature.
-        pixels: How many pixels the set landed inside the feature in total,
-            counting a revisit again.
+        grid_mask: Which cells of that grid fall inside the feature, packed as a mask.
+        pixels: How many pixels the set landed inside the feature, revisits counted.
     """
 
     feature_class: str
@@ -112,9 +101,7 @@ class SetCoverage:
     Attributes:
         events: The set's observations in chronological order.
         summary: The single row describing the set as a whole.
-        pending: Whether the set has records downloaded but never measured,
-            which is why it carries no observations here. False for a set that
-            was measured, and for one that genuinely saw nothing.
+        pending: Whether the set has records downloaded but never measured.
     """
 
     events: list[Event]
@@ -126,8 +113,7 @@ class SetCoverage:
         """Return the short readable name for the instrument set.
 
         Returns:
-            The instrument and product type, such as "CTX EDR", carrying the
-            pattern when the set is only one observing mode of that type.
+            The instrument and product type, such as "CTX EDR", with any pattern.
         """
         return InstrumentSet.from_key(self.summary.set_key).label
 

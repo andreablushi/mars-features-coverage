@@ -18,10 +18,8 @@ class Reach:
     """What one instrument left on one tile inside its window.
 
     Attributes:
-        km2: The ground it reaches, counting a cell once however often it was
-            revisited.
-        pixels: The pixels it landed there, counting a revisit again, or None
-            when any of its observations carries no pixel count.
+        km2: The ground it reaches, counting a cell once however often it was revisited.
+        pixels: The pixels it landed there, or None where any carries no count.
         taken: How many of its observations the window keeps.
     """
 
@@ -36,29 +34,21 @@ class TileStats:
 
     Attributes:
         tile: Which tile of the feature it is, as the patchwork numbers them.
-        row: Which row of the grid it sits in, counting north from the south
-            edge.
+        row: Which row of the grid it sits in, counting north from the south edge.
         column: Which column it sits in, counting east from the west edge.
         area_km2: How much of the feature it holds.
         kept: Whether it earned a window worth keeping.
-        start: When the earliest observation in its window was taken, or None
-            when it earned none.
+        start: When the earliest observation in its window was taken, or None.
         end: When the latest one was taken, or None when it earned none.
         days: How long its window lasts.
-        reach: How much of the tile its window reaches, as the search scores
-            it.
-        taken: How many observations the tile keeps, the window's own and
-            what a timeless instrument brought it from outside the window.
+        reach: How much of the tile its window reaches, as the search scores it.
+        taken: How many observations the tile keeps, from the window and outside it.
         dropped: How many the window dropped as repeats of ground it held.
-        refused: How many looks fell inside the window but were too small for
-            the tile.
+        refused: How many looks fell inside the window but were too small for the tile.
         turned_away: How many looks were too small for the tile at all.
-        offered: How many observations of each instrument landed on the
-            tile at all, before any window was searched over it, by
-            instrument.
+        offered: How many observations of each instrument landed on the tile at all.
         reached: What each instrument left on the tile, by instrument.
-        overlaps: How much ground each set of instruments reaches between them,
-            by the instruments really there, most ground first.
+        overlaps: The ground each set of instruments reaches, most ground first.
     """
 
     tile: int
@@ -86,8 +76,7 @@ def measured(study: Study) -> list[TileStats]:
         study: What the search found over one feature.
 
     Returns:
-        One entry per tile it ran over, in the order the patchwork lays them
-        out.
+        One entry per tile it ran over, in the order the patchwork lays them out.
     """
     return [
         _tile(study, track, picked)
@@ -119,7 +108,11 @@ def _tile(study: Study, track: Track, picked: Survey | None) -> TileStats:
         reach=picked.reach if picked else 0.0,
         taken=len(held(picked)),
         dropped=picked.dropped if picked else 0,
-        refused=_refused(track, picked),
+        refused=sum(
+            1
+            for observation in track.refused
+            if picked and picked.start <= observation.t_start <= picked.end
+        ),
         turned_away=len(track.refused),
         offered=dict(Counter(track.iids[owner] for owner in track.owners)),
         reached=_reached(track, picked),
@@ -134,31 +127,11 @@ def held(picked: Survey | None) -> tuple[int, ...]:
         picked: The window it earned, or None when it earned none.
 
     Returns:
-        The window's own observations and the ones a timeless instrument
-        brought it from outside the window, oldest first.
+        The window's own observations and what came from outside it, oldest first.
     """
     if picked is None:
         return ()
     return tuple(sorted(set(picked.kept) | set(picked.standing)))
-
-
-def _refused(track: Track, picked: Survey | None) -> int:
-    """Count the looks that fell inside a window but were too small to count.
-
-    Args:
-        track: The tile's admissible observations on one time axis.
-        picked: The window they are counted inside, or None for no window.
-
-    Returns:
-        How many of them there were.
-    """
-    if picked is None:
-        return 0
-    return sum(
-        1
-        for observation in track.refused
-        if picked.start <= observation.t_start <= picked.end
-    )
 
 
 def _reached(track: Track, picked: Survey | None) -> dict[str, Reach]:
@@ -169,8 +142,7 @@ def _reached(track: Track, picked: Survey | None) -> dict[str, Reach]:
         picked: The window they are counted inside, or None for no window.
 
     Returns:
-        What each instrument that left anything on the tile left, by
-        instrument.
+        What each instrument that left anything on the tile left, by instrument.
     """
     if picked is None:
         return {}
@@ -193,17 +165,13 @@ def _reached(track: Track, picked: Survey | None) -> dict[str, Reach]:
 def _landed(track: Track, picked: Survey, iid: str) -> float | None:
     """Add up the pixels one instrument landed on the tile inside its window.
 
-    A footprint's pixels are spread evenly over the ground it covers, so the
-    share of them that fell on the tile is the share of its ground that did.
-
     Args:
         track: The tile's admissible observations on one time axis.
         picked: The window they are counted inside.
         iid: The instrument to count.
 
     Returns:
-        The pixels it landed there, or None when any of its observations
-        carries none.
+        The pixels it landed there, or None when any of its observations carries none.
     """
     total = 0.0
     for index in held(picked):
@@ -225,9 +193,7 @@ def _overlaps(track: Track, picked: Survey | None) -> dict[tuple[str, ...], floa
         picked: The window they are counted inside, or None for no window.
 
     Returns:
-        The ground in square kilometres, by the instruments that reach it,
-        named in order and most ground first. A cell counts once, so the
-        grounds do not overlap and add up to what the window covers.
+        The ground in square kilometres, by the instruments reaching it, most first.
     """
     if picked is None:
         return {}
@@ -248,13 +214,10 @@ def shared(overlaps: Mapping[tuple[str, ...], float]) -> dict[int, float]:
     """Add up the ground each number of instruments reaches at once.
 
     Args:
-        overlaps: The ground each set of instruments reaches between them, by
-            the instruments really there. A cell counts once, so the grounds
-            do not overlap and add up.
+        overlaps: The ground each set of instruments reaches, counting a cell once.
 
     Returns:
-        The ground in square kilometres, by how many instruments reach it,
-        fewest first.
+        The ground in square kilometres, by how many instruments reach it, fewest first.
     """
     counted: dict[int, float] = {}
     for names, km2 in overlaps.items():

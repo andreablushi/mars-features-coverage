@@ -25,9 +25,6 @@ _TILE_GROUND = "Share of the tile covered by one observation"
 def plot(view: View) -> widgets.Widget:
     """Draw one stacked panel per instrument set, over the whole feature.
 
-    A window is found over a tile and not over the feature, so nothing here
-    marks one.
-
     Args:
         view: The feature on show and the strategy it is judged under.
 
@@ -73,14 +70,6 @@ def _draw(
     timeless: frozenset[str],
 ) -> widgets.Widget:
     """Draw one stacked panel per instrument set, sharing both axes.
-
-    A window is only ever asked of the instruments the strategy asks inside
-    one, so an instrument it asks of the whole record is left unmarked.
-
-    The panels share their axes, so the time axis is scaled to whichever of
-    them observed, and left the margin that keeps the earliest and the latest
-    observation off the frame. Only where none of them observed is there
-    nothing to scale it to, and the axis is held open by hand.
 
     Args:
         drawn: What each set observed of the ground on show.

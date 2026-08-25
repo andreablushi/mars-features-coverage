@@ -18,12 +18,10 @@ def trimmed(
         track: The feature's observations on one time axis.
         window: The window they are counted inside.
         demands: The cells each instrument insisted on has to reach.
-        gain: The cells an observation has to bring that no other observation
-            of its own set already reaches.
+        gain: The cells an observation has to bring that its own set does not reach.
 
     Returns:
-        The observations worth keeping, oldest first, and how much of the tile
-        they reach between them.
+        The observations worth keeping, oldest first, and the tile they reach.
     """
     # List of the observations that are kept
     kept = list(range(window.first, window.last + 1))
@@ -66,16 +64,13 @@ def _without(
 
     Args:
         track: The feature's observations on one time axis.
-        counter: What the window holds, which the observation is taken out of
-            and put back when it turns out to be needed.
+        counter: What the window holds, which the observation is taken out of.
         demands: The cells each instrument insisted on has to reach.
         index: The observation to try the window without.
-        gain: The cells it has to bring that no other observation of its own
-            set already reaches.
+        gain: The cells it has to bring that its own set does not already reach.
 
     Returns:
-        How much of the tile the rest reach, or None when the observation
-        brought ground of its own or a demand would go with it.
+        How much of the tile the rest reach, or None when it cannot be spared.
     """
     owner, cells = track.owners[index], track.cells[index]
     filled = counter.observations_per_cell[owner]

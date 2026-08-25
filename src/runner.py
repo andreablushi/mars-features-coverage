@@ -11,7 +11,6 @@ from concurrent.futures import (
     as_completed,
 )
 from contextlib import closing
-from pathlib import Path
 
 from rich.console import Console
 
@@ -21,7 +20,7 @@ from console import describe_coverage, describe_download, render
 from download.api.client import ODEClient
 from download.fetching import run_job as download_set
 from download.selection.instruments import verify_sets
-from models.job import Job, Outcome, Plan
+from models.job import Job, Outcome
 from models.progress import ProgressEvent
 from models.settings import Settings
 from storage import catalog, metadata
@@ -34,10 +33,7 @@ def run_jobs(
 
     Args:
         jobs: The work to run.
-        execute: What to call for one job, returning its outcome. It must never
-            raise, since a stage reports a failure as an outcome rather than by
-            stopping the run, and it must be picklable when the pool runs on
-            processes, which rules out a lambda or a local function.
+        execute: What to call for one job, which must never raise and must be picklable.
         pool: The pool to run on, owned and shut down by the caller.
 
     Yields:
@@ -78,22 +74,6 @@ def _measuring(
         yield event
 
 
-def _pending(plan: Plan) -> list[Path]:
-    """Return the sets already on disk that this run will not download again.
-
-    A set the download is about to rewrite is measured once it lands rather
-    than now, so it is left out here and cannot be computed twice.
-
-    Args:
-        plan: The download plan, naming every file this run will write.
-
-    Returns:
-        The stored metadata files to weigh for the coverage backlog.
-    """
-    rewriting = {job.output_path for job in plan.jobs}
-    return [source for source in metadata.find_sets() if source not in rewriting]
-
-
 def run_pipeline(
     settings: Settings, console: Console
 ) -> tuple[list[Outcome], list[Outcome]]:
@@ -121,7 +101,9 @@ def run_pipeline(
             names=settings.feature_names,
             force=settings.force,
         )
-        backlog = planner.coverage_plan(_pending(plan), force=settings.force)
+        rewriting = {job.output_path for job in plan.jobs}
+        stored = [held for held in metadata.find_sets() if held not in rewriting]
+        backlog = planner.coverage_plan(stored, force=settings.force)
         describe_download(plan, settings.workers, console)
         describe_coverage(backlog, settings.workers, console)
         with (

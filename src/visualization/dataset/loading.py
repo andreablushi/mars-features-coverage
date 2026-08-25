@@ -43,15 +43,11 @@ def sweep(
 ) -> list[Searched]:
     """Search every tile of every named feature under every strategy named.
 
-    The features are read one at a time and dropped again, so a run over the
-    whole catalogue costs what one feature costs however many there are.
-
     Args:
         under: The strategies to search under, by name.
         wanted: The features to search, as class and name.
         workers: How many processes to search on at once.
-        progress: Called with how many features are done and how many there
-            are, after each one.
+        progress: Called with how many features are done and how many there are.
 
     Returns:
         One entry per feature and strategy, in the order the features came in.
@@ -74,8 +70,7 @@ def _searched(named: Named, under: Sequence[str]) -> list[Searched]:
         under: The strategies to search under, by name.
 
     Returns:
-        One entry per strategy, and nothing at all when the feature has no
-        instrument set on disk.
+        One entry per strategy, and nothing where the feature has no set on disk.
     """
     feature_class, name = named
     coverage = sets.plotted(summary.load_feature(feature_class, name))

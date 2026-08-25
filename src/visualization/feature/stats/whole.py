@@ -17,11 +17,9 @@ class FeatureStats:
 
     Attributes:
         held: The tiles read as one.
-        tiles: How many tiles hold any of the feature, which the search may
-            not have reached all of.
+        tiles: How many tiles hold any of the feature.
         across: How many tiles the feature was cut into along each axis.
-        feature_km2: How much ground the feature's bounding box covers, which
-            the ground the tiles hold is read back as a share of.
+        feature_km2: How much ground the feature's bounding box covers.
         iids: The instruments reported on, in the order they are drawn.
     """
 

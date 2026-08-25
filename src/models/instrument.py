@@ -28,8 +28,7 @@ class InstrumentSet:
         """Build a set from its canonical identifier.
 
         Args:
-            key: An IHID/IID/PT triple, optionally followed by a colon and a
-                product id pattern.
+            key: An IHID/IID/PT triple, optionally with a colon and a product pattern.
 
         Returns:
             The instrument set.
@@ -45,8 +44,7 @@ class InstrumentSet:
         """Return the short readable name for this set.
 
         Returns:
-            The instrument and product type, with the pattern appended when the
-            set is only part of that type, such as "CRISM TRDR [mh]sp*".
+            The instrument and product type, with the pattern where it is part of one.
         """
         name = f"{self.iid} {self.pt}"
         return f"{name} {self.product_id}" if self.product_id else name
@@ -56,8 +54,7 @@ class InstrumentSet:
         """Return the canonical IHID/IID/PT identifier.
 
         Returns:
-            The three identifiers joined by slashes, followed by the product id
-            pattern after a colon when the set carries one.
+            The three identifiers joined by slashes, with the pattern after a colon.
         """
         key = f"{self.ihid}/{self.iid}/{self.pt}"
         return f"{key}:{self.product_id}" if self.product_id else key
@@ -65,9 +62,6 @@ class InstrumentSet:
     @property
     def slug(self) -> str:
         """Return a filesystem safe name for this instrument set.
-
-        A pattern is spelled out in the name, so narrowing a set writes beside
-        the whole one rather than silently overwriting it.
 
         Returns:
             The canonical identifier as a slug.

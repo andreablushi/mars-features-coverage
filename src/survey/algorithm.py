@@ -17,8 +17,7 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
 
     Args:
         track: The admissible observations on one time axis.
-        strategy: Which instruments the window has to hold, and how much
-            ground each of them has to reach inside it.
+        strategy: Which instruments the window has to hold, and how much ground each.
 
     Returns:
         The chosen window, or None when no window is worth keeping.
@@ -26,8 +25,10 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
     # Pick up the strategy's requirements, every one of which is mandatory
     demands, standing = strategy.floors(track.iids, track.area_km2, track.cell_km2)
     # What time cannot change is asked of the whole record rather than a window
-    if standing and not _standing(track, standing):
-        return None
+    if standing:
+        whole = Counter.over(track, 0, len(track.observations) - 1)
+        if scoring.scored(track, standing, whole.cells_reached) is None:
+            return None
     picked = _best(track, demands, strategy)
     if picked is None:
         return None
@@ -45,26 +46,8 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
     )
 
 
-def _standing(track: Track, standing: Demands) -> bool:
-    """Ask the whole record for what no window can be asked to hold.
-
-    Args:
-        track: The admissible observations on one time axis.
-        standing: The cells each timeless instrument has to reach, whenever it
-            reached them.
-
-    Returns:
-        True when the record answers for every one of them.
-    """
-    whole = Counter.over(track, 0, len(track.observations) - 1)
-    return scoring.scored(track, standing, whole.cells_reached) is not None
-
-
 def _best(track: Track, demands: Demands, strategy: Strategy) -> Window | None:
     """Take the window worth the most, at the price a day of waiting costs.
-
-    Every window the demands allow is weighed, so the one returned is the best
-    there is rather than the best of a sample.
 
     Args:
         track: The admissible observations on one time axis.

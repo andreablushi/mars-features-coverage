@@ -115,12 +115,10 @@ class FeatureRegion:
 
         Args:
             geoms: The parsed footprint geometries in lon/lat degrees.
-            swath_widths_m: The cross-track width to give each sounder track,
-                ignored for footprints that already enclose area.
+            swath_widths_m: The cross-track width for each track, ignored for areas.
 
         Returns:
-            One projected, clipped footprint per input, empty where it falls
-            outside the feature.
+            One projected, clipped footprint per input, empty where it falls outside.
         """
         parts, owners, buffers = footprints.clipped_surface_parts(
             geoms, self._tight, self._wide, swath_widths_m

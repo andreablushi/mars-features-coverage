@@ -20,8 +20,7 @@ def split(side: int, tile_km: float, cell_km2: float, grid_mask: bytes) -> Patch
         grid_mask: Which cells of the grid fall inside the feature.
 
     Returns:
-        The patchwork, holding a tile per patch and the tile every cell fell
-        in.
+        The patchwork, holding a tile per patch and the tile every cell fell in.
     """
     across = _across(side, tile_km, cell_km2)
     # Say which tile every row and column of cells falls in, and where in it
@@ -61,8 +60,7 @@ def _across(side: int, tile_km: float, cell_km2: float) -> int:
         cell_km2: How much ground one cell of the grid covers.
 
     Returns:
-        The tile count per axis, which has to divide the grid evenly so that
-        every tile holds the same square of cells and nothing is left over.
+        The tile count per axis, which has to divide the grid evenly.
     """
     wanted = side * math.sqrt(cell_km2) / tile_km
     evenly = [count for count in range(1, side + 1) if side % count == 0]

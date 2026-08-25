@@ -19,20 +19,13 @@ _NONE = np.empty(0, dtype=np.int64)
 def grid_for(span_m: float, tile_km: int, tile_cells: int) -> tuple[int, int]:
     """Cut a feature into tiles, and give every tile the same grid.
 
-    The tiles come first and the cells follow them, so a cell is the same
-    share of a tile whatever the feature was cut from, and one measurement of
-    a tile means what it means anywhere else. A feature narrower than a tile
-    is one tile, and keeps a whole tile's worth of cells.
-
     Args:
-        span_m: How wide the feature's box is, as the geometric mean of its
-            two axes in metres.
+        span_m: How wide the feature's box is, in metres.
         tile_km: How wide one tile is, in kilometres.
         tile_cells: How many cells one tile holds along each axis.
 
     Returns:
-        How many tiles the feature is cut into along each axis, and how many
-        cells that gives the grid along each axis.
+        The tiles the feature is cut into per axis, and the cells that gives the grid.
     """
     span_km = max(span_m, 0.0) / 1000.0
     across = max(1, math.ceil(span_km / tile_km))
@@ -43,11 +36,8 @@ class FeatureRaster:
     """One feature's grid, and which of its cells a footprint fills.
 
     Attributes:
-        cells: How many of the grid's cells fall inside the feature, which is
-            what a covered count is a share of.
-        mask: Which of them those are, packed as one footprint's cells are, so
-            a tile can be credited with the ground the feature really has in
-            it rather than with its whole block of the grid.
+        cells: How many of the grid's cells fall inside the feature.
+        mask: Which of them those are, packed as one footprint's cells are.
         side: How many cells the grid holds along each axis.
         across: How many tiles the feature is cut into along each axis.
         cell_km2: How much ground one cell covers.
@@ -118,10 +108,6 @@ class FeatureRaster:
 
     def _nearest(self, shape: BaseGeometry) -> np.ndarray:
         """Give a footprint holding no cell centre the one cell it sits in.
-
-        Only a footprint worth about a cell is given one. On a feature whose
-        cells still dwarf it, crediting it with a whole cell would claim far
-        more ground than it reached, so it is left holding none.
 
         Args:
             shape: The projected shape being burned.

@@ -14,10 +14,6 @@ from storage.disk import read_jsonl
 def load_set(path: Path) -> LoadedSet[Observation]:
     """Read the observations stored for one feature and instrument set.
 
-    Only a file holding at least one record is ever measured, since both the
-    backlog and the freshly downloaded sets are filtered on size before a
-    coverage job is built, so the first record always carries the provenance.
-
     Args:
         path: The JSONL file holding the set's observations.
 

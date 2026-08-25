@@ -1,10 +1,4 @@
-"""What a sweep made of the dataset, written out so it need not be swept again.
-
-A sweep of the whole catalogue costs minutes, so a run that has already done it
-leaves what it found beside the measurements, one file per strategy. A strategy
-is only read back while the file it is written in has not changed since, since
-an edited strategy would make a different dataset from the same measurements.
-"""
+"""What a sweep made of the dataset, written out so it need not be swept again."""
 
 from __future__ import annotations
 
@@ -111,9 +105,7 @@ def loaded(root: Path = paths.PREDICTIONS_ROOT) -> dict[str, DatasetStats]:
         root: The directory the files were written in.
 
     Returns:
-        The stats each strategy left, by strategy name, leaving out any
-        strategy no longer written or rewritten since, and empty when there is
-        nothing to read.
+        The stats each strategy left, by name, leaving out any rewritten since.
     """
     found: dict[str, DatasetStats] = {}
     for path in sorted(root.glob("*.json")):

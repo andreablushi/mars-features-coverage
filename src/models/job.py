@@ -13,17 +13,13 @@ from models.instrument import InstrumentSet
 class Job:
     """One feature and instrument set to download, or to compute coverage for.
 
-    A download job carries what to query and where to put it; a coverage job
-    carries the metadata file to read and the artifacts to write beside it.
-
     Attributes:
         feature: The feature to query, on a download job.
         instrument_set: The instrument set to query, on a download job.
         output_path: The JSONL file the results are written to.
         source: The JSONL file holding one instrument set's observations.
         events_path: The parquet file the per-observation rows go to.
-        summary_path: The parquet file the set's one summary row goes to,
-            written last so its presence marks the set as finished.
+        summary_path: The parquet file the set's one summary row goes to, written last.
     """
 
     feature: Feature | None = None
@@ -38,8 +34,7 @@ class Job:
         """Return a short human readable name for this job.
 
         Returns:
-            The feature name and instrument set key on a download job, the
-            feature slug and instrument set slug on a coverage job.
+            The feature and instrument set, named as the job's own stage spells them.
         """
         if self.feature is not None and self.instrument_set is not None:
             return f"{self.feature.name} [{self.instrument_set.key}]"
@@ -99,8 +94,7 @@ class Plan:
         feature_count: Features selected, or discovered on disk.
         set_count: Instrument sets selected, or discovered on disk.
         skipped_existing: Outputs left in place because they already exist.
-        sizeless_features: Names of the features the catalogue gives no extent
-            that could be recovered, which were left unqueried.
+        sizeless_features: The features left unqueried for want of a recoverable extent.
     """
 
     jobs: tuple[Job, ...]

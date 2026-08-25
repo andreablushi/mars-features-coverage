@@ -15,8 +15,7 @@ from models.results import SetCoverage
 from storage.records import load_set
 from utils.disk.slugify import slugify
 
-# How many features' footprints are kept, so a tile of one already read draws
-# without touching the disk again.
+# How many features' footprints are kept, so a tile already read draws in memory
 OUTLINE_CACHE = 4
 
 Trace = tuple[np.ndarray, np.ndarray]
@@ -25,15 +24,11 @@ Trace = tuple[np.ndarray, np.ndarray]
 def read(coverage: Sequence[SetCoverage]) -> dict[str, BaseGeometry]:
     """Read the published footprint of every observation of one feature.
 
-    The coverage artifacts carry the cells a footprint fills and not its
-    outline, so the outline is read back off the metadata the download left.
-
     Args:
         coverage: The feature's instrument sets, in any order.
 
     Returns:
-        The footprint of each observation, by product id, and nothing at all
-        for a set whose metadata is no longer on disk.
+        The footprint of each observation, by product id.
     """
     summary = coverage[0].summary
     found: dict[str, BaseGeometry] = {}
@@ -56,8 +51,7 @@ def _published(feature_class: str, name: str, set_key: str) -> dict[str, BaseGeo
         set_key: The instrument set the records were asked for by.
 
     Returns:
-        The footprint of each of its observations, by product id, and nothing
-        at all when its metadata is no longer on disk.
+        The footprint of each of its observations, by product id.
     """
     path = (
         paths.METADATA_ROOT
@@ -76,17 +70,11 @@ def _published(feature_class: str, name: str, set_key: str) -> dict[str, BaseGeo
 def traced(shape: BaseGeometry) -> list[Trace]:
     """Trace one published footprint as the lines a panel can draw.
 
-    A footprint that came with area is drawn as the box around the ground it
-    covers, and a sounder, which publishes the ground track it flew and no
-    width at all, is drawn as the bare line it came as rather than as the swath
-    the measurement widened it into.
-
     Args:
         shape: The footprint as published.
 
     Returns:
-        The longitudes and latitudes of each line it is drawn as, and nothing
-        at all for a footprint carrying no line, such as a bare point.
+        The longitudes and latitudes of each line it is drawn as.
     """
     drawn: list[Trace] = []
     for part in getattr(shape, "geoms", [shape]):

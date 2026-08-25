@@ -12,8 +12,7 @@ def compact(value: float) -> str:
         value: The count.
 
     Returns:
-        The count itself when it is small, and otherwise as thousands,
-        millions, or billions.
+        The count itself when small, and otherwise in thousands, millions, or billions.
     """
     for limit, suffix in _STEPS:
         if value >= limit:
@@ -28,8 +27,7 @@ def area(km2: float) -> str:
         km2: The area in square kilometres.
 
     Returns:
-        The area, kept to a hundredth where it is smaller than ten square
-        kilometres and rounded whole above that.
+        The area, to a hundredth below ten square kilometres and whole above it.
     """
     return f"{km2:,.0f} km2" if km2 >= 10.0 else f"{km2:,.2f} km2"
 

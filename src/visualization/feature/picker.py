@@ -28,8 +28,7 @@ class TileView:
     """One tile of the feature on show, and what the search left on it.
 
     Attributes:
-        view: The feature it belongs to and the strategy it was searched
-            under.
+        view: The feature it belongs to and the strategy it was searched under.
         track: Its admissible observations on one time axis.
         survey: The window it earned, or None when it earned none.
         stats: What it holds, read off the search that ran over it.
@@ -47,8 +46,7 @@ class TileView:
         """Name the tile by where it sits on the feature.
 
         Returns:
-            The feature and the tile's place on its grid, counting from the
-            south west corner.
+            The feature and the tile's place on its grid, from the south west.
         """
         return (
             f"{panels.title(self.view.coverage)}  -  "
@@ -147,8 +145,7 @@ def _tiles(view: View) -> list[TileView]:
         view: The feature on show and the strategy it is judged under.
 
     Returns:
-        One entry per tile, in the order the patchwork lays them out, and
-        nothing at all when nothing is loaded.
+        One entry per tile, in the order the patchwork lays them out.
     """
     if not view.coverage:
         return []
@@ -174,8 +171,7 @@ def _named(held: TileView) -> str:
         held: The tile.
 
     Returns:
-        Where it sits on the grid, how many observations it holds, and whether
-        the search kept it.
+        Where it sits, how many observations it holds, and whether it was kept.
     """
     stats = held.stats
     return (

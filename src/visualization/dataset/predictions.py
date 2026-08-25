@@ -1,11 +1,4 @@
-"""What every strategy makes of the dataset, worked out once and kept.
-
-A sweep of the whole catalogue costs minutes, and every section of the
-notebook reads the same one, so the stats a strategy leaves are held here from
-the first section that asks for them. A run of the prediction pipeline leaves
-its own sweep on disk, which is read first, and only a strategy neither of
-them holds is searched again.
-"""
+"""What every strategy makes of the dataset, worked out once and kept."""
 
 from __future__ import annotations
 
@@ -20,15 +13,11 @@ _held: dict[str, DatasetStats] = {}
 def read(workers: int = 8) -> dict[str, DatasetStats]:
     """Return what every strategy written would make of the dataset.
 
-    Every tile of every feature computed locally is searched, so what comes
-    back is the whole catalogue and not a sample of it.
-
     Args:
         workers: How many processes to search on at once.
 
     Returns:
-        The stats each strategy leaves, by strategy name, in the order the
-        strategies are written.
+        The stats each strategy leaves, by name, in the order they are written.
     """
     missing = [name for name in strategies.STRATEGIES if name not in _held]
     if missing:

@@ -21,8 +21,7 @@ def swept(
 
     Args:
         under: The strategies to search under, by name.
-        wanted: The features to search, or None for every one computed
-            locally.
+        wanted: The features to search, or None for every one computed locally.
         workers: How many processes to search on at once.
 
     Returns:

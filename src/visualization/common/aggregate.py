@@ -21,12 +21,9 @@ class Aggregate:
         kept_km2: How much of it the kept ones hold.
         days: How long the windows last, over the kept tiles.
         reach: How much of a tile its window reaches, over the kept tiles.
-        reached: The share of a tile each instrument reaches, over the kept
-            tiles, counting a tile it never appears on as nothing.
-        landed: The pixels each instrument landed on a tile, over the kept
-            tiles, counting a tile it never appears on as nothing.
-        overlaps: How much ground each set of instruments reaches between
-            them, by the instruments really there, most ground first.
+        reached: The share of a tile each instrument reaches, over the kept tiles.
+        landed: The pixels each instrument landed on a tile, over the kept tiles.
+        overlaps: The ground each set of instruments reaches, most ground first.
     """
 
     searched: int
@@ -72,8 +69,7 @@ def _reached(held: Sequence[TileStats], iid: str) -> Spread:
         iid: The instrument to read.
 
     Returns:
-        The share of a tile it reaches, counting a tile whose window it never
-        appears in as nothing.
+        The share of a tile it reaches, counting one it never appears in as nothing.
     """
     return spread.over(
         [
@@ -92,8 +88,7 @@ def _landed(held: Sequence[TileStats], iid: str) -> Spread:
         iid: The instrument to read.
 
     Returns:
-        The pixels it lands on a tile, counting a tile whose window it never
-        appears in as nothing, and empty when any tile carries no count.
+        The pixels it lands on a tile, and empty when any tile carries no count.
     """
     counted: list[float] = []
     for tile in held:
@@ -111,12 +106,10 @@ def _overlaps(held: Sequence[TileStats]) -> dict[tuple[str, ...], float]:
     """Add up the ground each set of instruments reaches between them.
 
     Args:
-        held: The tiles that earned a window, whose grounds are disjoint and
-            so add up.
+        held: The tiles that earned a window, whose grounds are disjoint and so add up.
 
     Returns:
-        The ground in square kilometres, by the instruments that reach it,
-        most ground first.
+        The ground in square kilometres, by the instruments reaching it.
     """
     merged: dict[tuple[str, ...], float] = {}
     for tile in held:

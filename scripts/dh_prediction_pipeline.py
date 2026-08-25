@@ -29,21 +29,14 @@ PREDICTIONS_NAME = "coverage-predictions"
 def save_predictions(project):
     """Sweep the measurements already published and publish what they predict.
 
-    Nothing is measured here. The measurements a previous run left on the
-    platform are fetched, every strategy written is searched over every tile
-    of every feature in them, and what each strategy would make of the dataset
-    is published so a notebook can read it without sweeping again.
-
     Args:
-        project: The DigitalHub project, injected by the runtime, which the
-            measurements are read from and the prediction is logged into.
+        project: The DigitalHub project the prediction is logged into.
 
     Returns:
         The uploaded archive of the prediction.
 
     Raises:
-        RuntimeError: When the published measurements hold no feature to
-            search, which means there is nothing to predict from.
+        RuntimeError: When the published measurements hold no feature to search.
     """
     os.environ[console.PLAIN_LOG_ENV] = "1"
     print("fetching the measurements", flush=True)
@@ -77,8 +70,7 @@ def _unpack(downloaded: str) -> None:
     """Put the published measurements back where the search reads them.
 
     Args:
-        downloaded: Where the platform left the archive, which is either the
-            archive itself or the directory holding it.
+        downloaded: The archive the platform left, or the directory holding it.
 
     Returns:
         None.
@@ -101,8 +93,7 @@ def main() -> int:
     """Register a version of the prediction from a pushed commit, and run it.
 
     Returns:
-        A process exit code, non zero when the image did not build. The job is
-        never waited on, so its own outcome is read from the platform.
+        A process exit code, non zero when the image did not build.
     """
     arguments = dh_pipeline.parser().parse_args()
 

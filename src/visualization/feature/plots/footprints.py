@@ -33,16 +33,11 @@ _NOTHING = "No footprints available"
 def plot(chosen: TileView | None) -> widgets.Widget:
     """Show the tile with the footprint of every observation it keeps.
 
-    A tile that earned no window is still drawn, as the ground it covers with
-    nothing traced on it, since where the tile sits is worth seeing whether or
-    not the search kept anything there.
-
     Args:
         chosen: The tile on show, or None while none is picked.
 
     Returns:
-        The map as a widget, or the grey panel when no tile is picked or the
-        feature has no box to crop the mosaic to.
+        The map as a widget, or the grey panel when there is nothing to crop to.
     """
     if chosen is None:
         return panels.unavailable(picker.NO_TILE)
@@ -55,21 +50,13 @@ def plot(chosen: TileView | None) -> widgets.Widget:
     )
     if grid is None:
         return panels.unavailable(overlay.BASEMAP_FAILED.format(reason=_UNKNOWN))
-    space = widgets.Box([_loading()])
-    threading.Thread(target=_fill, args=(space, grid, chosen), daemon=True).start()
-    return space
-
-
-def _loading() -> widgets.HTML:
-    """Set the note shown while the crop is fetched.
-
-    Returns:
-        The note.
-    """
-    return widgets.HTML(
+    note = (
         f"<div style='color: {panels.GREY}; font-family: sans-serif;"
         f" font-size: 12px; padding: 12px;'>{overlay.BASEMAP_LOADING}</div>"
     )
+    space = widgets.Box([widgets.HTML(note)])
+    threading.Thread(target=_fill, args=(space, grid, chosen), daemon=True).start()
+    return space
 
 
 def _fill(space: widgets.Box, grid: Placed, chosen: TileView) -> None:
@@ -105,9 +92,7 @@ def _figure(grid: Placed, chosen: TileView, box: Box, image: bytes) -> widgets.W
         image: The crop as PNG bytes.
 
     Returns:
-        The figure as a widget, carrying the crop alone under a note where
-        there is no footprint to trace on it, whether because the tile earned
-        no window or because its records are no longer on disk.
+        The figure as a widget, carrying the crop alone where there is nothing to trace.
     """
     shapes = outlines.read(chosen.view.coverage)
     figure, axis = panels.board(MAP_FIGURE_SIZE)
@@ -147,14 +132,12 @@ def _traces(
 
     Args:
         axis: The panel to draw on.
-        grid: Where the feature's grid falls on the mosaic, which the
-            longitudes are brought onto the turn of.
+        grid: Where the feature's grid falls on the mosaic.
         chosen: The tile on show.
         shapes: The published footprint of each observation, by product id.
 
     Returns:
-        The colour each instrument set was drawn in, by set label, for the
-        key beside the map.
+        The colour each instrument set was drawn in, by set label.
     """
     track = chosen.track
     colours = panels.colours(series.over_tile(track))

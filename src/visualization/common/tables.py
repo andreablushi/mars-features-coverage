@@ -39,8 +39,7 @@ def written(
 
     Args:
         title: The bold line above it.
-        headings: What each column holds, the first ranged left and the rest
-            right, as their values are.
+        headings: What each column holds, the first ranged left and the rest right.
         rows: The rows, each holding one cell per heading.
         lead: A grey line between the title and the table, or empty for none.
         note: A grey line under the table, or empty for none.

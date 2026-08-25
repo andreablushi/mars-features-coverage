@@ -18,12 +18,10 @@ def study(coverage: Sequence[SetCoverage], strategy: Strategy) -> Study:
 
     Args:
         coverage: The feature's instrument sets, in any order.
-        strategy: Which instruments a window has to hold and how much ground
-            each of them has to reach.
+        strategy: Which instruments a window has to hold, and how much ground each.
 
     Returns:
-        What the search found, holding every tile it ran over and the window
-        each of them earned.
+        What the search found, every tile it ran over and the window each earned.
     """
     summary = coverage[0].summary
     if not summary.mask_cells:

@@ -47,8 +47,7 @@ def plot(view: View) -> widgets.Widget:
         view: The feature on show and the strategy it is judged under.
 
     Returns:
-        The report beside the mosaic, or the grey panel when nothing is
-        loaded.
+        The report beside the mosaic, or the grey panel when nothing is loaded.
     """
     if not view.coverage:
         return panels.unavailable()
@@ -197,11 +196,6 @@ def mosaic(axis: Axes, box: Box, image: bytes) -> None:
 
 def _tiles(axis: Axes, grid: Placed, study: Study) -> None:
     """Outline every tile of the feature, marked by what the search made of it.
-
-    A feature is cut into thousands of tiles, so the outlines are handed to the
-    panel in two batches rather than one at a time. A tile the search never
-    ran over, because nothing it was offered was a look at it rather than a
-    clip of its edge, is refused like any other tile it would not keep.
 
     Args:
         axis: The panel to draw on.

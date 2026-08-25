@@ -11,8 +11,7 @@ def _fault(info: InstrumentSetInfo | None) -> str | None:
     """Return why a set cannot be measured, or None when it can.
 
     Args:
-        info: The catalogue entry for the set, or None when ODE has no such
-            instrument host, instrument, and product type.
+        info: The catalogue entry for the set, or None when ODE has no such set.
 
     Returns:
         The reason the set is unusable, or None.

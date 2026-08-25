@@ -32,24 +32,12 @@ METADATA_NAME = "coverage-metadata"
 SUMMARY_NAME = "coverage-summary"
 CATALOG_NAME = "coverage-catalog"
 
-# Registering a table samples it with pandas, which the pipeline itself never
-# needs, and the image ships an older SDK that samples parquet with a CSV argument.
+# Registering a table samples it with pandas, which the pipeline never needs
 IMAGE_EXTRAS = ["digitalhub>=0.15.6,<0.16", "pandas"]
 
 
 def archive(source: Path, name: str) -> Path:
     """Pack a tree into one file, carrying the directory the pipeline reads it from.
-
-    The platform records every uploaded file on the entity, and caps that
-    record at two megabytes, which a run of this size passes many times over.
-
-    A gzipped tar is used rather than a zip because the SDK reads a zip as a
-    code bundle, registering it under a "zip+s3" path that the downloader
-    expands rather than fetches, which lands an empty directory.
-
-    The tree is packed as its own named directory rather than as bare
-    contents, so unpacking the archive under data/ puts every file back
-    exactly where the pipeline looks for it.
 
     Args:
         source: The directory to pack, whose name the archive entries carry.
@@ -73,17 +61,13 @@ def save_artifacts(project):
     """Run the pipeline on DigitalHub and publish everything it left on disk.
 
     Args:
-        project: The DigitalHub project, injected by the runtime, which the
-            artifacts are logged into.
+        project: The DigitalHub project the artifacts are logged into.
 
     Returns:
-        The uploaded archive of the measurements, then the catalogue index as
-        a table, in the order the decorator names them.
+        The uploaded archive of the measurements, then the catalogue index as a table.
 
     Raises:
         RuntimeError: When either half of the pipeline reported a failure.
-            Every entity is logged before this is raised, so what a partly
-            failed run did finish is still downloadable.
     """
     os.environ[console.PLAIN_LOG_ENV] = "1"
     print("measuring coverage", flush=True)
@@ -146,8 +130,7 @@ def requirements() -> list[str]:
     """Read what the pipeline needs installed, so the image matches the repo.
 
     Returns:
-        Every runtime dependency, as pip requirement strings, plus what only
-        the platform side asks for.
+        Every runtime dependency as a pip requirement, plus what the platform asks for.
     """
     manifest = (paths.REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     return tomllib.loads(manifest)["project"]["dependencies"] + IMAGE_EXTRAS
@@ -174,8 +157,7 @@ def main() -> int:
     """Register a version of the function from a pushed commit, and run it.
 
     Returns:
-        A process exit code, non zero when the image did not build. The job is
-        never waited on, so its own outcome is read from the platform.
+        A process exit code, non zero when the image did not build.
     """
     arguments = parser().parse_args()
 

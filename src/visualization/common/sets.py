@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import utils.disk.settings as settings
-from models.instrument import InstrumentSet
 from models.results import SetCoverage
 
 
@@ -20,26 +19,16 @@ def plotted(coverage: Sequence[SetCoverage]) -> list[SetCoverage]:
     """
     config = settings.load()
     wanted = config.plot_instrument_sets
-    drawn = _named(coverage, wanted) if wanted is not None else list(coverage)
+    # A config naming no set draws every one, in the order the config ranks them
+    keys = {chosen.key for chosen in wanted or ()}
+    drawn = (
+        list(coverage)
+        if wanted is None
+        else [one for one in coverage if one.summary.set_key in keys]
+    )
     ranks = {
         chosen.key: rank for rank, chosen in enumerate(wanted or config.instrument_sets)
     }
     return sorted(
         drawn, key=lambda instrument: ranks.get(instrument.summary.set_key, len(ranks))
     )
-
-
-def _named(
-    coverage: Sequence[SetCoverage], wanted: Sequence[InstrumentSet]
-) -> list[SetCoverage]:
-    """Keep only the sets the config asks the figures to draw.
-
-    Args:
-        coverage: Every instrument set loaded for one feature.
-        wanted: The instrument sets the config names.
-
-    Returns:
-        Those of them the feature holds, in the order they came in.
-    """
-    keys = {chosen.key for chosen in wanted}
-    return [instrument for instrument in coverage if instrument.summary.set_key in keys]

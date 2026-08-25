@@ -14,8 +14,7 @@ class Spread:
     Attributes:
         mean: Their average.
         middle: Their median, which a handful of wide tiles cannot pull.
-        deviation: How far they sit from the average, as the standard
-            deviation, and nought when there is only one of them.
+        deviation: The standard deviation, and nought where there is only one.
         low: The least of them.
         high: The most of them.
         counted: How many there were.

@@ -26,8 +26,7 @@ class View:
     """The feature on show and what it is judged against.
 
     Attributes:
-        coverage: The feature's instrument sets, widest coverage first, and
-            empty until a feature with local data is confirmed.
+        coverage: The feature's instrument sets, widest coverage first.
         strategy: Which instruments a window over it has to hold.
     """
 
@@ -76,10 +75,6 @@ class Areas[Chosen]:
     def refill(self) -> None:
         """Redraw every claimed area from the current choice.
 
-        Every area is emptied before any of them is drawn, so what was on
-        screen for the last choice goes at once rather than standing until
-        whatever replaces it has been drawn.
-
         Returns:
             None.
         """
@@ -94,10 +89,8 @@ class FeaturePicker(Areas[View]):
     """A feature and strategy picker that fills the areas claimed below it.
 
     Attributes:
-        selection: The confirmed feature class and name, or None until the
-            confirm button has been pressed.
-        coverage: The confirmed feature's instrument sets, widest coverage
-            first, and empty until a feature with local data is confirmed.
+        selection: The confirmed feature class and name, or None until confirmed.
+        coverage: The confirmed feature's instrument sets, widest coverage first.
     """
 
     def __init__(self) -> None:
@@ -162,8 +155,7 @@ class FeaturePicker(Areas[View]):
         """Call something whenever the feature or the strategy changes.
 
         Args:
-            follow: What to call with the new view, which a picker claiming
-                areas of its own registers so that it can rebuild them.
+            follow: What to call with the new view, so a picker can rebuild its areas.
 
         Returns:
             None.

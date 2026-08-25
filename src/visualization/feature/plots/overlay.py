@@ -27,8 +27,7 @@ BASEMAP_CACHE = 32
 # The least ground a side of the crop covers, however thin the box is.
 MIN_SPAN_DEG = 0.5
 
-# How many points an edge of a traced block is sampled at, since a straight
-# line in the projection is a curve in lon and lat.
+# How many points an edge is sampled at, since a straight line curves in lon/lat
 RING_SAMPLES = 17
 
 # The widest a grid may run in longitude and still crop to a lon/lat box.
@@ -112,8 +111,7 @@ class Placed:
             rows: How many rows it spans.
 
         Returns:
-            The ring longitudes and latitudes, closed back onto the first
-            point.
+            The ring longitudes and latitudes, closed back onto the first point.
         """
         left = self._west + column * self._dx
         right = self._west + (column + columns) * self._dx
@@ -146,9 +144,7 @@ class Placed:
             y: The northings in metres.
 
         Returns:
-            The longitudes and latitudes in degrees, kept contiguous around
-            the projection centre so a feature at the antimeridian does not
-            split.
+            The longitudes and latitudes in degrees, kept contiguous around the centre.
         """
         lon, lat = geodesy.laea_inverse(x, y, *self._centre)
         return self.around(lon), lat
@@ -160,8 +156,7 @@ class Placed:
             lon: The longitudes in degrees, however they are spelled.
 
         Returns:
-            The same longitudes, kept contiguous around the projection centre
-            so a feature at the antimeridian does not split.
+            The same longitudes, kept contiguous around the projection centre.
         """
         return self._centre[0] + geodesy.normalise_longitude(lon - self._centre[0])
 
@@ -169,8 +164,7 @@ class Placed:
         """Return the lon/lat box the whole grid falls in.
 
         Returns:
-            The box, held open to a minimum span so a thin feature still
-            fetches a readable crop.
+            The box, held open to a minimum span so a thin feature still reads.
         """
         return _around(*self.ring(0, 0, self.side, self.side))
 
@@ -179,8 +173,7 @@ class Placed:
         """Report whether the grid can be drawn on a plate carree mosaic.
 
         Returns:
-            False for a feature wrapping the planet, such as one circling a
-            pole, whose grid has no lon/lat box to crop to.
+            False for a feature wrapping the planet, whose grid has no box to crop to.
         """
         lon, _ = self.ring(0, 0, self.side, self.side)
         return bool(lon.max() - lon.min() <= HALF_TURN_DEG)
@@ -208,8 +201,7 @@ def placed(feature_class: str, name: str, side: int, across: int) -> Placed | No
         across: How many tiles it is cut into along each axis.
 
     Returns:
-        The placed grid, or None when the catalogue holds no box for it or
-        the feature wraps the planet.
+        The placed grid, or None when it has no box or wraps the planet.
     """
     feature = _catalogue().get((slugify(feature_class), slugify(name)))
     if feature is None:
@@ -226,8 +218,7 @@ def _around(lon: np.ndarray, lat: np.ndarray) -> Box:
         lat: The ring latitudes.
 
     Returns:
-        The box, held open to a minimum span so a thin block still fetches a
-        readable crop.
+        The box, held open to a minimum span so a thin block still reads.
     """
     centre_lat = float((lat.min() + lat.max()) / 2.0)
     south, north = _floored(float(lat.min()), float(lat.max()), MIN_SPAN_DEG)
@@ -300,8 +291,7 @@ def _fetch(window: tuple[float, float, float, float], size: tuple[int, int]) -> 
         The image as PNG bytes.
 
     Raises:
-        ValueError: When the service answers with anything but an image, which
-            it does with a 200 and an XML report when a request is malformed.
+        ValueError: When the service answers with anything but an image.
     """
     response = httpx.get(
         BASEMAP_URL,

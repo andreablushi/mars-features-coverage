@@ -22,9 +22,6 @@ def _outstanding[T, R](
 ) -> tuple[tuple[R, ...], int]:
     """Keep every candidate whose output is not already on disk.
 
-    This is the one place that decides a candidate is finished, so a planner
-    and a report of what is left both read the same rule.
-
     Args:
         candidates: What the run could do, in the order to do it.
         output_for: The file whose presence marks a candidate as finished.
@@ -32,8 +29,7 @@ def _outstanding[T, R](
         force: When True, include candidates that are already finished.
 
     Returns:
-        The results for the candidates still outstanding, and how many were
-        skipped as finished.
+        The results for the candidates outstanding, and how many were skipped.
     """
     outstanding: list[R] = []
     skipped = 0
@@ -96,10 +92,6 @@ def coverage_plan(
     force: bool = False,
 ) -> Plan:
     """Build the coverage jobs still needed for a run.
-
-    The jobs are ordered largest first, so the pool starts the long ones early:
-    the sets differ in size by orders of magnitude, and in discovery order the
-    pool can pick the largest up last and grind on it with every worker idle.
 
     Args:
         sources: The instrument set metadata files discovered on disk.

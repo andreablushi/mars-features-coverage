@@ -55,8 +55,7 @@ def project(
         set_key: The instrument set the observations were asked for by.
 
     Returns:
-        The projected observations that landed on the feature, in the order
-        they were given, and how many missed it entirely.
+        The observations that landed on the feature, and how many missed it entirely.
     """
     resolved = _track_widths(observations)
     shapes = region.footprint_areas(
@@ -93,16 +92,11 @@ def project(
 def _track_widths(observations: Sequence[Observation]) -> list[float | None]:
     """Derive a swath width for every ground track among the observations.
 
-    A track implies a swath only through the speed its length and its elapsed
-    time give, so one carrying neither cannot be widened and is left without a
-    width, which drops it as unmeasurable rather than guessing one for it.
-
     Args:
         observations: The observations to inspect.
 
     Returns:
-        One width in metres per observation, in the order they were given, and
-        None for the footprints that already enclose area.
+        One width in metres per observation, and None where the footprint has area.
     """
     widths: list[float | None] = [None] * len(observations)
     for position, observation in enumerate(observations):

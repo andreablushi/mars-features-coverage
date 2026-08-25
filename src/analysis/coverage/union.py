@@ -39,8 +39,7 @@ def new_ground(region: FeatureRegion, shapes: Sequence[BaseGeometry]) -> np.ndar
         shapes: The projected footprints, in chronological order.
 
     Returns:
-        The ground in square metres each observation covered that nothing
-        before it had reached, indexed as the observations were given.
+        The ground in square metres each observation covered first, as it was given.
     """
     grid = SectorGrid(region, shapes)
     fresh = np.zeros(len(shapes), dtype=float)
@@ -68,8 +67,7 @@ def _sector_contributions(
         reaching: The indices of the observations reaching it, in order.
 
     Returns:
-        The ground in square metres this sector saw each observation cover first,
-        as observation index and area pairs.
+        The ground in square metres this sector saw each observation cover first.
     """
     covered: BaseGeometry | None = None
     arrived: list[BaseGeometry] = []
@@ -100,8 +98,7 @@ def _record_first_cover(
     Args:
         indices: The observation index of every piece, in order.
         pieces: The footprints clipped to the sector, in the same order.
-        covered: The sector's union of everything before this chunk, or None when
-            the chunk is the first to reach the sector.
+        covered: The sector's union before this chunk, or None when it is the first.
         share: The sector's contributions so far, appended to in place.
 
     Returns:

@@ -23,8 +23,7 @@ class Held:
         covered_km2: How much of their ground it reached.
         first: When the earliest of its observations was taken.
         last: When the latest of them was taken.
-        spans: How long its record of one feature runs, in days, feature by
-            feature.
+        spans: How long its record of one feature runs, in days, feature by feature.
     """
 
     iid: str

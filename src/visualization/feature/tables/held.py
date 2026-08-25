@@ -88,8 +88,7 @@ def _observations(stats: TileStats) -> list[Row]:
         stats: The tile, as the search left it.
 
     Returns:
-        One row per fate an observation could meet, and the pixels the ones
-        kept landed on the tile.
+        One row per fate an observation could meet, and the pixels the kept landed.
     """
     return [
         (
@@ -112,8 +111,7 @@ def _reach(stats: TileStats, iid: str) -> str:
         iid: The instrument the row is written for.
 
     Returns:
-        The share of the tile it reaches, the pixels it landed there, and how
-        many of its observations the tile keeps.
+        The share of the tile it reaches, its pixels, and how many it keeps.
     """
     reach = stats.reached[iid]
     share = f"{reach.km2 / stats.area_km2:.0%}" if stats.area_km2 else wording.NOTHING

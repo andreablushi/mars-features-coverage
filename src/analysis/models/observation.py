@@ -65,8 +65,7 @@ class Observation:
         """Return how long the observation lasted.
 
         Returns:
-            The elapsed time in seconds, or zero when no stop was published,
-            which leaves a track without a width and drops it as unmeasurable.
+            The elapsed seconds, or zero when no stop was published.
         """
         return (self.stop - self.start).total_seconds() if self.stop else 0.0
 

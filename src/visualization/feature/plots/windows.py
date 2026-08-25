@@ -55,8 +55,7 @@ def plot(chosen: TileView | None) -> widgets.Widget:
         chosen: The tile on show, or None while none is picked.
 
     Returns:
-        The figure as a widget, or the grey panel when there is nothing to
-        choose between.
+        The figure as a widget, or the grey panel when there is nothing to choose.
     """
     if chosen is None:
         return panels.unavailable(NO_TILE)
@@ -78,9 +77,6 @@ def plot(chosen: TileView | None) -> widgets.Widget:
 
 def _field(axis: Axes, grid: Grid):
     """Draw what every candidate window reaches, by when it opens and how long.
-
-    A window no sounder track passes through is left out of the mesh, so the
-    colours it is given show through as the grey behind them.
 
     Args:
         axis: The panel to draw on.
@@ -145,14 +141,8 @@ def _rings(grid: Grid) -> list[tuple[int, str, float]]:
     Args:
         grid: The scored candidate windows.
 
-    A ring is drawn solid where it holds every instrument the tile has, and
-    dashed where it holds fewer, whatever the most any one window turned out
-    to hold. A tile no window ever gathered them all on therefore draws no
-    solid ring rather than promoting its best to one.
-
     Returns:
-        The count, the line style, and the line width of every ring the panel
-        has anything to draw for.
+        The count, line style, and width of every ring there is anything to draw for.
     """
     return [
         (
@@ -233,8 +223,7 @@ def _steps(points: np.ndarray, log: bool = False) -> np.ndarray:
 
     Args:
         points: The sample points, evenly spaced on their own scale.
-        log: Whether they are spaced evenly in the logarithm rather than
-            in the value.
+        log: Whether they are spaced evenly in the logarithm rather than in the value.
 
     Returns:
         The edges, one more than there are points.

@@ -16,12 +16,9 @@ class Study:
 
     Attributes:
         strategy: What the tiles were asked for.
-        patchwork: The feature cut into tiles, which places every tile on the
-            grid and says how much of the feature each of them holds.
-        tracks: The tiles holding anything measurable, each on its own time
-            axis, in the order the patchwork lays them out.
-        surveys: The window each of those tiles earned, or None where no
-            window over it was worth keeping.
+        patchwork: The feature cut into tiles, each placed on the grid.
+        tracks: The tiles holding anything measurable, each on its own time axis.
+        surveys: The window each of those tiles earned, or None where it earned none.
     """
 
     strategy: Strategy
@@ -43,8 +40,7 @@ class Study:
         """Count the tiles holding any of the feature.
 
         Returns:
-            How many of them a window could have been found over, which the
-            tiles at a corner of the grid are not.
+            How many of them a window could have been found over.
         """
         return sum(1 for tile in self.patchwork.tiles if tile.area_km2)
 
@@ -53,8 +49,7 @@ class Study:
         """Pair every tile that earned a window with the window it earned.
 
         Returns:
-            The tiles that earned one, in the order the patchwork lays them
-            out.
+            The tiles that earned one, in the order the patchwork lays them out.
         """
         return [
             (track, picked)

@@ -88,9 +88,6 @@ def _bins(drawn: Sequence[Series]) -> list[datetime]:
 def _month_edges(first: datetime, last: datetime, step: int) -> list[datetime]:
     """Return bin edges every step months, covering a period whole.
 
-    The last edge always sits past the end of the period, so the final bin is
-    closed and the month holding last is counted in it.
-
     Args:
         first: The earliest moment the bins must cover.
         last: The latest moment they must cover.
@@ -104,7 +101,7 @@ def _month_edges(first: datetime, last: datetime, step: int) -> list[datetime]:
     while cursor <= stop:
         edges.append(datetime.combine(cursor, time.min, UTC))
         for _ in range(step):
-            cursor = _first_of_next(cursor)
+            cursor = date(cursor.year + cursor.month // 12, cursor.month % 12 + 1, 1)
     edges.append(datetime.combine(cursor, time.min, UTC))
     return edges
 
@@ -119,18 +116,6 @@ def _first_of(moment: datetime) -> date:
         The first day of the month it falls in.
     """
     return date(moment.year, moment.month, 1)
-
-
-def _first_of_next(day: date) -> date:
-    """Return the first day of the month after a day's own.
-
-    Args:
-        day: The day to step on from.
-
-    Returns:
-        The first day of the following month.
-    """
-    return date(day.year + day.month // 12, day.month % 12 + 1, 1)
 
 
 def _counts(one: Series, edges: np.ndarray) -> np.ndarray:

@@ -27,10 +27,6 @@ def normalise_longitude(lon: np.ndarray | float) -> np.ndarray:
 def longitude_stretch(lat: float) -> float:
     """Return how much a degree of longitude shrinks at one latitude.
 
-    A degree of longitude covers cos(lat) of the ground a degree of latitude
-    does, so a fixed ground distance needs that many more degrees of it. The
-    cosine is floored, since near a pole the correction runs away.
-
     Args:
         lat: The latitude in degrees.
 
@@ -183,8 +179,7 @@ def laea_inverse(
         centre_lat: The projection centre latitude in degrees.
 
     Returns:
-        The longitudes and latitudes in degrees, the longitudes wrapped into
-        the -180 to 180 range.
+        The longitudes and latitudes in degrees, longitudes wrapped to -180 to 180.
     """
     x = np.asarray(x, dtype=float)
     y = np.asarray(y, dtype=float)

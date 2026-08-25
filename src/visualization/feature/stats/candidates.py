@@ -22,20 +22,12 @@ class Grid:
     """What every candidate window over one tile holds.
 
     Attributes:
-        centres: The moment each column's window is centred on, as date
-            numbers. A window reaches half its length either side of it.
-        widths: How long each row's window lasts, in days, up to the longest
-            the strategy lets a window run.
-        reached: The share of the tile a window covers, counted evenly over
-            the instrument sets that left anything on it, one value per width
-            and centre.
-        instruments: How many instruments observed the tile inside every
-            window, shaped as reached.
-        sounded: Whether every window holds a sounder track, shaped as
-            reached.
-        held: How many instruments the tile could hold at once, which is what
-            a window holding every one of them counts, however few any single
-            window turned out to hold.
+        centres: The moment each column's window is centred on, as date numbers.
+        widths: How long each row's window lasts, in days.
+        reached: The share of the tile a window covers, one per width and centre.
+        instruments: How many instruments observed inside each window, as reached.
+        sounded: Whether every window holds a sounder track, shaped as reached.
+        held: How many instruments the tile could hold at once.
     """
 
     centres: np.ndarray
@@ -49,18 +41,12 @@ class Grid:
 def build(track: Track, strategy: Strategy) -> Grid | None:
     """Score every window the tile's observations could be clustered into.
 
-    A sounder publishes a bare line, so a swath width is the only mark an
-    observation carries of having been widened from one, and a running total
-    of those turns the count inside a stretch into a difference across it.
-
     Args:
         track: The tile's admissible observations on one time axis.
-        strategy: What a window over it is asked for, which caps how long a
-            window on the panel may run.
+        strategy: What a window over it is asked for, and how long it may run.
 
     Returns:
-        The scored grid, or None when the record is too short to hold a choice
-        of windows at all.
+        The scored grid, or None when the record is too short to choose from.
     """
     if not track.area_km2:
         return None
@@ -94,9 +80,6 @@ def _row(
 ) -> tuple[list[float], list[int], list[bool]]:
     """Score every window of one length, sliding it along the time axis.
 
-    The windows of one length are scored in order, so the counter behind them
-    is slid from one to the next rather than rebuilt for each.
-
     Args:
         track: The tile's admissible observations on one time axis.
         moments: When each of them started, as date numbers, in order.
@@ -106,8 +89,7 @@ def _row(
         flown: The running total of sounder tracks along the axis.
 
     Returns:
-        What each window covers, how many instruments observed inside it, and
-        whether a sounder flew through it, in the order the centres come.
+        What each window covers, how many instruments saw it, and if a sounder flew.
     """
     counter = Counter.empty(track.iids, track.grid)
     first = np.searchsorted(moments, centres - width / 2.0, side="left")
@@ -143,12 +125,10 @@ def _evenly(filled: list[int]) -> float:
     """Count what the instrument sets cover the way the search counts it.
 
     Args:
-        filled: How many cells of the tile each set that observed it reaches
-            inside the window.
+        filled: How many cells of the tile each set reaches inside the window.
 
     Returns:
-        The counts multiplied and rooted, so that a window one set misses
-        reads as the poor window the search takes it for.
+        The counts multiplied and rooted, so a window one set misses reads poorly.
     """
     product = 1.0
     for count in filled:

@@ -13,8 +13,7 @@ from survey.models.survey import Survey
 
 Stretch = tuple[datetime, datetime]
 
-# The strategy a picker opens on. The search is never configured with one, it
-# is told, so the choice of what to show first belongs here.
+# The strategy a picker opens on, since a search is told one and never holds one
 DEFAULT_STRATEGY = "default"
 
 # How many searches are kept, so every panel of a feature shares one.
@@ -46,8 +45,7 @@ def opening() -> Strategy:
     """Return the strategy a picker opens on.
 
     Returns:
-        The named one where it is still written, and otherwise the first of
-        those that are.
+        The named one where it is still written, and otherwise the first written.
     """
     if DEFAULT_STRATEGY in strategies.STRATEGIES:
         return strategies.STRATEGIES[DEFAULT_STRATEGY]
@@ -57,17 +55,11 @@ def opening() -> Strategy:
 def stretches(found: Sequence[Survey]) -> list[Stretch]:
     """Merge the windows the tiles earned into the time they are open over.
 
-    Two tiles surveyed in the same season hold two windows over one stretch of
-    time, and an observation taken then belongs to the dataset once, not
-    twice.
-
     Args:
         found: The windows the tiles earned, in any order.
 
     Returns:
-        The stretches of time at least one window is open over, earliest
-        first, none of them touching another, and nothing at all when no tile
-        earned a window.
+        The stretches at least one window is open over, earliest first and disjoint.
     """
     if not found:
         return []
