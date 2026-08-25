@@ -7,5 +7,10 @@ demands:
   - {SHARAD: 0.0}
 admits: {CTX: 1, CRISM: 1, SHARAD: 5}
 tile_km: 20.0
+# What the window gains for each instrument answering a demand beyond the
+# first. Imagery and spectra of the same ground are worth more than either
+# alone, so a window holding both is worth waiting for, though not for ever:
+# at a half, a full window buys a second instrument with about 500 days.
+breadth: 0.5
 span_days: 687.0
 timeless: [SHARAD]

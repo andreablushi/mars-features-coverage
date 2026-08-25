@@ -19,6 +19,9 @@ from survey.models.strategy import Strategy
 # How wide a tile is when a strategy does not say, in kilometres.
 TILE_KM = 100.0
 
+# What a window gains per extra answering instrument when a strategy does not say.
+BREADTH = 0.5
+
 STRATEGIES_ROOT = Path(__file__).parent
 
 
@@ -93,6 +96,7 @@ def _strategy(name: str, spec: Any, path: Path) -> Strategy:
             for iid, cells in admits.items()
         },
         tile_km=_number(name, "tile_km", spec.get("tile_km", TILE_KM), path),
+        breadth=_number(name, "breadth", spec.get("breadth", BREADTH), path),
         span_days=_number(name, "span_days", spec.get("span_days"), path),
         timeless=frozenset(str(iid) for iid in timeless),
     )

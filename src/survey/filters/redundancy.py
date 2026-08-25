@@ -76,8 +76,11 @@ def _without(
     filled = counter.observations_per_cell[owner]
     if sum(1 for cell in cells if filled[cell] == 1) >= configs.MIN_GAIN_CELLS:
         return None
+    held = scoring.scored(track, demands, counter.cells_reached)
     counter.release(owner, cells)
     score = scoring.scored(track, demands, counter.cells_reached)
-    if score is None:
+    # An observation the window would lose an answering instrument with stays
+    if score is None or (held is not None and score[1] < held[1]):
         counter.hold(owner, cells)
-    return score
+        return None
+    return score[0]

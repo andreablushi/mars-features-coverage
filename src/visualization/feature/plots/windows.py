@@ -7,12 +7,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.colors import PowerNorm
-from matplotlib.dates import date2num
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
-from survey.models.survey import Survey
-from utils.maths import quantities
 from visualization.common import panels
 from visualization.feature.picker import NO_TILE, TileView
 from visualization.feature.stats import candidates
@@ -24,11 +21,6 @@ WINDOW_FIGURE_SIZE = (12, 6)
 # How a window holding no sounder track is drawn, and how the counts are traced.
 WINDOW_UNSOUNDED = "#d9d9d9"
 WINDOW_CONTOUR = "#4d4d4d"
-
-# The window the search picked, marked on the grid of candidates it was chosen from.
-WINDOW_PICKED = "#d62728"
-WINDOW_PICKED_EDGE = "#ffffff"
-WINDOW_PICKED_SIZE = 6.0
 
 # How hard the colours lean towards the low shares a short window reaches.
 WINDOW_GAMMA = 0.5
@@ -54,15 +46,6 @@ _TOO_SHORT = "This tile's record is too short to hold a choice of windows."
 _UNSOUNDED = "no sounder track in the window"
 _SILENT = "no sounder reached this tile at all"
 _INSTRUMENTS = "{count} instruments in the window"
-_PICK = {
-    "marker": "o",
-    "linestyle": "none",
-    "color": WINDOW_PICKED,
-    "markersize": WINDOW_PICKED_SIZE,
-    "markeredgecolor": WINDOW_PICKED_EDGE,
-    "markeredgewidth": 1.0,
-    "zorder": 5,
-}
 
 
 def plot(chosen: TileView | None) -> widgets.Widget:
@@ -81,7 +64,7 @@ def plot(chosen: TileView | None) -> widgets.Widget:
     if grid is None:
         return panels.unavailable(_TOO_SHORT)
     figure, axis = panels.board(WINDOW_FIGURE_SIZE)
-    mesh = _field(axis, grid, chosen.survey, _instruments(chosen))
+    mesh = _field(axis, grid)
     axis.set_title(f"{chosen.name}  -  candidate time windows", fontsize=12, loc="left")
     axis.set_xlim(grid.centres[0], grid.centres[-1])
     bar = figure.colorbar(mesh, ax=axis, pad=0.01)
@@ -93,30 +76,12 @@ def plot(chosen: TileView | None) -> widgets.Widget:
     return panels.rendered(figure)
 
 
-def _instruments(chosen: TileView) -> int:
-    """Count the instruments the window the search picked holds.
-
-    Args:
-        chosen: The tile on show.
-
-    Returns:
-        How many instruments left an observation inside it, and nought when
-        the tile earned no window.
-    """
-    if chosen.survey is None:
-        return 0
-    track = chosen.track
-    return len({track.iids[track.owners[index]] for index in chosen.survey.kept})
-
-
-def _field(axis: Axes, grid: Grid, picked: Survey | None, holds: int):
+def _field(axis: Axes, grid: Grid):
     """Draw what every candidate window reaches, by when it opens and how long.
 
     Args:
         axis: The panel to draw on.
         grid: The scored candidate windows.
-        picked: The window the search chose, or None when it found none.
-        holds: How many instruments that window holds.
 
     Returns:
         The mesh, for the colour bar to read its colours from.
@@ -131,9 +96,8 @@ def _field(axis: Axes, grid: Grid, picked: Survey | None, holds: int):
     )
     _contours(axis, grid)
     _silent(axis, grid)
-    _marked(axis, grid, picked)
     axis.legend(
-        handles=_keys(grid, picked, holds),
+        handles=_keys(grid),
         fontsize=8,
         loc="lower right",
         framealpha=0.85,
@@ -193,34 +157,11 @@ def _rings(grid: Grid) -> list[tuple[int, str, float]]:
     ]
 
 
-def _marked(axis: Axes, grid: Grid, picked: Survey | None) -> None:
-    """Mark the window the search picked on the grid it was chosen from.
-
-    Args:
-        axis: The panel to draw on.
-        grid: The scored candidate windows.
-        picked: The window the search chose, or None when it found none.
-
-    Returns:
-        None.
-    """
-    if picked is None:
-        return
-    opened, closed = date2num(picked.start), date2num(picked.end)
-    axis.plot(
-        [(opened + closed) / 2.0],
-        [max(closed - opened, float(grid.widths[0]))],
-        **_PICK,
-    )
-
-
-def _keys(grid: Grid, picked: Survey | None, holds: int) -> list:
-    """Name every ring the panel draws, the window it marks, and the grey it leaves.
+def _keys(grid: Grid) -> list:
+    """Name every ring the panel draws, and the grey it leaves behind.
 
     Args:
         grid: The scored candidate windows.
-        picked: The window the search chose, or None when it found none.
-        holds: How many instruments that window holds.
 
     Returns:
         The legend handles, in the order they read.
@@ -236,14 +177,7 @@ def _keys(grid: Grid, picked: Survey | None, holds: int) -> list:
         )
         for count, style, width in _rings(grid)
     ]
-    grey = Patch(facecolor=WINDOW_UNSOUNDED, label=_UNSOUNDED)
-    if picked is None:
-        return rings + [grey]
-    label = (
-        f"best window: {quantities.duration(picked.days)}, "
-        f"{holds} instruments, scoring {picked.reach:.0%}"
-    )
-    return [Line2D([], [], label=label, **_PICK)] + rings + [grey]
+    return rings + [Patch(facecolor=WINDOW_UNSOUNDED, label=_UNSOUNDED)]
 
 
 def _held(grid: Grid) -> np.ma.MaskedArray:
