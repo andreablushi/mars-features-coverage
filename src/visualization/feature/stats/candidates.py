@@ -45,6 +45,10 @@ class Grid:
 def build(track: Track, strategy: Strategy) -> Grid | None:
     """Score every window the tile's observations could be clustered into.
 
+    A sounder publishes a bare line, so a swath width is the only mark an
+    observation carries of having been widened from one, and a running total
+    of those turns the count inside a stretch into a difference across it.
+
     Args:
         track: The tile's admissible observations on one time axis.
         strategy: What a window over it is asked for, which caps how long a
@@ -63,7 +67,8 @@ def build(track: Track, strategy: Strategy) -> Grid | None:
     centres = np.linspace(moments[0], moments[-1], WINDOW_COLUMNS)
     widths = np.geomspace(WINDOW_MIN_DAYS, min(span, strategy.span_days), WINDOW_WIDTHS)
     observed = sorted(set(track.owners))
-    flown = _flown(track)
+    widened = [1 if one.width_km else 0 for one in track.observations]
+    flown = np.concatenate([[0], np.cumsum(widened)])
     rows = [_row(track, moments, centres, width, observed, flown) for width in widths]
     return Grid(
         centres=centres,
@@ -72,23 +77,6 @@ def build(track: Track, strategy: Strategy) -> Grid | None:
         instruments=np.array([counted for _, counted, _ in rows]),
         sounded=np.array([sounded for _, _, sounded in rows]),
     )
-
-
-def _flown(track: Track) -> np.ndarray:
-    """Count the sounder tracks running up to each place on the time axis.
-
-    A sounder publishes a bare line, so a swath width is the only mark an
-    observation carries of having been widened from one.
-
-    Args:
-        track: The tile's admissible observations on one time axis.
-
-    Returns:
-        A running total, one longer than there are observations, so the count
-        inside a stretch is the difference across it.
-    """
-    widened = [1 if observation.width_km else 0 for observation in track.observations]
-    return np.concatenate([[0], np.cumsum(widened)])
 
 
 def _row(

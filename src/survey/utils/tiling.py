@@ -38,7 +38,9 @@ def split(side: int, tile_km: float, cell_km2: float, grid_mask: bytes) -> Patch
         np.asarray(owners)[packing.cells_of(grid_mask)], minlength=across * across
     )
     return Patchwork(
-        tiles=[_tile(int(inside), wide, cell_km2) for inside in held],
+        tiles=[
+            Tile(cells=wide * wide, area_km2=int(inside) * cell_km2) for inside in held
+        ],
         across=across,
         owners=owners,
         places=[
@@ -48,20 +50,6 @@ def split(side: int, tile_km: float, cell_km2: float, grid_mask: bytes) -> Patch
         ],
         cell_km2=cell_km2,
     )
-
-
-def _tile(inside: int, wide: int, cell_km2: float) -> Tile:
-    """Measure one patch of the grid.
-
-    Args:
-        inside: How many of its cells fall inside the feature.
-        wide: How many cells it holds along each axis.
-        cell_km2: How much ground one cell covers.
-
-    Returns:
-        The tile.
-    """
-    return Tile(cells=wide * wide, area_km2=inside * cell_km2)
 
 
 def _across(side: int, tile_km: float, cell_km2: float) -> int:

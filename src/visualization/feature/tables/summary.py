@@ -60,19 +60,10 @@ def _rows(stats: FeatureStats) -> list[Row]:
             (f"{iid} Pixel Mean Across Tiles", wording.landed(held.landed[iid])),
         ]
     written += [
-        (_overlap(counted), wording.ground(km2, held.kept_km2))
+        (
+            f"Ground Reached By {counted} Instrument{'' if counted == 1 else 's'}",
+            wording.ground(km2, held.kept_km2),
+        )
         for counted, km2 in tiles.shared(held.overlaps).items()
     ]
     return written
-
-
-def _overlap(counted: int) -> str:
-    """Name the row holding the ground one number of instruments shares.
-
-    Args:
-        counted: How many instruments reach that ground at once.
-
-    Returns:
-        The row's name.
-    """
-    return f"Ground Reached By {counted} Instrument{'' if counted == 1 else 's'}"

@@ -48,7 +48,8 @@ def _draw(drawn: Sequence[Series], title: str) -> widgets.Widget:
     """
     edges = date2num(_bins(drawn))
     counts = np.array([_counts(one, edges) for one in drawn])
-    binned = _bin_name()
+    months = DENSITY_BIN_MONTHS
+    binned = "month" if months == 1 else f"{months} months"
     figure, axis = plt.subplots(
         figsize=(panels.FIGURE_WIDTH, DENSITY_ROW_HEIGHT * len(drawn) + 1.8)
     )
@@ -68,17 +69,6 @@ def _draw(drawn: Sequence[Series], title: str) -> widgets.Widget:
     bar.ax.tick_params(labelsize=8)
     figure.tight_layout()
     return panels.rendered(figure)
-
-
-def _bin_name() -> str:
-    """Name the configured bin width, for the title and the colour bar.
-
-    Returns:
-        The bin width as it reads in a sentence, such as "month" or
-        "3 months".
-    """
-    months = DENSITY_BIN_MONTHS
-    return "month" if months == 1 else f"{months} months"
 
 
 def _bins(drawn: Sequence[Series]) -> list[datetime]:

@@ -27,7 +27,12 @@ def study(coverage: Sequence[SetCoverage], strategy: Strategy) -> Study:
     """
     summary = coverage[0].summary
     if not summary.mask_cells:
-        return Study(strategy, _ungridded(), [], [])
+        return Study(
+            strategy,
+            Patchwork(tiles=[], across=0, owners=[], places=[], cell_km2=0.0),
+            [],
+            [],
+        )
     patchwork = tiling.split(
         summary.grid_side,
         strategy.tile_km,
@@ -41,12 +46,3 @@ def study(coverage: Sequence[SetCoverage], strategy: Strategy) -> Study:
         tracks=tracks,
         surveys=[algorithm.search(track, strategy) for track in tracks],
     )
-
-
-def _ungridded() -> Patchwork:
-    """Build the tiling of a feature no instrument set ever filled a cell of.
-
-    Returns:
-        A patchwork holding no tile at all.
-    """
-    return Patchwork(tiles=[], across=0, owners=[], places=[], cell_km2=0.0)

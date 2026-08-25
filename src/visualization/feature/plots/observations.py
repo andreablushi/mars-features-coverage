@@ -77,6 +77,11 @@ def _draw(
     A window is only ever asked of the instruments the strategy asks inside
     one, so an instrument it asks of the whole record is left unmarked.
 
+    The panels share their axes, so the time axis is scaled to whichever of
+    them observed, and left the margin that keeps the earliest and the latest
+    observation off the frame. Only where none of them observed is there
+    nothing to scale it to, and the axis is held open by hand.
+
     Args:
         drawn: What each set observed of the ground on show.
         title: The line above the top panel.
@@ -103,6 +108,10 @@ def _draw(
             panels.shade(axis, open_for)
             marked = True
     _key(axes[0], open_for if marked else [])
+    if not any(one.observed for one in drawn):
+        axes[0].set_xlim(
+            min(one.first for one in drawn), max(one.last for one in drawn)
+        )
     axes[0].set_ylim(-0.05, 1.05)
     axes[0].set_title(title, fontsize=12, loc="left")
     axes[-1].set_xlabel("Observation start time")
@@ -133,7 +142,6 @@ def _panel(axis, one: Series, colour) -> None:
         zorder=3,
     )
     if not one.observed:
-        axis.set_xlim(one.first, one.last)
         axis.text(
             0.5,
             0.5,

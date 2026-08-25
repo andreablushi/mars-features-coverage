@@ -79,6 +79,9 @@ def plot(chosen: TileView | None) -> widgets.Widget:
 def _field(axis: Axes, grid: Grid):
     """Draw what every candidate window reaches, by when it opens and how long.
 
+    A window no sounder track passes through is left out of the mesh, so the
+    colours it is given show through as the grey behind them.
+
     Args:
         axis: The panel to draw on.
         grid: The scored candidate windows.
@@ -90,7 +93,7 @@ def _field(axis: Axes, grid: Grid):
     mesh = axis.pcolormesh(
         _steps(grid.centres),
         _steps(grid.widths, log=True),
-        _held(grid),
+        np.ma.masked_where(~grid.sounded, grid.reached),
         cmap=colours,
         norm=PowerNorm(WINDOW_GAMMA, vmin=0.0, vmax=1.0),
     )
@@ -178,18 +181,6 @@ def _keys(grid: Grid) -> list:
         for count, style, width in _rings(grid)
     ]
     return rings + [Patch(facecolor=WINDOW_UNSOUNDED, label=_UNSOUNDED)]
-
-
-def _held(grid: Grid) -> np.ma.MaskedArray:
-    """Hide the windows no sounder track passes through.
-
-    Args:
-        grid: The scored candidate windows.
-
-    Returns:
-        The coverage, masked where a window holds no track.
-    """
-    return np.ma.masked_where(~grid.sounded, grid.reached)
 
 
 def _silent(axis: Axes, grid: Grid) -> None:
