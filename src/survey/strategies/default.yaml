@@ -10,6 +10,10 @@ demands:
 # The scales sit far apart: an imager lays down millions where a sounder lays down tens
 admits: {CTX: 1000000, CRISM: 1000, SHARAD: 10}
 
+# Whether a demand naming more than one instrument wants all of them or any one
+# With all, a tile only one of them ever visited earns nothing
+answering: all
+
 # How wide a tile of a feature is, in kilometres.
 tile_km: 20.0
 
