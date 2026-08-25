@@ -30,7 +30,6 @@ REPORT_WIDTH = "360px"
 # How a tile is drawn, by what the search made of it.
 TILE_KEPT = "#2e7d32"
 TILE_REFUSED = "#c62828"
-TILE_UNSEARCHED = "#8a8a8a"
 TILE_REFUSED_FILL = 0.18
 TILE_WIDTH = 1.1
 
@@ -38,7 +37,6 @@ _UNKNOWN = "this feature has no lon/lat box to crop the mosaic to"
 _LEGEND = (
     (TILE_KEPT, "tile kept"),
     (TILE_REFUSED, "tile refused"),
-    (TILE_UNSEARCHED, "nothing to search"),
 )
 
 
@@ -201,7 +199,9 @@ def _tiles(axis: Axes, grid: Placed, study: Study) -> None:
     """Outline every tile of the feature, marked by what the search made of it.
 
     A feature is cut into thousands of tiles, so the outlines are handed to the
-    panel in three batches rather than one at a time.
+    panel in two batches rather than one at a time. A tile the search never
+    ran over, because nothing it was offered was a look at it rather than a
+    clip of its edge, is refused like any other tile it would not keep.
 
     Args:
         axis: The panel to draw on.
@@ -212,16 +212,15 @@ def _tiles(axis: Axes, grid: Placed, study: Study) -> None:
         None.
     """
     found = {stats.tile: stats.kept for stats in tiles.measured(study)}
-    rings: dict[bool | None, list[np.ndarray]] = {True: [], False: [], None: []}
+    rings: dict[bool, list[np.ndarray]] = {True: [], False: []}
     for at, patch in enumerate(study.patchwork.tiles):
         if not patch.area_km2:
             continue
         row, column = divmod(at, study.patchwork.across)
         lon, lat = grid.tile(row, column)
-        rings[found.get(at)].append(np.column_stack([lon, lat]))
-    _outline(axis, rings[True], TILE_KEPT, "solid")
-    _outline(axis, rings[False], TILE_REFUSED, "solid")
-    _outline(axis, rings[None], TILE_UNSEARCHED, (0, (3, 3)))
+        rings[found.get(at, False)].append(np.column_stack([lon, lat]))
+    _outline(axis, rings[True], TILE_KEPT)
+    _outline(axis, rings[False], TILE_REFUSED)
     if rings[False]:
         axis.add_collection(
             PolyCollection(
@@ -234,14 +233,13 @@ def _tiles(axis: Axes, grid: Placed, study: Study) -> None:
         )
 
 
-def _outline(axis: Axes, rings: list[np.ndarray], colour: str, style: object) -> None:
+def _outline(axis: Axes, rings: list[np.ndarray], colour: str) -> None:
     """Draw one batch of tile outlines in the colour their verdict earned.
 
     Args:
         axis: The panel to draw on.
         rings: Each tile's ring, as its lon/lat points.
         colour: The colour to draw them in.
-        style: The line style to draw them in.
 
     Returns:
         None.
@@ -249,8 +247,7 @@ def _outline(axis: Axes, rings: list[np.ndarray], colour: str, style: object) ->
     if not rings:
         return
     axis.add_collection(
-        LineCollection(rings, colors=colour, linewidths=TILE_WIDTH, linestyles=style),
-        autolim=False,
+        LineCollection(rings, colors=colour, linewidths=TILE_WIDTH), autolim=False
     )
 
 
