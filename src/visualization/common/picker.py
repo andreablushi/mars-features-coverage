@@ -150,15 +150,11 @@ class FeaturePicker(Areas[View]):
         return View(self.coverage, strategies.named(self._strategy.value))
 
     def choose(self) -> None:
-        """Display the picker and report what the catalogue holds.
+        """Display the picker.
 
         Returns:
             None.
         """
-        catalogued = sum(len(names) for names in self._names.values())
-        print(f"{catalogued} catalogued features in {len(self._names)} classes")
-        print(f"{len(self._computed)} with coverage computed locally")
-        print(f"{len(strategies.STRATEGIES)} strategies to search under")
         controls = widgets.HBox([self._class, self._name, self._confirm])
         display(widgets.VBox([controls, self._strategy, self._status]))
 
