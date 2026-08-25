@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 from visualization.common import panels, series
 from visualization.common.picker import View
 from visualization.common.series import Series
-from visualization.feature.picker import NO_TILE, TileView
 
 # How an instrument set with nothing to draw is drawn anyway.
 UNOBSERVED_LINESTYLE = (0, (1, 3))
@@ -20,7 +19,6 @@ CUMULATIVE_FIGURE_SIZE = (13, 5)
 CUMULATIVE_WIDTH_RATIOS = [3, 1]
 
 _FEATURE_GROUND = "Share of the feature covered so far"
-_TILE_GROUND = "Share of the tile covered so far"
 
 
 def plot(view: View) -> widgets.Widget:
@@ -38,24 +36,6 @@ def plot(view: View) -> widgets.Widget:
         series.over_feature(view.coverage),
         f"{panels.title(view.coverage)}  -  cumulative coverage",
         _FEATURE_GROUND,
-    )
-
-
-def plot_tile(chosen: TileView | None) -> widgets.Widget:
-    """Draw the running coverage of the tile on show, beside its total.
-
-    Args:
-        chosen: The tile on show, or None while none is picked.
-
-    Returns:
-        The figure as a widget, or the grey panel when no tile is picked.
-    """
-    if chosen is None:
-        return panels.unavailable(NO_TILE)
-    return _draw(
-        series.over_tile(chosen.track),
-        f"{chosen.name}  -  cumulative coverage",
-        _TILE_GROUND,
     )
 
 

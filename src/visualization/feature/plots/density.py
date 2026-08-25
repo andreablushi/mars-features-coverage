@@ -14,7 +14,6 @@ from matplotlib.dates import date2num
 from visualization.common import panels, series
 from visualization.common.picker import View
 from visualization.common.series import Series
-from visualization.feature.picker import NO_TILE, TileView
 
 # How many months one density column covers, however long the range is.
 DENSITY_BIN_MONTHS = 1
@@ -35,20 +34,6 @@ def plot(view: View) -> widgets.Widget:
     if not view.coverage:
         return panels.unavailable()
     return _draw(series.over_feature(view.coverage), panels.title(view.coverage))
-
-
-def plot_tile(chosen: TileView | None) -> widgets.Widget:
-    """Draw the same rows for the tile on show.
-
-    Args:
-        chosen: The tile on show, or None while none is picked.
-
-    Returns:
-        The figure as a widget, or the grey panel when no tile is picked.
-    """
-    if chosen is None:
-        return panels.unavailable(NO_TILE)
-    return _draw(series.over_tile(chosen.track), chosen.name)
 
 
 def _draw(drawn: Sequence[Series], title: str) -> widgets.Widget:

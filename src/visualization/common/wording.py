@@ -76,6 +76,23 @@ def pixels(counted: float | None) -> str:
     return f"{quantities.compact(counted)} px"
 
 
+def landed(measured: Spread) -> str:
+    """Write a pixel count read off many tiles.
+
+    Args:
+        measured: The pixels, tile by tile.
+
+    Returns:
+        The average, and how far the tiles sit from it where they disagree.
+    """
+    if not measured.counted:
+        return UNCOUNTED
+    middle = quantities.compact(measured.mean)
+    if measured.agreed:
+        return f"{middle} px"
+    return f"{middle} px ± {quantities.compact(measured.deviation)} px"
+
+
 def tile(row: int, column: int) -> str:
     """Name one tile by where it sits on the feature's grid.
 

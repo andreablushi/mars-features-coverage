@@ -30,6 +30,8 @@ class Aggregate:
             tiles, counting a tile it never appears on as nothing.
         pixels: The pixels each instrument landed inside the windows, or None
             for one whose observations carry no pixel count.
+        landed: The pixels each instrument landed on a tile, over the kept
+            tiles, counting a tile it never appears on as nothing.
         overlaps: How much ground each set of instruments reaches between
             them, by the instruments really there, most ground first.
     """
@@ -46,6 +48,7 @@ class Aggregate:
     turned_away: int
     reached: dict[str, Spread]
     pixels: dict[str, float | None]
+    landed: dict[str, Spread]
     overlaps: dict[tuple[str, ...], float]
 
 
@@ -73,6 +76,7 @@ def over(measured: Sequence[TileStats], iids: Sequence[str]) -> Aggregate:
         turned_away=sum(tile.turned_away for tile in measured),
         reached={iid: _reached(held, iid) for iid in iids},
         pixels={iid: _pixels(held, iid) for iid in iids},
+        landed={iid: _landed(held, iid) for iid in iids},
         overlaps=_overlaps(held),
     )
 
@@ -95,6 +99,29 @@ def _reached(held: Sequence[TileStats], iid: str) -> Spread:
             if tile.area_km2
         ]
     )
+
+
+def _landed(held: Sequence[TileStats], iid: str) -> Spread:
+    """Read how many pixels one instrument lands on a tile, tile by tile.
+
+    Args:
+        held: The tiles that earned a window.
+        iid: The instrument to read.
+
+    Returns:
+        The pixels it lands on a tile, counting a tile whose window it never
+        appears in as nothing, and empty when any tile carries no count.
+    """
+    counted: list[float] = []
+    for tile in held:
+        reach = tile.reached.get(iid)
+        if reach is None:
+            counted.append(0.0)
+        elif reach.pixels is None:
+            return spread.over([])
+        else:
+            counted.append(reach.pixels)
+    return spread.over(counted)
 
 
 def _pixels(held: Sequence[TileStats], iid: str) -> float | None:
