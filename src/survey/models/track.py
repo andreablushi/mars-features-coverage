@@ -74,9 +74,17 @@ def build(
     refused: list[list[Event]] = [[] for _ in patchwork.tiles]
     labels = [instrument.label for instrument in coverage]
     iids = [instrument.summary.iid for instrument in coverage]
+    # A set publishing a swath width is a sounder, whose pixels lie along a line
+    linear = [
+        any(observation.width_km is not None for observation in instrument.events)
+        for instrument in coverage
+    ]
     # What each set has to land on each tile, worked out once for the feature
     floors = [
-        [admissible.least(admits, iid, patch, patchwork.cell_km2) for iid in iids]
+        [
+            admissible.least(admits, iid, patch, patchwork.cell_km2, linear=along_track)
+            for iid, along_track in zip(iids, linear, strict=True)
+        ]
         for patch in patchwork.tiles
     ]
     for owner, instrument in enumerate(coverage):
