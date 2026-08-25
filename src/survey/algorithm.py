@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from survey import configs
-from survey.filters import redundancy
+from survey.filters import redundancy, timeless
 from survey.models.counter import Counter
 from survey.models.strategy import Demands, Strategy
 from survey.models.survey import Survey
@@ -41,6 +41,7 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
         reach=reach,
         kept=tuple(kept),
         dropped=picked.last - picked.first + 1 - len(kept),
+        standing=timeless.kept(track, standing),
     )
 
 
@@ -80,12 +81,15 @@ def _best(track: Track, demands: Demands, strategy: Strategy) -> Window | None:
     for left in range(len(track.observations)):
         counter = Counter.empty(track.iids, track.grid)
         for right in range(left, len(track.observations)):
+            days = track.times[right] - track.times[left]
+            # The axis runs forwards, so nothing beyond here is short enough
+            if days > span_days:
+                break
             counter.hold(track.owners[right], track.cells[right])
             reach = scoring.scored(track, demands, counter.cells_reached)
             if reach is None:
                 continue  # the window does not hold what the strategy asks
-            days = track.times[right] - track.times[left]
             paid = reach - price * days
-            if days <= span_days and paid > worth:
+            if paid > worth:
                 best, worth = Window(left, right, days, reach), paid
     return best

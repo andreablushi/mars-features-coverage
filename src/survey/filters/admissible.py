@@ -26,9 +26,10 @@ def least(admits: dict[str, int], iid: str, patch: Tile, cell_km2: float) -> int
         cell_km2: How much ground one cell of the block covers.
 
     Returns:
-        The cells it has to leave on that tile. An instrument the strategy
-        names nowhere is asked for nothing, and a tile too small to be asked
-        the strategy's count is asked less of it.
+        The cells it has to leave on that tile, never fewer than one, so an
+        instrument the strategy names nowhere has only to reach the tile. A
+        tile too small to be asked the strategy's count is asked less of it,
+        but never so little that a single cell of it passes for a look.
     """
     share = patch.area_km2 / (patch.cells * cell_km2)
-    return round(admits.get(iid, 0) * math.sqrt(share))
+    return max(1, round(admits.get(iid, 0) * math.sqrt(share)))

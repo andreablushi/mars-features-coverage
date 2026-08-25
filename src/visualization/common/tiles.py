@@ -46,12 +46,13 @@ class TileStats:
         days: How long its window lasts.
         reach: How much of the tile its window reaches, as the search scores
             it.
-        taken: How many observations the window keeps.
+        taken: How many observations the tile keeps, the window's own and
+            what a timeless instrument brought it from outside the window.
         dropped: How many the window dropped as repeats of ground it held.
         refused: How many looks fell inside the window but were too small for
             the tile.
         turned_away: How many looks were too small for the tile at all.
-        reached: What each instrument left inside the window, by instrument.
+        reached: What each instrument left on the tile, by instrument.
         overlaps: How much ground each set of instruments reaches between them,
             by the instruments really there, most ground first.
     """
@@ -111,13 +112,28 @@ def _tile(study: Study, track: Track, picked: Survey | None) -> TileStats:
         end=picked.end if picked else None,
         days=picked.days if picked else 0.0,
         reach=picked.reach if picked else 0.0,
-        taken=len(picked.kept) if picked else 0,
+        taken=len(held(picked)),
         dropped=picked.dropped if picked else 0,
         refused=_refused(track, picked),
         turned_away=len(track.refused),
         reached=_reached(track, picked),
         overlaps=_overlaps(track, picked),
     )
+
+
+def held(picked: Survey | None) -> tuple[int, ...]:
+    """Name every observation the tile keeps, in time order.
+
+    Args:
+        picked: The window it earned, or None when it earned none.
+
+    Returns:
+        The window's own observations and the ones a timeless instrument
+        brought it from outside the window, oldest first.
+    """
+    if picked is None:
+        return ()
+    return tuple(sorted(set(picked.kept) | set(picked.standing)))
 
 
 def _refused(track: Track, picked: Survey | None) -> int:
@@ -147,13 +163,14 @@ def _reached(track: Track, picked: Survey | None) -> dict[str, Reach]:
         picked: The window they are counted inside, or None for no window.
 
     Returns:
-        What each instrument that appears in the window left, by instrument.
+        What each instrument that left anything on the tile left, by
+        instrument.
     """
     if picked is None:
         return {}
     cells: dict[str, set[int]] = {}
     counted: dict[str, list[Event]] = {}
-    for index in picked.kept:
+    for index in held(picked):
         iid = track.iids[track.owners[index]]
         cells.setdefault(iid, set()).update(track.cells[index])
         counted.setdefault(iid, []).append(track.observations[index])
@@ -183,7 +200,7 @@ def _landed(track: Track, picked: Survey, iid: str) -> float | None:
         carries none.
     """
     total = 0.0
-    for index in picked.kept:
+    for index in held(picked):
         if track.iids[track.owners[index]] != iid:
             continue
         observation = track.observations[index]
@@ -209,7 +226,7 @@ def _overlaps(track: Track, picked: Survey | None) -> dict[tuple[str, ...], floa
     if picked is None:
         return {}
     here: list[set[str]] = [set() for _ in range(track.grid)]
-    for index in picked.kept:
+    for index in held(picked):
         iid = track.iids[track.owners[index]]
         for cell in track.cells[index]:
             here[cell].add(iid)

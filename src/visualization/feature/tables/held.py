@@ -124,7 +124,7 @@ def _share(stats: TileStats, iid: str) -> str:
 
 
 def _pixels(stats: TileStats) -> float | None:
-    """Add up the pixels the tile's window holds.
+    """Add up the pixels the tile keeps.
 
     Args:
         stats: The tile, as the search left it.

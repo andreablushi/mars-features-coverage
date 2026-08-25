@@ -27,6 +27,10 @@ class Survey:
             would put in a dataset.
         dropped: How many were dropped from it as repeats of ground it already
             held.
+        standing: The observations kept from outside the window, as their
+            places on the timeline, oldest first. A timeless instrument is
+            asked of the whole record rather than of the window, so what it
+            brought the tile is kept wherever on the axis it flew.
     """
 
     tile: int
@@ -37,3 +41,4 @@ class Survey:
     reach: float
     kept: tuple[int, ...]
     dropped: int
+    standing: tuple[int, ...]

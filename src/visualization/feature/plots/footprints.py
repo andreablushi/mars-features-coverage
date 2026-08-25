@@ -1,4 +1,4 @@
-"""The tile on show, with the footprint every observation its window keeps left."""
+"""The tile on show, with the footprint of every observation it keeps."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import ipywidgets as widgets
 from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
 
-from visualization.common import panels, series
+from visualization.common import panels, series, tiles
 from visualization.feature import picker
 from visualization.feature.picker import TileView
 from visualization.feature.plots import basemap, outlines, overlay
@@ -28,7 +28,7 @@ _UNPUBLISHED = "The footprints of this feature are no longer on disk."
 
 
 def plot(chosen: TileView | None) -> widgets.Widget:
-    """Show the tile with the footprints the observations its window keeps left.
+    """Show the tile with the footprint of every observation it keeps.
 
     Args:
         chosen: The tile on show, or None while none is picked.
@@ -127,7 +127,7 @@ def _figure(grid: Placed, chosen: TileView, box: Box, image: bytes) -> widgets.W
 def _traces(
     axis: Axes, grid: Placed, chosen: TileView, shapes: dict
 ) -> dict[str, tuple]:
-    """Trace the footprint of every observation the tile's window keeps.
+    """Trace the footprint of every observation the tile keeps.
 
     Args:
         axis: The panel to draw on.
@@ -143,7 +143,7 @@ def _traces(
     track = chosen.track
     colours = panels.colours(series.over_tile(track))
     drawn: dict[str, tuple] = {}
-    for index in chosen.survey.kept:
+    for index in tiles.held(chosen.survey):
         shape = shapes.get(track.observations[index].pdsid)
         if shape is None:
             continue
