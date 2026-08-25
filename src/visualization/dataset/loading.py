@@ -24,8 +24,6 @@ class Searched:
         feature_class: The feature class, such as Crater.
         name: The feature name as ODE spells it.
         strategy: The strategy it was searched under.
-        tiles: How many tiles hold any of the feature, which the search may
-            not have reached all of.
         iids: The instruments it holds, in the order they are drawn.
         measured: The tiles the search ran over, as it left them.
     """
@@ -33,18 +31,8 @@ class Searched:
     feature_class: str
     name: str
     strategy: str
-    tiles: int
     iids: list[str]
     measured: list[TileStats]
-
-
-def catalogued() -> list[Named]:
-    """Name every feature with coverage computed locally.
-
-    Returns:
-        The class and name of each, in catalogue order.
-    """
-    return summary.catalogued_features()
 
 
 def sweep(
@@ -101,7 +89,6 @@ def _searched(named: Named, under: Sequence[str]) -> list[Searched]:
                 feature_class=feature_class,
                 name=name,
                 strategy=chosen,
-                tiles=study.tiles,
                 iids=tiles.instruments(study),
                 measured=tiles.measured(study),
             )

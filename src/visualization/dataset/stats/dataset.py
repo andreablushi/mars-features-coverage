@@ -21,9 +21,7 @@ class DatasetStats:
     Attributes:
         strategy: The strategy the features were searched under.
         features: How many features were searched.
-        gridded: How many of them hold ground any instrument reached.
         held: Every tile of every feature, read as one.
-        split: How many tiles a feature is cut into, feature by feature.
         sizes: How much ground a tile holds, over the tiles searched.
         offered: How many observations each instrument landed on a tile, over
             the tiles searched, counting a tile it never reached as nothing.
@@ -36,23 +34,17 @@ class DatasetStats:
         covered: How many kept tiles have at least that share of their ground
             reached by two instruments at once, by the share asked.
         iids: The instruments reported on, in the order they are drawn.
-        classes: How many tiles of each feature class were kept, and how many
-            were searched, by feature class. A strategy admits a tile and
-            never a feature, so a class is counted in tiles too.
     """
 
     strategy: str
     features: int
-    gridded: int
     held: Aggregate
-    split: Spread
     sizes: Spread
     offered: dict[str, Spread]
     shared: dict[int, Spread]
     reaching: dict[int, int]
     covered: dict[float, int]
     iids: list[str]
-    classes: dict[str, tuple[int, int]]
 
 
 def read(found: Sequence[Searched]) -> dict[str, DatasetStats]:
@@ -94,9 +86,7 @@ def _under(strategy: str, held: Sequence[Searched]) -> DatasetStats:
     return DatasetStats(
         strategy=strategy,
         features=len(held),
-        gridded=sum(1 for searched in held if searched.tiles),
         held=aggregate.over(measured, iids),
-        split=spread.over([searched.tiles for searched in held if searched.tiles]),
         sizes=spread.over([tile.area_km2 for tile in measured]),
         offered={
             iid: spread.over([tile.offered.get(iid, 0) for tile in measured])
@@ -117,30 +107,4 @@ def _under(strategy: str, held: Sequence[Searched]) -> DatasetStats:
         },
         covered={band: sum(1 for share in together if share >= band) for band in BANDS},
         iids=iids,
-        classes=_classes(held),
     )
-
-
-def _classes(held: Sequence[Searched]) -> dict[str, tuple[int, int]]:
-    """Count the tiles of each feature class the strategy keeps.
-
-    Args:
-        held: Every feature searched.
-
-    Returns:
-        The tiles kept and the tiles searched, by feature class, most searched
-        first.
-    """
-    searched: dict[str, int] = {}
-    passed: dict[str, int] = {}
-    for one in held:
-        searched[one.feature_class] = searched.get(one.feature_class, 0) + len(
-            one.measured
-        )
-        passed[one.feature_class] = passed.get(one.feature_class, 0) + sum(
-            1 for tile in one.measured if tile.kept
-        )
-    return {
-        name: (passed.get(name, 0), counted)
-        for name, counted in sorted(searched.items(), key=lambda one: -one[1])
-    }

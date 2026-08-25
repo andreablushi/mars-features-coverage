@@ -21,15 +21,8 @@ class Aggregate:
         kept_km2: How much of it the kept ones hold.
         days: How long the windows last, over the kept tiles.
         reach: How much of a tile its window reaches, over the kept tiles.
-        taken: How many observations the windows keep between them.
-        dropped: How many they dropped as repeats of ground already held.
-        refused: How many looks fell inside a window but were too small for
-            the tile.
-        turned_away: How many looks were too small for the tile at all.
         reached: The share of a tile each instrument reaches, over the kept
             tiles, counting a tile it never appears on as nothing.
-        pixels: The pixels each instrument landed inside the windows, or None
-            for one whose observations carry no pixel count.
         landed: The pixels each instrument landed on a tile, over the kept
             tiles, counting a tile it never appears on as nothing.
         overlaps: How much ground each set of instruments reaches between
@@ -42,12 +35,7 @@ class Aggregate:
     kept_km2: float
     days: Spread
     reach: Spread
-    taken: int
-    dropped: int
-    refused: int
-    turned_away: int
     reached: dict[str, Spread]
-    pixels: dict[str, float | None]
     landed: dict[str, Spread]
     overlaps: dict[tuple[str, ...], float]
 
@@ -70,12 +58,7 @@ def over(measured: Sequence[TileStats], iids: Sequence[str]) -> Aggregate:
         kept_km2=sum(tile.area_km2 for tile in held),
         days=spread.over([tile.days for tile in held]),
         reach=spread.over([tile.reach for tile in held]),
-        taken=sum(tile.taken for tile in measured),
-        dropped=sum(tile.dropped for tile in measured),
-        refused=sum(tile.refused for tile in measured),
-        turned_away=sum(tile.turned_away for tile in measured),
         reached={iid: _reached(held, iid) for iid in iids},
-        pixels={iid: _pixels(held, iid) for iid in iids},
         landed={iid: _landed(held, iid) for iid in iids},
         overlaps=_overlaps(held),
     )
@@ -122,27 +105,6 @@ def _landed(held: Sequence[TileStats], iid: str) -> Spread:
         else:
             counted.append(reach.pixels)
     return spread.over(counted)
-
-
-def _pixels(held: Sequence[TileStats], iid: str) -> float | None:
-    """Add up the pixels one instrument landed inside the windows.
-
-    Args:
-        held: The tiles that earned a window.
-        iid: The instrument to count.
-
-    Returns:
-        The pixels, or None when any tile carries no count for it.
-    """
-    total = 0.0
-    for tile in held:
-        reach = tile.reached.get(iid)
-        if reach is None:
-            continue
-        if reach.pixels is None:
-            return None
-        total += reach.pixels
-    return total
 
 
 def _overlaps(held: Sequence[TileStats]) -> dict[tuple[str, ...], float]:

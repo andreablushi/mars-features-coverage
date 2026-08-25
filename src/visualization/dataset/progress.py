@@ -8,6 +8,7 @@ from collections.abc import Sequence
 import ipywidgets as widgets
 from IPython.display import display
 
+from storage import summary
 from visualization.common import panels
 from visualization.dataset import loading
 from visualization.dataset.loading import Named, Searched
@@ -27,14 +28,14 @@ def swept(
     Returns:
         One entry per feature and strategy.
     """
-    wanted = list(loading.catalogued() if wanted is None else wanted)
+    wanted = list(summary.catalogued_features() if wanted is None else wanted)
     bar = widgets.IntProgress(min=0, max=len(wanted), bar_style="info")
     note = widgets.HTML()
     display(widgets.HBox([bar, note]))
     started = time.monotonic()
 
     def moved(done: int, total: int) -> None:
-        """Move the bar on and say how long is left.
+        """Move the bar on and say how long the sweep has left.
 
         Args:
             done: How many features are searched.
@@ -43,46 +44,31 @@ def swept(
         Returns:
             None.
         """
+        left = (time.monotonic() - started) / done * (total - done)
+        note.value = _note(
+            f"{done:,} of {total:,} features, about {left / 60:.0f} min left"
+        )
         bar.value = done
-        note.value = _left(done, total, time.monotonic() - started)
 
     found = loading.sweep(under, wanted, workers, moved)
     bar.bar_style = "success"
-    note.value = _done(len(wanted), time.monotonic() - started)
+    note.value = _note(
+        f"{len(wanted):,} features searched in "
+        f"{(time.monotonic() - started) / 60:.1f} min"
+    )
     return found
 
 
-def _left(done: int, total: int, elapsed: float) -> str:
-    """Say how far the sweep has got and how long it has to go.
+def _note(text: str) -> str:
+    """Write the grey line beside the bar.
 
     Args:
-        done: How many features are searched.
-        total: How many there are.
-        elapsed: How long it has run for, in seconds.
+        text: What it reads.
 
     Returns:
-        The note beside the bar.
-    """
-    remaining = elapsed / done * (total - done)
-    return (
-        f"<span style='font-family: sans-serif; font-size: 12px;"
-        f" color: {panels.GREY}; padding-left: 8px;'>"
-        f"{done:,} of {total:,} features, about {remaining / 60:.0f} min left</span>"
-    )
-
-
-def _done(total: int, elapsed: float) -> str:
-    """Say the sweep is finished and how long it took.
-
-    Args:
-        total: How many features it searched.
-        elapsed: How long it took, in seconds.
-
-    Returns:
-        The note beside the bar.
+        The line.
     """
     return (
         f"<span style='font-family: sans-serif; font-size: 12px;"
-        f" color: {panels.GREY}; padding-left: 8px;'>"
-        f"{total:,} features searched in {elapsed / 60:.1f} min</span>"
+        f" color: {panels.GREY}; padding-left: 8px;'>{text}</span>"
     )
