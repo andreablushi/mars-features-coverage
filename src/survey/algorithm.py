@@ -41,7 +41,7 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
         reach=reach,
         kept=tuple(kept),
         dropped=picked.last - picked.first + 1 - len(kept),
-        standing=timeless.kept(track, standing),
+        standing=timeless.kept(track, strategy.timeless),
     )
 
 
