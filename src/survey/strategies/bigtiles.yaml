@@ -3,6 +3,7 @@
 demands:
   - {CTX: 0.50}
   - {CRISM: 0.30}
+  - {SHARAD: 0.0}
 admits: {CTX: 1000000, CRISM: 800, SHARAD: 50}
 tile_km: 400.0
 gain: 1
