@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 
-from visualization.common import panels, series, surveys
+from visualization.common import panels, series
 from visualization.common.picker import View
 from visualization.common.series import Series
 from visualization.common.surveys import Stretch
@@ -25,6 +25,9 @@ _TILE_GROUND = "Share of the tile covered by one observation"
 def plot(view: View) -> widgets.Widget:
     """Draw one stacked panel per instrument set, over the whole feature.
 
+    A window is found over a tile and not over the feature, so nothing here
+    marks one.
+
     Args:
         view: The feature on show and the strategy it is judged under.
 
@@ -33,12 +36,11 @@ def plot(view: View) -> widgets.Widget:
     """
     if not view.coverage:
         return panels.unavailable()
-    study = surveys.studied(view.coverage, view.strategy)
     return _draw(
         series.over_feature(view.coverage),
         f"{panels.title(view.coverage)}  -  coverage per observation",
         _FEATURE_GROUND,
-        surveys.stretches([picked for _, picked in study.kept]),
+        [],
         view.strategy.timeless,
     )
 

@@ -51,12 +51,8 @@ def _rows(stats: FeatureStats) -> list[Row]:
     """
     held = stats.held
     written: list[Row] = [
-        ("Tiles Across Each Axis", f"{stats.across:,}"),
         ("Tiles Holding Feature", f"{stats.tiles:,}"),
-        ("Tiles Searched", f"{held.searched:,}"),
         ("Tiles Kept", f"{held.kept:,}"),
-        ("Ground Across Tiles", wording.ground(held.area_km2, stats.feature_km2)),
-        ("Ground Kept Across Tiles", wording.ground(held.kept_km2, stats.feature_km2)),
     ]
     for iid in stats.iids:
         written += [

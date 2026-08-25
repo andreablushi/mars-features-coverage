@@ -81,7 +81,7 @@ def plot(chosen: TileView | None) -> widgets.Widget:
     if grid is None:
         return panels.unavailable(_TOO_SHORT)
     figure, axis = panels.board(WINDOW_FIGURE_SIZE)
-    mesh = _field(axis, grid, chosen.survey)
+    mesh = _field(axis, grid, chosen.survey, _instruments(chosen))
     axis.set_title(f"{chosen.name}  -  candidate time windows", fontsize=12, loc="left")
     axis.set_xlim(grid.centres[0], grid.centres[-1])
     bar = figure.colorbar(mesh, ax=axis, pad=0.01)
@@ -93,13 +93,30 @@ def plot(chosen: TileView | None) -> widgets.Widget:
     return panels.rendered(figure)
 
 
-def _field(axis: Axes, grid: Grid, picked: Survey | None):
+def _instruments(chosen: TileView) -> int:
+    """Count the instruments the window the search picked holds.
+
+    Args:
+        chosen: The tile on show.
+
+    Returns:
+        How many instruments left an observation inside it, and nought when
+        the tile earned no window.
+    """
+    if chosen.survey is None:
+        return 0
+    track = chosen.track
+    return len({track.iids[track.owners[index]] for index in chosen.survey.kept})
+
+
+def _field(axis: Axes, grid: Grid, picked: Survey | None, holds: int):
     """Draw what every candidate window reaches, by when it opens and how long.
 
     Args:
         axis: The panel to draw on.
         grid: The scored candidate windows.
         picked: The window the search chose, or None when it found none.
+        holds: How many instruments that window holds.
 
     Returns:
         The mesh, for the colour bar to read its colours from.
@@ -116,7 +133,7 @@ def _field(axis: Axes, grid: Grid, picked: Survey | None):
     _silent(axis, grid)
     _marked(axis, grid, picked)
     axis.legend(
-        handles=_keys(grid, picked),
+        handles=_keys(grid, picked, holds),
         fontsize=8,
         loc="lower right",
         framealpha=0.85,
@@ -169,7 +186,7 @@ def _rings(grid: Grid) -> list[tuple[int, str, float]]:
     return [
         (
             count,
-            "solid" if count == most else "dotted",
+            "solid" if count == most else "dashed",
             WINDOW_RING_ALL if count == most else WINDOW_RING,
         )
         for count in range(2, most + 1)
@@ -197,12 +214,13 @@ def _marked(axis: Axes, grid: Grid, picked: Survey | None) -> None:
     )
 
 
-def _keys(grid: Grid, picked: Survey | None) -> list:
+def _keys(grid: Grid, picked: Survey | None, holds: int) -> list:
     """Name every ring the panel draws, the window it marks, and the grey it leaves.
 
     Args:
         grid: The scored candidate windows.
         picked: The window the search chose, or None when it found none.
+        holds: How many instruments that window holds.
 
     Returns:
         The legend handles, in the order they read.
@@ -222,8 +240,8 @@ def _keys(grid: Grid, picked: Survey | None) -> list:
     if picked is None:
         return rings + [grey]
     label = (
-        f"the window the search picked, {quantities.duration(picked.days)} "
-        f"reaching {picked.reach:.0%}"
+        f"best window: {quantities.duration(picked.days)}, "
+        f"{holds} instruments, scoring {picked.reach:.0%}"
     )
     return [Line2D([], [], label=label, **_PICK)] + rings + [grey]
 
