@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
@@ -52,6 +53,9 @@ class TileStats:
         refused: How many looks fell inside the window but were too small for
             the tile.
         turned_away: How many looks were too small for the tile at all.
+        offered: How many observations of each instrument landed on the
+            tile at all, before any window was searched over it, by
+            instrument.
         reached: What each instrument left on the tile, by instrument.
         overlaps: How much ground each set of instruments reaches between them,
             by the instruments really there, most ground first.
@@ -70,6 +74,7 @@ class TileStats:
     dropped: int
     refused: int
     turned_away: int
+    offered: dict[str, int]
     reached: dict[str, Reach]
     overlaps: dict[tuple[str, ...], float]
 
@@ -116,6 +121,7 @@ def _tile(study: Study, track: Track, picked: Survey | None) -> TileStats:
         dropped=picked.dropped if picked else 0,
         refused=_refused(track, picked),
         turned_away=len(track.refused),
+        offered=dict(Counter(track.iids[owner] for owner in track.owners)),
         reached=_reached(track, picked),
         overlaps=_overlaps(track, picked),
     )

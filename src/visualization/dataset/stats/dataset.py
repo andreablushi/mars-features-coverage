@@ -21,6 +21,9 @@ class DatasetStats:
         gridded: How many of them hold ground any instrument reached.
         held: Every tile of every feature, read as one.
         split: How many tiles a feature is cut into, feature by feature.
+        sizes: How much ground a tile holds, over the tiles searched.
+        offered: How many observations each instrument landed on a tile, over
+            the tiles searched, counting a tile it never reached as nothing.
         iids: The instruments reported on, in the order they are drawn.
         classes: How many tiles of each feature class were kept, and how many
             were searched, by feature class. A strategy admits a tile and
@@ -32,6 +35,8 @@ class DatasetStats:
     gridded: int
     held: Aggregate
     split: Spread
+    sizes: Spread
+    offered: dict[str, Spread]
     iids: list[str]
     classes: dict[str, tuple[int, int]]
 
@@ -63,14 +68,18 @@ def _under(strategy: str, held: Sequence[Searched]) -> DatasetStats:
         What the strategy would make of them.
     """
     iids = list(dict.fromkeys(iid for searched in held for iid in searched.iids))
+    measured = [tile for searched in held for tile in searched.measured]
     return DatasetStats(
         strategy=strategy,
         features=len(held),
         gridded=sum(1 for searched in held if searched.tiles),
-        held=aggregate.over(
-            [tile for searched in held for tile in searched.measured], iids
-        ),
+        held=aggregate.over(measured, iids),
         split=spread.over([searched.tiles for searched in held if searched.tiles]),
+        sizes=spread.over([tile.area_km2 for tile in measured]),
+        offered={
+            iid: spread.over([tile.offered.get(iid, 0) for tile in measured])
+            for iid in iids
+        },
         iids=iids,
         classes=_classes(held),
     )
