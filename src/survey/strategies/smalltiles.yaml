@@ -1,0 +1,17 @@
+# The default cut into 20 km tiles, where a sample is one landform rather than a
+# stretch of ground holding several. The bound each instrument is admitted on is
+# scaled to the smaller tile the same way the search scales it: an imager lays
+# its pixels over ground, so its bound falls with the area, and a sounder lays
+# them along a line, so its bound falls with the width. Left at the 100 km
+# figures, SHARAD would be asked for more than a whole crossing of the tile lays
+# down and no tile would ever hold it.
+demands:
+  - {CTX: 0.50}
+  - {CRISM: 0.30}
+  - {SHARAD: 0.0}
+admits: {CTX: 40000, CRISM: 32, SHARAD: 10}
+tile_km: 20.0
+gain: 1
+breadth: 0.7
+span_days: 687.0
+timeless: [SHARAD]

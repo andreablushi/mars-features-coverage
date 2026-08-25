@@ -1,7 +1,8 @@
 # The default over half a Mars year, which asks what a shorter window costs.
 demands:
   - {CTX: 0.50}
-  - {CTX: 0.50, CRISM: 0.30}
+  - {CRISM: 0.30}
+  - {SHARAD: 0.0}
 admits: {CTX: 1000000, CRISM: 800, SHARAD: 50}
 tile_km: 100.0
 gain: 1

@@ -2,10 +2,13 @@
 
 # The coverage each instrument is asked of a tile, in percent of its area.
 # Any one of the instruments a demand names answers it, so two both insisted on
-# are two demands
+# are two demands. Asking nought still asks for one cell, so a tile keeps SHARAD
+# only where at least one of its looks really landed on it. SHARAD is timeless,
+# so that look is asked of the whole record rather than of the window
 demands:
   - {CTX: 0.50}
-  - {CTX: 0.50, CRISM: 0.30}
+  - {CRISM: 0.30}
+  - {SHARAD: 0.0}
 
 # The pixels an instrument has to land on a tile to be counted
 # One ground floor of about 25 km2, read at each instrument's own pixel size
