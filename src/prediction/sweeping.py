@@ -7,7 +7,6 @@ from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from functools import partial
 
-from prediction import sets
 from prediction.models import tiles
 from prediction.models.tiles import TileStats
 from storage import summary
@@ -74,7 +73,7 @@ def _searched(named: Named, under: Sequence[str]) -> list[Searched]:
         One entry per strategy, and nothing where the feature has no set on disk.
     """
     feature_class, name = named
-    coverage = sets.plotted(summary.load_feature(feature_class, name))
+    coverage = summary.load_feature(feature_class, name)
     if not coverage:
         return []
     found: list[Searched] = []
