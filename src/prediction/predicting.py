@@ -13,11 +13,10 @@ from collections.abc import Callable, Sequence
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 
-from prediction import storing
 from prediction.models.dataset import DatasetStats
 from prediction.models.searched import Searched
 from prediction.stats import dataset, tiles
-from storage import summary
+from storage import predictions, summary
 from survey import strategies, studying
 
 Named = tuple[str, str]
@@ -38,7 +37,14 @@ def read(workers: int = 8, progress: Progress | None = None) -> dict[str, Datase
     """
     missing = [name for name in strategies.STRATEGIES if name not in _held]
     if missing:
-        _held.update(storing.loaded())
+        # A strategy rewritten since it was published has to be searched again
+        _held.update(
+            {
+                name: stats
+                for name, (digest, stats) in predictions.loaded().items()
+                if name in strategies.STRATEGIES and digest == strategies.digest(name)
+            }
+        )
         missing = [name for name in missing if name not in _held]
     if missing:
         found = sweep(missing, summary.catalogued_features(), workers, progress)

@@ -14,9 +14,9 @@ from digitalhub_runtime_python import handler
 import console
 import utils.disk.paths as paths
 import utils.disk.settings as settings
-from prediction import predicting, storing
+from prediction import predicting
 from prediction.stats import dataset
-from storage import summary
+from storage import predictions, summary
 from survey import strategies
 
 FUNCTION_NAME = "features-prediction"
@@ -52,7 +52,8 @@ def save_predictions(project):
         flush=True,
     )
     found = predicting.sweep(list(strategies.STRATEGIES), named, workers)
-    storing.written(dataset.read(found))
+    read = dataset.read(found)
+    predictions.written(read, {name: strategies.digest(name) for name in read})
 
     print("uploading the prediction", flush=True)
     packed = dh_pipeline.archive(paths.PREDICTIONS_ROOT, PREDICTIONS_NAME)
