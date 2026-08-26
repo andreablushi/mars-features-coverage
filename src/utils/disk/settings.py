@@ -71,8 +71,8 @@ def load(path: Path = paths.CONFIG_PATH) -> Settings:
         )
     plotted = _setting(config, "plot_instruments", list, required=False)
     return Settings(
-        tile_km=_setting(config, "tile_km", int),
-        tile_cells=_setting(config, "tile_cells", int),
+        grid_km=_setting(config, "grid_km", int),
+        grid_cells=_setting(config, "grid_cells", int),
         instrument_sets=tuple(
             InstrumentSet.from_key(key) for key in _setting(config, "instruments", list)
         ),

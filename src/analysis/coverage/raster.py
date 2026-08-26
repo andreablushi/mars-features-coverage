@@ -16,20 +16,20 @@ from utils.maths import mask as packing
 _NONE = np.empty(0, dtype=np.int64)
 
 
-def grid_for(span_m: float, tile_km: int, tile_cells: int) -> tuple[int, int]:
+def grid_for(span_m: float, grid_km: int, grid_cells: int) -> tuple[int, int]:
     """Cut a feature into tiles, and give every tile the same grid.
 
     Args:
         span_m: How wide the feature's box is, in metres.
-        tile_km: How wide one tile is, in kilometres.
-        tile_cells: How many cells one tile holds along each axis.
+        grid_km: How wide one block of the grid is, in kilometres.
+        grid_cells: How many cells one block holds along each axis.
 
     Returns:
         The tiles the feature is cut into per axis, and the cells that gives the grid.
     """
     span_km = max(span_m, 0.0) / 1000.0
-    across = max(1, math.ceil(span_km / tile_km))
-    return across, across * tile_cells
+    across = max(1, math.ceil(span_km / grid_km))
+    return across, across * grid_cells
 
 
 class FeatureRaster:
@@ -56,8 +56,8 @@ class FeatureRaster:
         config = settings.load()
         self.across, side = grid_for(
             math.sqrt((east - west) * (north - south)),
-            config.tile_km,
-            config.tile_cells,
+            config.grid_km,
+            config.grid_cells,
         )
         self.side = side
         self._eastings = west + (np.arange(side) + 0.5) * (east - west) / side

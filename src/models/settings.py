@@ -12,8 +12,8 @@ class Settings:
     """The settled choices for a run, read from one flat config file.
 
     Attributes:
-        tile_km: How wide a tile of a feature is, in kilometres.
-        tile_cells: Cells along each axis of one tile.
+        grid_km: How wide one block of the measurement grid is, in kilometres.
+        grid_cells: Cells along each axis of one block.
         instrument_sets: The instrument sets to download for every feature.
         plot_instrument_sets: The sets the figures draw, or None for every one held.
         feature_names: The features to run over, or None for the whole catalogue.
@@ -25,8 +25,8 @@ class Settings:
         workers: How many jobs each half runs at once.
     """
 
-    tile_km: int
-    tile_cells: int
+    grid_km: int
+    grid_cells: int
     instrument_sets: tuple[InstrumentSet, ...]
     plot_instrument_sets: tuple[InstrumentSet, ...] | None
     feature_names: tuple[str, ...] | None
