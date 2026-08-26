@@ -12,7 +12,7 @@ from utils.maths import quantities
 from visualization.common import tables, wording
 from visualization.common.tables import Row
 
-_REACHED = ("Strategy", "Instrument", "Mean of a tile", "Spread", "Least", "Most")
+_REACHED = ("Strategy", "Instrument", "Mean of a tile", "Spread", "Least")
 
 # What the row holding the ground every instrument reaches at once is called.
 OVERLAP = "Overlap"
@@ -88,7 +88,6 @@ def _share(strategy: str, name: str, measured: Spread) -> Row:
         f"{measured.mean:.1%}",
         f"± {measured.deviation:.1%}",
         f"{measured.low:.1%}",
-        f"{measured.high:.1%}",
     )
 
 
