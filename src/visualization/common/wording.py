@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from prediction.models.spread import Spread
+from sampling.models.spread import Spread
 from utils.maths import quantities
 
 NOTHING = "none"

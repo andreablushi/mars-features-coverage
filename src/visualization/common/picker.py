@@ -8,10 +8,11 @@ from dataclasses import dataclass
 import ipywidgets as widgets
 from IPython.display import display
 
-from models.results import SetCoverage
-from storage import catalog, summary
-from survey import strategies
-from survey.models.strategy import Strategy
+from coverage import summary
+from coverage.results import SetCoverage
+from metadata import catalog
+from selector import strategies
+from selector.models.strategy import Strategy
 from utils.disk.slugify import slugify
 from visualization.common import panels, sets, surveys
 

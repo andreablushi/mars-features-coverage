@@ -6,7 +6,7 @@ from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
 
 import utils.disk.paths as paths
-from download.selection.features import select_features
+from metadata.selection.features import select_features
 from models.feature import Feature
 from models.instrument import InstrumentSet
 from models.job import Job, Plan

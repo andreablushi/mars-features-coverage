@@ -5,11 +5,11 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import datetime
 
-from models.results import SetCoverage
-from survey import strategies, studying
-from survey.models.strategy import Strategy
-from survey.models.study import Study
-from survey.models.survey import Survey
+from coverage.results import SetCoverage
+from selector import strategies, studying
+from selector.models.strategy import Strategy
+from selector.models.study import Study
+from selector.models.survey import Survey
 
 Stretch = tuple[datetime, datetime]
 

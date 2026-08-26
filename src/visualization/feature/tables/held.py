@@ -6,8 +6,8 @@ from collections.abc import Sequence
 
 import ipywidgets as widgets
 
-from prediction.models.tiles import TileStats
-from prediction.stats import tiles
+from sampling.models.tiles import TileStats
+from sampling.stats import tiles
 from utils.maths import quantities
 from visualization.common import panels, tables, wording
 from visualization.common.tables import Row

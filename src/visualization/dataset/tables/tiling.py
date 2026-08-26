@@ -6,8 +6,8 @@ from collections.abc import Mapping
 
 import ipywidgets as widgets
 
-from prediction.models.dataset import DatasetStats
-from survey import strategies
+from sampling.models.dataset import DatasetStats
+from selector import strategies
 from utils.maths import quantities
 from visualization.common import tables
 from visualization.common.tables import Row

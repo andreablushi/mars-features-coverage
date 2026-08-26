@@ -6,8 +6,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
-from models.results import SetCoverage
-from survey.models.track import Track
+from coverage.results import SetCoverage
+from selector.models.track import Track
 from utils.maths import ground
 
 

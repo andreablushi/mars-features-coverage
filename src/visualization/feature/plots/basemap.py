@@ -14,9 +14,9 @@ from matplotlib.collections import LineCollection, PolyCollection
 from matplotlib.colors import to_rgba
 from matplotlib.patches import Patch
 
-from analysis.utils import geodesy
-from prediction.stats import tiles
-from survey.models.study import Study
+from coverage.utils import geodesy
+from sampling.stats import tiles
+from selector.models.study import Study
 from utils.maths import quantities
 from visualization.common import panels, surveys
 from visualization.common.picker import View
@@ -59,7 +59,7 @@ def plot(view: View) -> widgets.Widget:
         summary.feature_class,
         summary.feature_name,
         summary.grid_side,
-        study.patchwork.across or 1,
+        study.grid.across or 1,
     )
     if grid is None:
         return panels.unavailable(overlay.BASEMAP_FAILED.format(reason=_UNKNOWN))
@@ -209,10 +209,10 @@ def _tiles(axis: Axes, grid: Placed, study: Study) -> None:
     """
     found = {stats.tile: stats.kept for stats in tiles.measured(study)}
     rings: dict[bool, list[np.ndarray]] = {True: [], False: []}
-    for at, patch in enumerate(study.patchwork.tiles):
+    for at, patch in enumerate(study.grid.tiles):
         if not patch.area_km2:
             continue
-        row, column = divmod(at, study.patchwork.across)
+        row, column = divmod(at, study.grid.across)
         lon, lat = grid.tile(row, column)
         rings[found.get(at, False)].append(np.column_stack([lon, lat]))
     # Every tile is shaded before any is outlined, so no fill dims an edge

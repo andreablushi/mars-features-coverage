@@ -11,8 +11,9 @@ import planner
 import runner
 import utils.disk.settings as settings
 from console import print_interrupted, print_summary
+from coverage import summary
+from metadata import tree
 from models.progress import CoverageSummary, DownloadSummary
-from storage import metadata, summary
 
 
 def main() -> int:
@@ -28,7 +29,7 @@ def main() -> int:
     fetched, outcomes = runner.run_pipeline(choices, console)
 
     if not choices.keep_metadata:
-        removed = metadata.discard_metadata(outcomes)
+        removed = tree.discard_metadata(outcomes)
         if removed:
             console.print(f"discarded metadata for {removed} computed sets")
 
@@ -39,7 +40,7 @@ def main() -> int:
         downloaded,
         computed,
         summary.reindex(),
-        planner.unfinished(metadata.find_sets()),
+        planner.unfinished(tree.find_sets()),
         console,
     )
     return 1 if computed.failed or downloaded.failed else 0

@@ -13,7 +13,7 @@ from matplotlib.patches import Patch
 from visualization.common import panels
 from visualization.feature.picker import NO_TILE, TileView
 from visualization.feature.stats import candidates
-from visualization.feature.stats.candidates import Grid
+from visualization.feature.stats.candidates import Candidates
 
 # How large the grid of candidates is drawn.
 WINDOW_FIGURE_SIZE = (12, 6)
@@ -75,7 +75,7 @@ def plot(chosen: TileView | None) -> widgets.Widget:
     return panels.rendered(figure)
 
 
-def _field(axis: Axes, grid: Grid):
+def _field(axis: Axes, grid: Candidates):
     """Draw what every candidate window reaches, by when it opens and how long.
 
     Args:
@@ -111,7 +111,7 @@ def _field(axis: Axes, grid: Grid):
     return mesh
 
 
-def _contours(axis: Axes, grid: Grid) -> None:
+def _contours(axis: Axes, grid: Candidates) -> None:
     """Ring the windows holding two instruments, then three, and so on.
 
     Args:
@@ -135,7 +135,7 @@ def _contours(axis: Axes, grid: Grid) -> None:
     )
 
 
-def _rings(grid: Grid) -> list[tuple[int, str, float]]:
+def _rings(grid: Candidates) -> list[tuple[int, str, float]]:
     """Decide which instrument counts to ring, and how to draw each ring.
 
     Args:
@@ -154,7 +154,7 @@ def _rings(grid: Grid) -> list[tuple[int, str, float]]:
     ]
 
 
-def _keys(grid: Grid) -> list:
+def _keys(grid: Candidates) -> list:
     """Name every ring the panel draws, and the grey it leaves behind.
 
     Args:
@@ -177,7 +177,7 @@ def _keys(grid: Grid) -> list:
     return rings + [Patch(facecolor=WINDOW_UNSOUNDED, label=_UNSOUNDED)]
 
 
-def _silent(axis: Axes, grid: Grid) -> None:
+def _silent(axis: Axes, grid: Candidates) -> None:
     """Say so on the panel when no window anywhere holds a sounder track.
 
     Args:

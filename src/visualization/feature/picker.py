@@ -7,10 +7,10 @@ from dataclasses import dataclass
 import ipywidgets as widgets
 from IPython.display import display
 
-from prediction.models.tiles import TileStats
-from prediction.stats import tiles
-from survey.models.survey import Survey
-from survey.models.track import Track
+from sampling.models.tiles import TileStats
+from sampling.stats import tiles
+from selector.models.survey import Survey
+from selector.models.track import Track
 from visualization.common import panels, surveys
 from visualization.common.picker import Areas, FeaturePicker, View
 from visualization.common.surveys import Stretch
@@ -146,7 +146,7 @@ def _tiles(view: View) -> list[TileView]:
         view: The feature on show and the strategy it is judged under.
 
     Returns:
-        One entry per tile, in the order the patchwork lays them out.
+        One entry per tile, in the order the grid lays them out.
     """
     if not view.coverage:
         return []
@@ -157,7 +157,7 @@ def _tiles(view: View) -> list[TileView]:
             track=track,
             survey=picked,
             stats=stats,
-            across=study.patchwork.across,
+            across=study.grid.across,
         )
         for track, picked, stats in zip(
             study.tracks, study.surveys, tiles.measured(study), strict=True
