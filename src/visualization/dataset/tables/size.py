@@ -10,7 +10,7 @@ from prediction.stats.dataset import DatasetStats
 from visualization.common import tables, wording
 from visualization.common.tables import Row
 
-_HEADINGS = ("Strategy", "Tiles searched", "Tiles kept", "Ground kept")
+_HEADINGS = ("Strategy", "Tiles searched", "Tiles kept", "Share kept")
 
 
 def final(read: Mapping[str, DatasetStats]) -> widgets.Widget:
@@ -35,6 +35,21 @@ def final(read: Mapping[str, DatasetStats]) -> widgets.Widget:
         headings,
         [_row(stats) for stats in read.values()],
     )
+
+
+def _kept(kept: int, searched: int) -> str:
+    """Say what share of the tiles searched were kept rather than refused.
+
+    Args:
+        kept: How many earned a window worth keeping.
+        searched: How many the search ran over.
+
+    Returns:
+        The share, or nothing at all when no tile was searched.
+    """
+    if not searched:
+        return wording.NOTHING
+    return f"{kept / searched:.1%}"
 
 
 def _holding(counted: int) -> str:
@@ -64,7 +79,7 @@ def _row(stats: DatasetStats) -> Row:
             stats.strategy,
             f"{held.searched:,}",
             f"{held.kept:,}",
-            wording.ground(held.kept_km2, held.area_km2),
+            _kept(held.kept, held.searched),
         )
         + tuple(f"{tiles:,}" for tiles in stats.reaching.values())
         + tuple(f"{tiles:,}" for tiles in stats.covered.values())
