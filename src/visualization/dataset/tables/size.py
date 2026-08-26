@@ -11,11 +11,6 @@ from visualization.common import tables, wording
 from visualization.common.tables import Row
 
 _HEADINGS = ("Strategy", "Tiles searched", "Tiles kept", "Ground kept")
-_NOTE = (
-    "A tile holds an instrument when the window kept any look of it. The "
-    "shared columns count the tiles where two instruments or more reach that "
-    "much of the tile at once."
-)
 
 
 def final(read: Mapping[str, DatasetStats]) -> widgets.Widget:
@@ -39,8 +34,6 @@ def final(read: Mapping[str, DatasetStats]) -> widgets.Widget:
         "The dataset each strategy would leave",
         headings,
         [_row(stats) for stats in read.values()],
-        lead=f"{first.features:,} features swept, every tile of each of them",
-        note=_NOTE,
     )
 
 

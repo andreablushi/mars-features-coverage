@@ -20,10 +20,6 @@ _INSTRUMENTS = (
     "Last look",
     "Record of a feature",
 )
-_NOTE = (
-    "The tiles are the grid the measurement laid down; every strategy cuts "
-    "the same features into tiles of its own width."
-)
 
 
 def measured(stats: CatalogueStats) -> widgets.Widget:
@@ -45,7 +41,6 @@ def measured(stats: CatalogueStats) -> widgets.Widget:
             ("Grid cells", f"{stats.cells:,}"),
             ("Tiles", f"{stats.tiles:,}"),
         ],
-        note=_NOTE,
     )
 
 
@@ -62,7 +57,6 @@ def instruments(stats: CatalogueStats) -> widgets.Widget:
         "What each instrument holds",
         _INSTRUMENTS,
         [_held(instrument) for instrument in stats.instruments],
-        lead="counted over every feature measured, whatever a strategy asks",
     )
 
 

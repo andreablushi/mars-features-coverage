@@ -23,14 +23,6 @@ _WINDOWS = (
     "Coverage score",
     "Spread",
 )
-_REACHED_NOTE = (
-    "Every tile that earned a window counts, including those one instrument "
-    "never reached."
-)
-_SHARED_NOTE = (
-    "A cell counts once, under the instruments really on it, so the rows do "
-    "not overlap and add up to the ground a window reaches."
-)
 
 
 def reached(read: Mapping[str, DatasetStats]) -> widgets.Widget:
@@ -50,7 +42,6 @@ def reached(read: Mapping[str, DatasetStats]) -> widgets.Widget:
             for stats in read.values()
             for iid in stats.iids
         ],
-        note=_REACHED_NOTE,
     )
 
 
@@ -71,7 +62,6 @@ def shared(read: Mapping[str, DatasetStats]) -> widgets.Widget:
             for stats in read.values()
             for counted, measured in stats.shared.items()
         ],
-        note=_SHARED_NOTE,
     )
 
 
@@ -88,7 +78,6 @@ def windows(read: Mapping[str, DatasetStats]) -> widgets.Widget:
         "How long a window runs",
         _WINDOWS,
         [_length(stats) for stats in read.values()],
-        lead="measured over the tiles that earned a window",
     )
 
 

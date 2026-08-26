@@ -28,10 +28,6 @@ _OFFERED = (
     "Spread",
     "Most on one tile",
 )
-_NOTE = (
-    "A tile is a square of the feature's grid, so a tile at the edge of the "
-    "grid holds less of the feature than one in the middle."
-)
 
 
 def sizes(read: Mapping[str, DatasetStats]) -> widgets.Widget:
@@ -58,7 +54,6 @@ def sizes(read: Mapping[str, DatasetStats]) -> widgets.Widget:
             )
             for stats in read.values()
         ],
-        note=_NOTE,
     )
 
 
@@ -75,7 +70,6 @@ def offered(read: Mapping[str, DatasetStats]) -> widgets.Widget:
         "How many observations a tile holds",
         _OFFERED,
         [_landed(stats, iid) for stats in read.values() for iid in stats.iids],
-        lead="every observation the tile admits, before a window is searched over it",
     )
 
 
