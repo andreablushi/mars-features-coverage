@@ -1,4 +1,5 @@
 # The default over half a Mars year, which asks what a shorter window costs.
+# It covers two mars season
 demands:
   - {CTX: 0.50}
   - {CRISM: 0.30}
@@ -6,6 +7,5 @@ demands:
 admits: {CTX: 1000000, CRISM: 800, SHARAD: 50}
 tile_km: 100.0
 gain: 1
-breadth: 0.7
 span_days: 365.0
 timeless: [SHARAD]

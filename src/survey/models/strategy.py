@@ -22,7 +22,6 @@ class Strategy:
         admits: The pixels each instrument has to land on a whole tile to count, by iid.
         tile_km: The widest a tile of a feature may be, in kilometres.
         gain: The cells an observation has to bring, or it is dropped as a repeat.
-        breadth: What a window gains for each extra instrument answering one demand.
         span_days: How long a window may run, in days.
         timeless: The instruments the ground answers for whenever they came.
     """
@@ -32,7 +31,6 @@ class Strategy:
     admits: dict[str, float]
     tile_km: float
     gain: int
-    breadth: float
     span_days: float
     timeless: frozenset[str] = frozenset()
 

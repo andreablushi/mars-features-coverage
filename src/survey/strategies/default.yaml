@@ -19,10 +19,6 @@ tile_km: 100.0
 # its own set already reaches. At one, every look that adds ground is merged
 gain: 1
 
-# How much a window is worth for each extra instrument answering the same
-# demand.
-breadth: 0.7
-
 # How long a window may run, in days.
 span_days: 687.0
 

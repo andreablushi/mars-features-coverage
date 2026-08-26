@@ -69,12 +69,10 @@ def _best(track: Track, demands: Demands, strategy: Strategy) -> Window | None:
             if days > span_days:
                 break
             counter.hold(track.owners[right], track.cells[right])
-            found = scoring.scored(track, demands, counter.cells_reached)
-            if found is None:
+            reach = scoring.scored(track, demands, counter.cells_reached)
+            if reach is None:
                 continue  # the window does not hold what the strategy asks
-            reach, answered = found
-            spare = answered - len(demands)
-            paid = reach * (1.0 + strategy.breadth * spare) - price * days
+            paid = reach - price * days
             if paid > worth:
                 best, worth = Window(left, right, days, reach), paid
     return best
