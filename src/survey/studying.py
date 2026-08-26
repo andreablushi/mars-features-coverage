@@ -27,7 +27,14 @@ def study(coverage: Sequence[SetCoverage], strategy: Strategy) -> Study:
     if not summary.mask_cells:
         return Study(
             strategy,
-            Patchwork(tiles=[], across=0, owners=[], places=[], cell_km2=0.0),
+            Patchwork(
+                tiles=[],
+                across=0,
+                owners=[],
+                places=[],
+                cell_km2=0.0,
+                inside=frozenset(),
+            ),
             [],
             [],
         )

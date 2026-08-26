@@ -29,6 +29,7 @@ class Patchwork:
         owners: The tile each cell of the feature's grid falls in, by cell.
         places: Where each cell sits in its own tile's grid, by cell.
         cell_km2: How much ground one cell of the feature's grid covers.
+        inside: Which cells of that grid the feature really covers.
     """
 
     tiles: list[Tile]
@@ -36,6 +37,7 @@ class Patchwork:
     owners: list[int]
     places: list[int]
     cell_km2: float
+    inside: frozenset[int]
 
     def scatter_cells(self, cells: Sequence[int]) -> dict[int, list[int]]:
         """Split the cells one footprint fills between the tiles they fall in.
@@ -44,9 +46,10 @@ class Patchwork:
             cells: The cells of the feature's grid the footprint fills.
 
         Returns:
-            The cells it fills in each tile it reaches, in that tile's numbering.
+            The cells of the feature it fills in each tile, in that tile's numbering.
         """
         found: dict[int, list[int]] = {}
         for cell in cells:
-            found.setdefault(self.owners[cell], []).append(self.places[cell])
+            if cell in self.inside:
+                found.setdefault(self.owners[cell], []).append(self.places[cell])
         return found
