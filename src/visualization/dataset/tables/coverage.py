@@ -20,7 +20,7 @@ _WINDOWS = (
     "Spread",
     "Shortest",
     "Longest",
-    "Ground a window reaches",
+    "Coverage score",
     "Spread",
 )
 _REACHED_NOTE = (
