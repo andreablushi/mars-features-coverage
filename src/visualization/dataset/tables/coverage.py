@@ -13,28 +13,21 @@ from visualization.common import tables, wording
 from visualization.common.tables import Row
 
 _REACHED = ("Strategy", "Instrument", "Mean of a tile", "Spread", "Least", "Most")
-_SHARED = ("Strategy", "Instruments", "Mean of a tile", "Spread", "Least", "Most")
+
+# What the row holding the ground every instrument reaches at once is called.
+OVERLAP = "Overlap"
 _WINDOWS = (
     "Strategy",
     "Mean window",
     "Spread",
-    "Shortest",
     "Longest",
-    "Ground a window reaches",
+    "Coverage score",
     "Spread",
-)
-_REACHED_NOTE = (
-    "Every tile that earned a window counts, including those one instrument "
-    "never reached."
-)
-_SHARED_NOTE = (
-    "A cell counts once, under the instruments really on it, so the rows do "
-    "not overlap and add up to the ground a window reaches."
 )
 
 
 def reached(read: Mapping[str, DatasetStats]) -> widgets.Widget:
-    """Tabulate how much of a tile each instrument reaches, strategy by strategy.
+    """Tabulate how much of a tile each instrument reaches and how much they share.
 
     Args:
         read: What each strategy made of the features swept, by strategy name.
@@ -45,34 +38,21 @@ def reached(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     return tables.written(
         "How much of a tile each instrument reaches",
         _REACHED,
-        [
-            _share(stats.strategy, iid, stats.held.reached[iid])
-            for stats in read.values()
-            for iid in stats.iids
-        ],
-        note=_REACHED_NOTE,
+        [row for stats in read.values() for row in _reaching(stats)],
     )
 
 
-def shared(read: Mapping[str, DatasetStats]) -> widgets.Widget:
-    """Tabulate how much of a tile the instruments overlap on.
+def _reaching(stats: DatasetStats) -> list[Row]:
+    """Write one strategy's rows, an instrument each and the overlap last.
 
     Args:
-        read: What each strategy made of the features swept, by strategy name.
+        stats: What it made of the features swept.
 
     Returns:
-        The table as a widget.
+        The rows, in the order the instruments are drawn.
     """
-    return tables.written(
-        "Where the instruments overlap",
-        _SHARED,
-        [
-            _share(stats.strategy, _named(counted), measured)
-            for stats in read.values()
-            for counted, measured in stats.shared.items()
-        ],
-        note=_SHARED_NOTE,
-    )
+    rows = [_share(stats.strategy, iid, stats.held.reached[iid]) for iid in stats.iids]
+    return rows + [_share(stats.strategy, OVERLAP, stats.overlap)]
 
 
 def windows(read: Mapping[str, DatasetStats]) -> widgets.Widget:
@@ -88,20 +68,7 @@ def windows(read: Mapping[str, DatasetStats]) -> widgets.Widget:
         "How long a window runs",
         _WINDOWS,
         [_length(stats) for stats in read.values()],
-        lead="measured over the tiles that earned a window",
     )
-
-
-def _named(counted: int) -> str:
-    """Say how many instruments reach a piece of ground.
-
-    Args:
-        counted: How many of them there are.
-
-    Returns:
-        The phrase the row is written under.
-    """
-    return "1 instrument" if counted == 1 else f"{counted} instruments"
 
 
 def _share(strategy: str, name: str, measured: Spread) -> Row:
@@ -136,12 +103,11 @@ def _length(stats: DatasetStats) -> Row:
     """
     days, reach = stats.held.days, stats.held.reach
     if not days.counted:
-        return (stats.strategy,) + (wording.NOTHING,) * 6
+        return (stats.strategy,) + (wording.NOTHING,) * 5
     return (
         stats.strategy,
         quantities.duration(days.mean),
         f"± {quantities.duration(days.deviation)}",
-        quantities.duration(days.low),
         quantities.duration(days.high),
         f"{reach.mean:.1%}",
         f"± {reach.deviation:.1%}",

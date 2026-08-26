@@ -8,10 +8,11 @@ from dataclasses import dataclass
 from prediction.models import aggregate, spread, tiles
 from prediction.models.aggregate import Aggregate
 from prediction.models.spread import Spread
+from prediction.models.tiles import TileStats
 from prediction.sweeping import Searched
 
-# The shares of a tile the bands count the kept tiles reaching, loosest first.
-BANDS = (0.5, 0.75, 0.9)
+# How far past the whole tile a share may read before the tile is refused.
+CEILING = 1.01
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,9 +25,7 @@ class DatasetStats:
         held: Every tile of every feature, read as one.
         sizes: How much ground a tile holds, over the tiles searched.
         offered: How many observations each instrument landed on a tile searched.
-        shared: The share of a tile exactly so many instruments reach, over the kept.
-        reaching: How many kept tiles hold at least so many instruments.
-        covered: How many kept tiles two instruments reach that share of at once.
+        overlap: The share of a tile every instrument reaches at once, over the kept.
         iids: The instruments reported on, in the order they are drawn.
     """
 
@@ -35,9 +34,7 @@ class DatasetStats:
     held: Aggregate
     sizes: Spread
     offered: dict[str, Spread]
-    shared: dict[int, Spread]
-    reaching: dict[int, int]
-    covered: dict[float, int]
+    overlap: Spread
     iids: list[str]
 
 
@@ -67,15 +64,10 @@ def _under(strategy: str, held: Sequence[Searched]) -> DatasetStats:
         What the strategy would make of them.
     """
     iids = list(dict.fromkeys(iid for searched in held for iid in searched.iids))
-    measured = [tile for searched in held for tile in searched.measured]
-    # The kept tiles carrying ground, and how much of each so many instruments reach
+    measured = [tile for searched in held for tile in searched.measured if _sound(tile)]
+    # The kept tiles carrying ground, and the ground each set of instruments reaches
     grounded = [tile for tile in measured if tile.kept and tile.area_km2]
     overlapping = [tiles.shared(tile.overlaps) for tile in grounded]
-    # The share of each of those tiles two instruments or more reach at once
-    together = [
-        sum(km2 for counted, km2 in found.items() if counted > 1) / tile.area_km2
-        for tile, found in zip(grounded, overlapping, strict=True)
-    ]
     return DatasetStats(
         strategy=strategy,
         features=len(held),
@@ -85,19 +77,28 @@ def _under(strategy: str, held: Sequence[Searched]) -> DatasetStats:
             iid: spread.over([tile.offered.get(iid, 0) for tile in measured])
             for iid in iids
         },
-        shared={
-            counted: spread.over(
-                [
-                    found.get(counted, 0.0) / tile.area_km2
-                    for tile, found in zip(grounded, overlapping, strict=True)
-                ]
-            )
-            for counted in range(1, len(iids) + 1)
-        },
-        reaching={
-            counted: sum(1 for tile in grounded if len(tile.reached) >= counted)
-            for counted in range(1, len(iids) + 1)
-        },
-        covered={band: sum(1 for share in together if share >= band) for band in BANDS},
+        overlap=spread.over(
+            [
+                found.get(len(iids), 0.0) / tile.area_km2
+                for tile, found in zip(grounded, overlapping, strict=True)
+            ]
+        ),
         iids=iids,
     )
+
+
+def _sound(tile: TileStats) -> bool:
+    """Say whether a tile reports no more ground than it holds.
+
+    Args:
+        tile: One tile the search ran over.
+
+    Returns:
+        Whether every share it reports sits inside the ceiling.
+    """
+    if not tile.area_km2:
+        return True
+    shares = [reach.km2 / tile.area_km2 for reach in tile.reached.values()]
+    shares.append(sum(tile.overlaps.values()) / tile.area_km2)
+    shares.append(tile.reach)
+    return max(shares) <= CEILING

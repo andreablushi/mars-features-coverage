@@ -18,15 +18,7 @@ refresh_catalog: false
 # wider, and one window stretches over ground nothing looked at together.
 tile_km: 100
 
-# Cells along each axis of one tile. The grid is cut for the tiling rather than
-# for the feature, so every tile holds this many cells whatever it was cut
-# from, and a tile of a continent is measured as finely as a tile of a crater.
-# Thirty two puts a cell at about ten square kilometres on a full tile, which
-# is sized for the instruments below: CTX, CRISM msp and SHARAD leave
-# footprints of thousands of square kilometres and land within a percent or
-# two of the ground they really cover. An instrument leaving smaller
-# footprints is measured far more coarsely, HiRISE at about thirty square
-# kilometres spanning three cells, so bringing one back means raising this.
+# How many cells a tile is divided into. For computation purpose.
 tile_cells: 32
 
 # IHID/IID/PT, and a colon plus an ODE product id pattern to narrow the type.

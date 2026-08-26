@@ -10,12 +10,7 @@ from prediction.stats.dataset import DatasetStats
 from visualization.common import tables, wording
 from visualization.common.tables import Row
 
-_HEADINGS = ("Strategy", "Tiles searched", "Tiles kept", "Ground kept")
-_NOTE = (
-    "A tile holds an instrument when the window kept any look of it. The "
-    "shared columns count the tiles where two instruments or more reach that "
-    "much of the tile at once."
-)
+_HEADINGS = ("Strategy", "Tiles searched", "Tiles kept", "Share kept")
 
 
 def final(read: Mapping[str, DatasetStats]) -> widgets.Widget:
@@ -27,33 +22,26 @@ def final(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     Returns:
         The table as a widget.
     """
-    if not read:
-        return tables.written("The dataset each strategy would leave", _HEADINGS, [])
-    first = next(iter(read.values()))
-    headings = (
-        _HEADINGS
-        + tuple(_holding(counted) for counted in first.reaching)
-        + tuple(f"{band:.0%} shared" for band in first.covered)
-    )
     return tables.written(
         "The dataset each strategy would leave",
-        headings,
+        _HEADINGS,
         [_row(stats) for stats in read.values()],
-        lead=f"{first.features:,} features swept, every tile of each of them",
-        note=_NOTE,
     )
 
 
-def _holding(counted: int) -> str:
-    """Name the column counting the tiles holding so many instruments.
+def _kept(kept: int, searched: int) -> str:
+    """Say what share of the tiles searched were kept rather than refused.
 
     Args:
-        counted: How many instruments a tile has to hold.
+        kept: How many earned a window worth keeping.
+        searched: How many the search ran over.
 
     Returns:
-        The heading.
+        The share, or nothing at all when no tile was searched.
     """
-    return "1 instrument" if counted == 1 else f"{counted} instruments"
+    if not searched:
+        return wording.NOTHING
+    return f"{kept / searched:.1%}"
 
 
 def _row(stats: DatasetStats) -> Row:
@@ -67,12 +55,8 @@ def _row(stats: DatasetStats) -> Row:
     """
     held = stats.held
     return (
-        (
-            stats.strategy,
-            f"{held.searched:,}",
-            f"{held.kept:,}",
-            wording.ground(held.kept_km2, held.area_km2),
-        )
-        + tuple(f"{tiles:,}" for tiles in stats.reaching.values())
-        + tuple(f"{tiles:,}" for tiles in stats.covered.values())
+        stats.strategy,
+        f"{held.searched:,}",
+        f"{held.kept:,}",
+        _kept(held.kept, held.searched),
     )
