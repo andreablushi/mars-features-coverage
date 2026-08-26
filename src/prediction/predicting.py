@@ -9,7 +9,7 @@ is searched again.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 
@@ -37,19 +37,31 @@ def read(workers: int = 8, progress: Progress | None = None) -> dict[str, Datase
     """
     missing = [name for name in strategies.STRATEGIES if name not in _held]
     if missing:
-        # A strategy rewritten since it was published has to be searched again
-        _held.update(
-            {
-                name: stats
-                for name, (digest, stats) in predictions.loaded().items()
-                if name in strategies.STRATEGIES and digest == strategies.digest(name)
-            }
-        )
+        _held.update(unchanged(predictions.loaded()))
         missing = [name for name in missing if name not in _held]
     if missing:
         found = sweep(missing, summary.catalogued_features(), workers, progress)
         _held.update(dataset.read(found))
     return {name: _held[name] for name in strategies.STRATEGIES}
+
+
+def unchanged(
+    published: Mapping[str, tuple[str, DatasetStats]],
+) -> dict[str, DatasetStats]:
+    """Keep the strategies still written as they were when they were published.
+
+    Args:
+        published: The digest each strategy was filed under and its stats, by name.
+
+    Returns:
+        The stats of every strategy a run need not search again, by name.
+    """
+    # A strategy rewritten since it was published has to be searched again
+    return {
+        name: stats
+        for name, (digest, stats) in published.items()
+        if name in strategies.STRATEGIES and digest == strategies.digest(name)
+    }
 
 
 def sweep(
