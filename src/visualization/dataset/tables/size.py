@@ -25,11 +25,7 @@ def final(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     if not read:
         return tables.written("The dataset each strategy would leave", _HEADINGS, [])
     first = next(iter(read.values()))
-    headings = (
-        _HEADINGS
-        + tuple(_holding(counted) for counted in first.reaching)
-        + tuple(f"{band:.0%} shared" for band in first.covered)
-    )
+    headings = _HEADINGS + tuple(f"{band:.0%} shared" for band in first.covered)
     return tables.written(
         "The dataset each strategy would leave",
         headings,
@@ -52,18 +48,6 @@ def _kept(kept: int, searched: int) -> str:
     return f"{kept / searched:.1%}"
 
 
-def _holding(counted: int) -> str:
-    """Name the column counting the tiles holding so many instruments.
-
-    Args:
-        counted: How many instruments a tile has to hold.
-
-    Returns:
-        The heading.
-    """
-    return "1 instrument" if counted == 1 else f"{counted} instruments"
-
-
 def _row(stats: DatasetStats) -> Row:
     """Write one strategy's row.
 
@@ -75,12 +59,8 @@ def _row(stats: DatasetStats) -> Row:
     """
     held = stats.held
     return (
-        (
-            stats.strategy,
-            f"{held.searched:,}",
-            f"{held.kept:,}",
-            _kept(held.kept, held.searched),
-        )
-        + tuple(f"{tiles:,}" for tiles in stats.reaching.values())
-        + tuple(f"{tiles:,}" for tiles in stats.covered.values())
-    )
+        stats.strategy,
+        f"{held.searched:,}",
+        f"{held.kept:,}",
+        _kept(held.kept, held.searched),
+    ) + tuple(f"{tiles:,}" for tiles in stats.covered.values())
