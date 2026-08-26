@@ -28,7 +28,7 @@ class DatasetStats:
         held: Every tile of every feature, read as one.
         sizes: How much ground a tile holds, over the tiles searched.
         offered: How many observations each instrument landed on a tile searched.
-        shared: The share of a tile exactly so many instruments reach, over the kept.
+        overlap: The share of a tile every instrument reaches at once, over the kept.
         reaching: How many kept tiles hold at least so many instruments.
         covered: How many kept tiles two instruments reach that share of at once.
         iids: The instruments reported on, in the order they are drawn.
@@ -39,7 +39,7 @@ class DatasetStats:
     held: Aggregate
     sizes: Spread
     offered: dict[str, Spread]
-    shared: dict[int, Spread]
+    overlap: Spread
     reaching: dict[int, int]
     covered: dict[float, int]
     iids: list[str]
@@ -89,15 +89,12 @@ def _under(strategy: str, held: Sequence[Searched]) -> DatasetStats:
             iid: spread.over([tile.offered.get(iid, 0) for tile in measured])
             for iid in iids
         },
-        shared={
-            counted: spread.over(
-                [
-                    found.get(counted, 0.0) / tile.area_km2
-                    for tile, found in zip(grounded, overlapping, strict=True)
-                ]
-            )
-            for counted in range(1, len(iids) + 1)
-        },
+        overlap=spread.over(
+            [
+                found.get(len(iids), 0.0) / tile.area_km2
+                for tile, found in zip(grounded, overlapping, strict=True)
+            ]
+        ),
         reaching={
             counted: sum(1 for tile in grounded if len(tile.reached) >= counted)
             for counted in range(1, len(iids) + 1)

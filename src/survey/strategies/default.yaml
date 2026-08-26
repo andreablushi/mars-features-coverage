@@ -1,10 +1,6 @@
 # Every setting a strategy can carry is written out here
 
 # The coverage each instrument is asked of a tile, in percent of its area.
-# Any one of the instruments a demand names answers it, so two both insisted on
-# are two demands. Asking nought still asks for one cell, so a tile keeps SHARAD
-# only where at least one of its looks really landed on it. SHARAD is timeless,
-# so that look is asked of the whole record rather than of the window
 demands:
   - {CTX: 0.50}
   - {CRISM: 0.30}
@@ -31,5 +27,5 @@ breadth: 0.7
 span_days: 687.0
 
 # What instruments are excluded from the window, and kept for the tile whenever
-# they came. A timeless instrument is gathered whether or not a demand names it
+# they came.
 timeless: [SHARAD]

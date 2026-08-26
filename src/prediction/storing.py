@@ -79,10 +79,7 @@ def written(
                         iid: _spread(measured)
                         for iid, measured in stats.offered.items()
                     },
-                    "shared": {
-                        str(counted): _spread(measured)
-                        for counted, measured in stats.shared.items()
-                    },
+                    "overlap": _spread(stats.overlap),
                     "reaching": {
                         str(counted): tiles for counted, tiles in stats.reaching.items()
                     },
@@ -139,10 +136,7 @@ def loaded(root: Path = paths.PREDICTIONS_ROOT) -> dict[str, DatasetStats]:
             offered={
                 iid: _read(measured) for iid, measured in saved["offered"].items()
             },
-            shared={
-                int(counted): _read(measured)
-                for counted, measured in saved["shared"].items()
-            },
+            overlap=_read(saved["overlap"]),
             reaching={
                 int(counted): tiles for counted, tiles in saved["reaching"].items()
             },
