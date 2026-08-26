@@ -12,14 +12,14 @@ force: false
 # Re-fetch the ODE feature and instrument catalogues instead of the cache.
 refresh_catalog: false
 
-# How wide a tile of a feature is, in kilometres. A CTX swath is some tens of
+# How wide one block of the measurement grid is, in kilometres. A CTX swath is some tens of
 # kilometres across, so a tile this wide is a few images across: narrower, and
 # a single image fills it and the share of it asked for stops meaning anything;
 # wider, and one window stretches over ground nothing looked at together.
-tile_km: 100
+grid_km: 100
 
-# How many cells a tile is divided into. For computation purpose.
-tile_cells: 32
+# How many cells a block is divided into. For computation purpose.
+grid_cells: 32
 
 # IHID/IID/PT, and a colon plus an ODE product id pattern to narrow the type.
 instruments:
@@ -32,11 +32,6 @@ plot_instruments:
   - MRO/CTX/EDR
   - MRO/CRISM/TRDR:msp*
   - MRO/SHARAD/USRDRV2
-
-# Restrict the run to named features. Comment out for the whole catalogue.
-# features:
-#   - Gale
-#   - Jezero
 
 # Which products a box returns: b box overlap, f footprint overlap, o inside, i containing.
 loc: f

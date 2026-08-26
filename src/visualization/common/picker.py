@@ -9,12 +9,11 @@ import ipywidgets as widgets
 from IPython.display import display
 
 from models.results import SetCoverage
-from prediction import sets
 from storage import catalog, summary
 from survey import strategies
 from survey.models.strategy import Strategy
 from utils.disk.slugify import slugify
-from visualization.common import panels, surveys
+from visualization.common import panels, sets, surveys
 
 # The feature class the picker opens on.
 DEFAULT_CLASS = "Crater"

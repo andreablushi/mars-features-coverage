@@ -6,13 +6,13 @@ from collections.abc import Mapping
 
 import ipywidgets as widgets
 
+from prediction.models.dataset import DatasetStats
 from prediction.models.spread import Spread
-from prediction.stats.dataset import DatasetStats
 from utils.maths import quantities
 from visualization.common import tables, wording
 from visualization.common.tables import Row
 
-_REACHED = ("Strategy", "Instrument", "Mean of a tile", "Spread", "Least", "Most")
+_REACHED = ("Strategy", "Instrument", "Mean of a tile", "Spread", "Least")
 
 # What the row holding the ground every instrument reaches at once is called.
 OVERLAP = "Overlap"
@@ -35,10 +35,18 @@ def reached(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     Returns:
         The table as a widget.
     """
+    rows: list[Row] = []
+    # Every strategy after the first is ruled off from the one above it
+    groups: list[int] = []
+    for stats in read.values():
+        if rows:
+            groups.append(len(rows))
+        rows.extend(_reaching(stats))
     return tables.written(
         "How much of a tile each instrument reaches",
         _REACHED,
-        [row for stats in read.values() for row in _reaching(stats)],
+        rows,
+        groups=groups,
     )
 
 
@@ -88,7 +96,6 @@ def _share(strategy: str, name: str, measured: Spread) -> Row:
         f"{measured.mean:.1%}",
         f"± {measured.deviation:.1%}",
         f"{measured.low:.1%}",
-        f"{measured.high:.1%}",
     )
 
 

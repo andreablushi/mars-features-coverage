@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from prediction.models import aggregate, tiles
 from prediction.models.aggregate import Aggregate
 from prediction.models.tiles import TileStats
+from prediction.stats import aggregate, tiles
 from survey.models.study import Study
 
 

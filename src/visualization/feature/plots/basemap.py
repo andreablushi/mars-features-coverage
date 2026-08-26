@@ -11,10 +11,11 @@ import numpy as np
 from matplotlib import image as reading
 from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection, PolyCollection
+from matplotlib.colors import to_rgba
 from matplotlib.patches import Patch
 
 from analysis.utils import geodesy
-from prediction.models import tiles
+from prediction.stats import tiles
 from survey.models.study import Study
 from utils.maths import quantities
 from visualization.common import panels, surveys
@@ -31,7 +32,7 @@ REPORT_WIDTH = "360px"
 # How a tile is drawn, by what the search made of it.
 TILE_KEPT = "#2e7d32"
 TILE_REFUSED = "#c62828"
-TILE_REFUSED_FILL = 0.18
+TILE_FILL = 0.18
 TILE_WIDTH = 1.1
 
 _UNKNOWN = "this feature has no lon/lat box to crop the mosaic to"
@@ -164,7 +165,7 @@ def _figure(
     panels.key_below(
         figure,
         [
-            Patch(edgecolor=colour, facecolor="none", label=said)
+            Patch(edgecolor=colour, facecolor=to_rgba(colour, TILE_FILL), label=said)
             for colour, said in _LEGEND
         ],
     )
@@ -196,7 +197,7 @@ def mosaic(axis: Axes, box: Box, image: bytes) -> None:
 
 
 def _tiles(axis: Axes, grid: Placed, study: Study) -> None:
-    """Outline every tile of the feature, marked by what the search made of it.
+    """Shade and outline every tile, marked by what the search made of it.
 
     Args:
         axis: The panel to draw on.
@@ -214,18 +215,30 @@ def _tiles(axis: Axes, grid: Placed, study: Study) -> None:
         row, column = divmod(at, study.patchwork.across)
         lon, lat = grid.tile(row, column)
         rings[found.get(at, False)].append(np.column_stack([lon, lat]))
-    _outline(axis, rings[True], TILE_KEPT)
-    _outline(axis, rings[False], TILE_REFUSED)
-    if rings[False]:
-        axis.add_collection(
-            PolyCollection(
-                rings[False],
-                facecolors=TILE_REFUSED,
-                alpha=TILE_REFUSED_FILL,
-                linewidths=0,
-            ),
-            autolim=False,
-        )
+    # Every tile is shaded before any is outlined, so no fill dims an edge
+    for kept, colour in ((True, TILE_KEPT), (False, TILE_REFUSED)):
+        _shade(axis, rings[kept], colour)
+    for kept, colour in ((True, TILE_KEPT), (False, TILE_REFUSED)):
+        _outline(axis, rings[kept], colour)
+
+
+def _shade(axis: Axes, rings: list[np.ndarray], colour: str) -> None:
+    """Fill one batch of tiles in the colour their verdict earned.
+
+    Args:
+        axis: The panel to draw on.
+        rings: Each tile's ring, as its lon/lat points.
+        colour: The colour to fill them in.
+
+    Returns:
+        None.
+    """
+    if not rings:
+        return
+    axis.add_collection(
+        PolyCollection(rings, facecolors=colour, alpha=TILE_FILL, linewidths=0),
+        autolim=False,
+    )
 
 
 def _outline(axis: Axes, rings: list[np.ndarray], colour: str) -> None:

@@ -14,9 +14,10 @@ from digitalhub_runtime_python import handler
 import console
 import utils.disk.paths as paths
 import utils.disk.settings as settings
-from prediction import storing, sweeping
+from prediction import predicting
+from prediction.models.dataset import DatasetStats
 from prediction.stats import dataset
-from storage import summary
+from storage import predictions, summary
 from survey import strategies
 
 FUNCTION_NAME = "features-prediction"
@@ -27,7 +28,7 @@ PREDICTIONS_NAME = "coverage-predictions"
 
 @handler(outputs=[PREDICTIONS_NAME])
 def save_predictions(project):
-    """Sweep the measurements already published and publish what they predict.
+    """Sweep the strategies not already published and publish what they predict.
 
     Args:
         project: The DigitalHub project the prediction is logged into.
@@ -45,14 +46,37 @@ def save_predictions(project):
     named = summary.catalogued_features()
     if not named:
         raise RuntimeError("the published measurements hold no feature to search")
-    workers = settings.load().workers
-    print(
-        f"sweeping {len(named):,} features under {len(strategies.STRATEGIES)} "
-        f"strategies on {workers} workers",
-        flush=True,
-    )
-    found = sweeping.sweep(list(strategies.STRATEGIES), named, workers)
-    storing.written(dataset.read(found))
+    # A strategy published as it is written now need not be searched again
+    held: dict[str, DatasetStats] = {}
+    if project.list_artifacts(name=PREDICTIONS_NAME):
+        print("fetching the prediction published before", flush=True)
+        _unpack(project.get_artifact(PREDICTIONS_NAME).download(overwrite=True))
+        held = predicting.unchanged(predictions.loaded())
+        print(f"kept from it: {', '.join(held) or 'nothing'}", flush=True)
+    else:
+        print("nothing was published before, sweeping every strategy", flush=True)
+
+    missing = [name for name in strategies.STRATEGIES if name not in held]
+    if missing:
+        workers = settings.load().workers
+        print(
+            f"sweeping {len(named):,} features under {len(missing)} of "
+            f"{len(strategies.STRATEGIES)} strategies on {workers} workers: "
+            f"{', '.join(missing)}",
+            flush=True,
+        )
+        held.update(dataset.read(predicting.sweep(missing, named, workers)))
+    else:
+        print(
+            "every strategy is published as it is written, nothing to sweep", flush=True
+        )
+
+    predictions.written(held, {name: strategies.digest(name) for name in held})
+    # A strategy deleted since it was published leaves its file behind to clear
+    for path in sorted(paths.PREDICTIONS_ROOT.glob("*.json")):
+        if path.stem not in held:
+            print(f"dropping {path.name}, no strategy goes by that name", flush=True)
+            path.unlink()
 
     print("uploading the prediction", flush=True)
     packed = dh_pipeline.archive(paths.PREDICTIONS_ROOT, PREDICTIONS_NAME)

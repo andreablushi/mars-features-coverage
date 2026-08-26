@@ -98,7 +98,6 @@ def run_pipeline(
         plan = planner.download_plan(
             features,
             settings.instrument_sets,
-            names=settings.feature_names,
             force=settings.force,
         )
         rewriting = {job.output_path for job in plan.jobs}

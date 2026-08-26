@@ -34,6 +34,7 @@ def written(
     rows: Sequence[Row],
     lead: str = "",
     note: str = "",
+    groups: Sequence[int] = (),
 ) -> widgets.HTML:
     """Write a table out as a panel.
 
@@ -43,11 +44,13 @@ def written(
         rows: The rows, each holding one cell per heading.
         lead: A grey line between the title and the table, or empty for none.
         note: A grey line under the table, or empty for none.
+        groups: The rows that open a group, each ruled off from the one above it.
 
     Returns:
         The panel.
     """
-    body = "".join(_row(cells) for cells in rows)
+    opening = set(groups)
+    body = "".join(_row(cells, at in opening) for at, cells in enumerate(rows))
     return widgets.HTML(
         f"""<div style="font-family: sans-serif; font-size: 13px;">
           <div style="font-weight: 600; margin-bottom: 2px;">{escape(title)}</div>
@@ -96,24 +99,28 @@ def _heading(name: str, at: int) -> str:
     )
 
 
-def _row(cells: Row) -> str:
+def _row(cells: Row, opening: bool) -> str:
     """Build one row.
 
     Args:
         cells: One cell per column.
+        opening: Whether it opens a group, so a rule is drawn above it.
 
     Returns:
         The row.
     """
-    return f"<tr>{''.join(_cell(cell, at) for at, cell in enumerate(cells))}</tr>"
+    return (
+        f"<tr>{''.join(_cell(cell, at, opening) for at, cell in enumerate(cells))}</tr>"
+    )
 
 
-def _cell(cell: Cell, at: int) -> str:
+def _cell(cell: Cell, at: int, opening: bool) -> str:
     """Build one cell.
 
     Args:
         cell: What it reads, and the colour to write it in when it carries one.
         at: Which column it is, since the first is ranged left.
+        opening: Whether its row opens a group, so it is set off from the one above.
 
     Returns:
         The cell.
@@ -122,7 +129,10 @@ def _cell(cell: Cell, at: int) -> str:
     marked = isinstance(cell, Mark)
     style = f" color: {cell.colour}; font-weight: 600;" if marked else ""
     text = cell.text if marked else cell
+    # A group opens on a rule heavier than the hairline every row already carries
+    above = f"border-top: 2px solid {panels.GREY};" if opening else ""
     return (
-        f'<td style="text-align: {align}; padding: 4px 14px 4px 0;'
-        f' border-bottom: 1px solid #ebebeb;{style}">{escape(text)}</td>'
+        f'<td style="text-align: {align};'
+        f" padding: {'14px' if opening else '4px'} 14px 4px 0;"
+        f' border-bottom: 1px solid #ebebeb;{above}{style}">{escape(text)}</td>'
     )

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import ipywidgets as widgets
 
-from prediction.stats.catalogue import CatalogueStats, Held
+from prediction.models.catalogue import CatalogueStats, InstrumentStats
 from utils.maths import quantities
 from visualization.common import tables, wording
 from visualization.common.tables import Row
@@ -59,7 +59,7 @@ def instruments(stats: CatalogueStats) -> widgets.Widget:
     )
 
 
-def _held(instrument: Held) -> Row:
+def _held(instrument: InstrumentStats) -> Row:
     """Write one instrument's row.
 
     Args:

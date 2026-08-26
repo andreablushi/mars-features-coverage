@@ -47,7 +47,6 @@ def download_plan(
     instrument_sets: Sequence[InstrumentSet],
     out_root: Path = paths.METADATA_ROOT,
     *,
-    names: Sequence[str] | None = None,
     force: bool = False,
 ) -> Plan:
     """Select features and build the download jobs still needed for a run.
@@ -56,13 +55,12 @@ def download_plan(
         features: The full feature catalog.
         instrument_sets: The instrument sets to download for each feature.
         out_root: The metadata output root directory.
-        names: Optional feature names to keep.
         force: When True, include jobs whose output file already exists.
 
     Returns:
         The plan describing the selection and the jobs to run.
     """
-    usable, sizeless = select_features(features, names=names)
+    usable, sizeless = select_features(features)
     pairs = [
         (feature, instrument_set)
         for feature in usable

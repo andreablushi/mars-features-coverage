@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -124,6 +125,18 @@ def _number(name: str, key: str, found: Any, path: Path) -> float:
 
 
 STRATEGIES: dict[str, Strategy] = load()
+
+
+def digest(name: str) -> str:
+    """Fingerprint one strategy as it is written now.
+
+    Args:
+        name: The strategy's name, which is what its file is called.
+
+    Returns:
+        The digest of the file it is written in.
+    """
+    return hashlib.sha256((STRATEGIES_ROOT / f"{name}.yaml").read_bytes()).hexdigest()
 
 
 def named(name: str) -> Strategy:
