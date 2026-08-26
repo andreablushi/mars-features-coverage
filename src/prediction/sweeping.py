@@ -4,35 +4,15 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from concurrent.futures import ProcessPoolExecutor
-from dataclasses import dataclass
 from functools import partial
 
 from prediction.models import tiles
-from prediction.models.tiles import TileStats
+from prediction.models.searched import Searched
 from storage import summary
 from survey import strategies, studying
 
 Named = tuple[str, str]
 Progress = Callable[[int, int], None]
-
-
-@dataclass(frozen=True, slots=True)
-class Searched:
-    """One feature of the dataset, searched under one strategy.
-
-    Attributes:
-        feature_class: The feature class, such as Crater.
-        name: The feature name as ODE spells it.
-        strategy: The strategy it was searched under.
-        iids: The instruments it holds, in the order they are drawn.
-        measured: The tiles the search ran over, as it left them.
-    """
-
-    feature_class: str
-    name: str
-    strategy: str
-    iids: list[str]
-    measured: list[TileStats]
 
 
 def sweep(
@@ -81,8 +61,6 @@ def _searched(named: Named, under: Sequence[str]) -> list[Searched]:
         study = studying.study(coverage, strategies.named(chosen))
         found.append(
             Searched(
-                feature_class=feature_class,
-                name=name,
                 strategy=chosen,
                 iids=tiles.instruments(study),
                 measured=tiles.measured(study),
