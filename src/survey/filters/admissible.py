@@ -2,47 +2,49 @@
 
 from __future__ import annotations
 
-import math
+from collections.abc import Sequence
 
-from models.results import Event
-from survey.models.tiles import Tile
+from models.results import Event, SetCoverage
+from survey.models.tiles import Patchwork
+from survey.utils import constraints
+from utils.maths import mask as packing
+
+# One tile's admitted observations, the set each belongs to, and the cells it fills
+Held = list[tuple[Event, int, list[int]]]
 
 
-def least(
-    admits: dict[str, float],
-    iid: str,
-    patch: Tile,
-    cell_km2: float,
-    *,
-    linear: bool = False,
-) -> float:
-    """Work out the pixels one instrument has to land on one tile.
+def admit_observation(
+    coverage: Sequence[SetCoverage], patchwork: Patchwork, admits: dict[str, float]
+) -> tuple[list[Held], list[list[Event]]]:
+    """Keep every observation big enough for its tile, and turn the rest away.
+
+    An observation covering no ground, or publishing no pixel count, lands nothing
+    on the tile and is turned away.
 
     Args:
+        coverage: The feature's instrument sets, in any order.
+        patchwork: The feature cut into tiles.
         admits: The pixels each instrument has to land on a whole tile, by iid.
-        iid: The instrument the observation belongs to.
-        patch: The tile, holding its block of cells and the feature ground in it.
-        cell_km2: How much ground one cell of the block covers.
-        linear: Whether the instrument lays its pixels along a line, as a sounder does.
 
     Returns:
-        The pixels it has to land on that tile, and nothing where it is named nowhere.
+        What each tile keeps and what it turned away, both in patchwork order.
     """
-    share = patch.area_km2 / (patch.cells * cell_km2)
-    return admits.get(iid, 0.0) * (math.sqrt(share) if linear else share)
-
-
-def landed(observation: Event, cells: int, cell_km2: float) -> float:
-    """Work out the pixels one observation leaves on one tile.
-
-    Args:
-        observation: The observation, carrying its pixels and the ground it covers.
-        cells: How many of the tile's cells its footprint fills.
-        cell_km2: How much ground one of them covers.
-
-    Returns:
-        The pixels it leaves there, and nothing where it covers no ground to spread.
-    """
-    if not observation.own_km2 or observation.pixels is None:
-        return 0.0
-    return observation.pixels * cells * cell_km2 / observation.own_km2
+    held: list[Held] = [[] for _ in patchwork.tiles]
+    refused: list[list[Event]] = [[] for _ in patchwork.tiles]
+    # What each set has to land on each tile, worked out once for the feature
+    least = constraints.least_pixels(coverage, patchwork, admits)
+    for owner, instrument in enumerate(coverage):
+        for observation in instrument.events:
+            spread, pixels = observation.own_km2, observation.pixels
+            filled = packing.cells_of(observation.mask).tolist()
+            for tile, cells in patchwork.scatter_cells(filled).items():
+                landed = (
+                    pixels * len(cells) * patchwork.cell_km2 / spread
+                    if spread and pixels is not None
+                    else 0.0
+                )
+                if landed >= least[tile][owner]:
+                    held[tile].append((observation, owner, cells))
+                else:
+                    refused[tile].append(observation)
+    return held, refused

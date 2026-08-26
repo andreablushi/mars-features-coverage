@@ -8,6 +8,7 @@ from datetime import datetime
 
 from models.results import SetCoverage
 from survey.models.track import Track
+from utils.maths import ground
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,13 +115,14 @@ def _tile_series(
     running = []
     for index in held:
         reached.update(track.cells[index])
-        running.append(len(reached) * track.cell_km2 / track.area_km2)
+        running.append(ground.share(len(reached), track.cell_km2, track.area_km2))
     return Series(
         label=track.labels[owner],
         iid=track.iids[owner],
         times=[track.observations[index].t_start for index in held],
         shares=[
-            len(track.cells[index]) * track.cell_km2 / track.area_km2 for index in held
+            ground.share(len(track.cells[index]), track.cell_km2, track.area_km2)
+            for index in held
         ],
         running=running,
         covered=running[-1] if running else 0.0,

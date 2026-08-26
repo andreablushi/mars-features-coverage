@@ -1,38 +1,28 @@
-"""Scoring a window on how much of the tile the instruments reach inside it."""
+"""Scoring a window on the ground it reaches, once its days are priced against it."""
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 
-from survey.models.strategy import Constraints
+from survey import configs
 from survey.models.track import Track
+from utils.maths import ground
+
+_PRICE_PER_DAY = 0.01 / configs.DAYS_PER_PERCENT
 
 
-def scored(
-    track: Track, constraints: Constraints, cells_reached: Sequence[int]
-) -> float | None:
-    """Score what a window holds, or refuse it for what it does not hold.
+def scored(track: Track, counts: Sequence[int], days: float = 0.0) -> float:
+    """Score what a window reaches, less what the days it runs for cost it.
 
     Args:
         track: The observations on one time axis.
-        constraints: The sets answering each one and their floors, tightest first.
-        cells_reached: How many cells each set reaches inside the window.
+        counts: The cells each constraint reaches, one count per constraint.
+        days: How long the window runs, charged against the ground it reaches.
 
     Returns:
-        The geometric mean of what the constraints reach, or None when one fails.
+        The constraints rooted together as a share of the tile, less their days.
     """
-    product = 1
-    for answers in constraints:
-        # A constraint is answered by whichever instrument reaches most of its bar
-        cell_count = 0
-        for answering, floor in answers:
-            reached = max((cells_reached[owner] for owner in answering), default=0)
-            if reached < floor:
-                continue
-            if reached > cell_count:
-                cell_count = reached
-        if not cell_count:
-            return None
-        product *= cell_count
-    geo_mean = product ** (1.0 / len(constraints)) * track.cell_km2 / track.area_km2
-    return geo_mean
+    rooted = math.prod(counts) ** (1.0 / len(counts))
+    geo_mean = ground.share(rooted, track.cell_km2, track.area_km2)
+    return geo_mean - _PRICE_PER_DAY * days

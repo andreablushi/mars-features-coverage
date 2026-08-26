@@ -9,9 +9,6 @@ from models.results import Event, SetCoverage
 from survey import configs
 from survey.filters import admissible
 from survey.models.tiles import Patchwork
-from utils.maths import mask as packing
-
-Held = list[tuple[Event, int, list[int]]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,32 +55,9 @@ def build(
     Returns:
         One timeline per tile holding anything measurable, in patchwork order.
     """
-    held: list[Held] = [[] for _ in patchwork.tiles]
-    refused: list[list[Event]] = [[] for _ in patchwork.tiles]
+    held, refused = admissible.admit_observation(coverage, patchwork, admits)
     labels = [instrument.label for instrument in coverage]
     iids = [instrument.summary.iid for instrument in coverage]
-    # A set publishing a swath width is a sounder, whose pixels lie along a line
-    linear = [
-        any(observation.width_km is not None for observation in instrument.events)
-        for instrument in coverage
-    ]
-    # What each set has to land on each tile, worked out once for the feature
-    floors = [
-        [
-            admissible.least(admits, iid, patch, patchwork.cell_km2, linear=along_track)
-            for iid, along_track in zip(iids, linear, strict=True)
-        ]
-        for patch in patchwork.tiles
-    ]
-    for owner, instrument in enumerate(coverage):
-        for observation in instrument.events:
-            filled = packing.cells_of(observation.mask).tolist()
-            for tile, cells in patchwork.scatter_cells(filled).items():
-                landed = admissible.landed(observation, len(cells), patchwork.cell_km2)
-                if landed >= floors[tile][owner]:
-                    held[tile].append((observation, owner, cells))
-                else:
-                    refused[tile].append(observation)
     return [
         _track(tile, patchwork, held[tile], refused[tile], labels, iids)
         for tile in range(len(patchwork.tiles))
@@ -94,7 +68,7 @@ def build(
 def _track(
     tile: int,
     patchwork: Patchwork,
-    held: Held,
+    held: admissible.Held,
     refused: list[Event],
     labels: list[str],
     iids: list[str],

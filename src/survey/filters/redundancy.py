@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from survey.filters import floors
 from survey.models.counter import Counter
-from survey.models.strategy import Constraints
 from survey.models.track import Track
 from survey.models.window import Window
 from survey.utils import scoring
+from survey.utils.constraints import Constraints
 
 
 def trimmed(
@@ -29,7 +30,7 @@ def trimmed(
     counter = Counter.empty(track.iids, track.grid)
     for index in kept:
         counter.hold(track.owners[index], track.cells[index])
-    geo_mean = window.geo_mean
+    geo_mean = scoring.scored(track, floors.met(constraints, counter.cells_reached))
     # An end is tried before the middle, since only an end costs the window time
     while len(kept) > 2:
         ends = sorted(
@@ -77,8 +78,8 @@ def _without(
     if sum(1 for cell in cells if filled[cell] == 1) >= gain:
         return None
     counter.release(owner, cells)
-    score = scoring.scored(track, constraints, counter.cells_reached)
-    if score is None:
+    counts = floors.met(constraints, counter.cells_reached)
+    if counts is None:
         counter.hold(owner, cells)
         return None
-    return score
+    return scoring.scored(track, counts)

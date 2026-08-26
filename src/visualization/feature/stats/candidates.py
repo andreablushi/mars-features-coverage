@@ -10,6 +10,7 @@ from matplotlib.dates import date2num
 from survey.models.counter import Counter
 from survey.models.strategy import Strategy
 from survey.models.track import Track
+from utils.maths import ground
 
 # The grid of candidate windows one tile's record is scored on.
 WINDOW_COLUMNS = 240
@@ -94,7 +95,6 @@ def _row(
     counter = Counter.empty(track.iids, track.grid)
     first = np.searchsorted(moments, centres - width / 2.0, side="left")
     last = np.searchsorted(moments, centres + width / 2.0, side="right")
-    share = track.cell_km2 / track.area_km2
     reached: list[float] = []
     instruments: list[int] = []
     sounded: list[bool] = []
@@ -107,7 +107,7 @@ def _row(
             counter.release(track.owners[low], track.cells[low])
             low += 1
         filled = [counter.cells_reached[owner] for owner in observed]
-        reached.append(_evenly(filled) * share)
+        reached.append(ground.share(_evenly(filled), track.cell_km2, track.area_km2))
         instruments.append(
             len(
                 {

@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from survey import configs
-from survey.filters import redundancy, timeless
+from survey.filters import floors, redundancy, timeless
 from survey.models.counter import Counter
-from survey.models.strategy import Constraints, Strategy
+from survey.models.strategy import Strategy
 from survey.models.survey import Survey
 from survey.models.track import Track
 from survey.models.window import Window
-from survey.utils import scoring
+from survey.utils import constraints, scoring
+from survey.utils.constraints import Constraints
 
 
 def search(track: Track, strategy: Strategy) -> Survey | None:
@@ -23,16 +23,18 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
         The chosen window, or None when no window is worth keeping.
     """
     # Pick up the strategy's requirements, every one of which is mandatory
-    constraints, standing = strategy.floors(track.iids, track.area_km2, track.cell_km2)
+    windowed, standing = constraints.read_strategy(
+        strategy, track.iids, track.area_km2, track.cell_km2
+    )
     # What time cannot change is asked of the whole record rather than a window
     if standing:
         whole = Counter.over(track, 0, len(track.observations) - 1)
-        if scoring.scored(track, standing, whole.cells_reached) is None:
+        if floors.met(standing, whole.cells_reached) is None:
             return None
-    picked = _best(track, constraints, strategy)
+    picked = _best(track, windowed, strategy)
     if picked is None:
         return None
-    kept, geo_mean = redundancy.trimmed(track, picked, constraints, strategy.gain)
+    kept, geo_mean = redundancy.trimmed(track, picked, windowed, strategy.gain)
     return Survey(
         tile=track.tile,
         area_km2=track.area_km2,
@@ -46,18 +48,17 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
     )
 
 
-def _best(track: Track, constraints: Constraints, strategy: Strategy) -> Window | None:
+def _best(track: Track, windowed: Constraints, strategy: Strategy) -> Window | None:
     """Take the window worth the most, at the price a day of waiting costs.
 
     Args:
         track: The admissible observations on one time axis.
-        constraints: The cells each instrument insisted on has to reach.
+        windowed: The cells each instrument insisted on has to reach.
         strategy: What the window is asked for, which caps how long it runs.
 
     Returns:
         The window worth the most, or None when no window is worth keeping.
     """
-    price = 0.01 / configs.DAYS_PER_PERCENT
     span_days = strategy.span_days
     best: Window | None = None
     worth = float("-inf")
@@ -69,10 +70,10 @@ def _best(track: Track, constraints: Constraints, strategy: Strategy) -> Window 
             if days > span_days:
                 break
             counter.hold(track.owners[right], track.cells[right])
-            geo_mean = scoring.scored(track, constraints, counter.cells_reached)
-            if geo_mean is None:
+            counts = floors.met(windowed, counter.cells_reached)
+            if counts is None:
                 continue  # the window does not hold what the strategy asks
-            paid = geo_mean - price * days
+            paid = scoring.scored(track, counts, days)
             if paid > worth:
-                best, worth = Window(left, right, days, geo_mean), paid
+                best, worth = Window(left, right, days), paid
     return best
