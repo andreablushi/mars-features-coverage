@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from prediction.models import spread
 from prediction.models.spread import Spread
 from prediction.models.tiles import TileStats
+from prediction.stats import spread
 
 
 @dataclass(frozen=True, slots=True)
