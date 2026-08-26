@@ -32,7 +32,7 @@ def over(measured: Sequence[TileStats], iids: Sequence[str]) -> Aggregate:
         area_km2=sum(tile.area_km2 for tile in measured),
         kept_km2=sum(tile.area_km2 for tile in held),
         days=spread.over([tile.days for tile in held]),
-        reach=spread.over([tile.reach for tile in held]),
+        geo_mean=spread.over([tile.geo_mean for tile in held]),
         reached={
             iid: spread.over(
                 [

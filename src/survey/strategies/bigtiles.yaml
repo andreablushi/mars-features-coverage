@@ -1,6 +1,6 @@
 # The default cut into gigantic tiles, where one tile is a whole feature for
 # all but the largest, so a sample is a place rather than a patch of one.
-demands:
+constraints:
   - {CTX: 0.50}
   - {CRISM: 0.30}
   - {SHARAD: 0.0}

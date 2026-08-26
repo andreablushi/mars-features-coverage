@@ -67,5 +67,5 @@ def _sound(tile: TileStats) -> bool:
         return True
     shares = [reach.km2 / tile.area_km2 for reach in tile.reached.values()]
     shares.append(sum(tile.overlaps.values()) / tile.area_km2)
-    shares.append(tile.reach)
+    shares.append(tile.geo_mean)
     return max(shares) <= CEILING

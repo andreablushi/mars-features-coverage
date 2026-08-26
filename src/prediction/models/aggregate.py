@@ -17,7 +17,7 @@ class Aggregate:
         area_km2: How much ground those searched tiles hold.
         kept_km2: How much of it the kept ones hold.
         days: How long the windows last, over the kept tiles.
-        reach: How much of a tile its window reaches, over the kept tiles.
+        geo_mean: The geometric mean its window scores, over the kept tiles.
         reached: The share of a tile each instrument reaches, over the kept tiles.
         landed: The pixels each instrument landed on a tile, over the kept tiles.
         overlaps: The ground each set of instruments reaches, most ground first.
@@ -28,7 +28,7 @@ class Aggregate:
     area_km2: float
     kept_km2: float
     days: Spread
-    reach: Spread
+    geo_mean: Spread
     reached: dict[str, Spread]
     landed: dict[str, Spread]
     overlaps: dict[tuple[str, ...], float]

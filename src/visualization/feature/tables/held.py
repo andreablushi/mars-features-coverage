@@ -49,7 +49,7 @@ def _rows(stats: TileStats) -> list[Row]:
     written: list[Row] = [
         ("Ground the tile covers", quantities.area(stats.area_km2)),
         ("How long its window lasts", _window(stats)),
-        ("Ground its window reaches", f"{stats.reach:.0%}" if stats.kept else _NONE),
+        ("Ground its window reaches", f"{stats.geo_mean:.0%}" if stats.kept else _NONE),
     ]
     written += _observations(stats)
     written += [

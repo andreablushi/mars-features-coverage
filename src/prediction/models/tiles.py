@@ -34,7 +34,7 @@ class TileStats:
         start: When the earliest observation in its window was taken, or None.
         end: When the latest one was taken, or None when it earned none.
         days: How long its window lasts.
-        reach: How much of the tile its window reaches, as the search scores it.
+        geo_mean: The geometric mean its window scores, as the search computes it.
         taken: How many observations the tile keeps, from the window and outside it.
         dropped: How many the window dropped as repeats of ground it held.
         refused: How many looks fell inside the window but were too small for the tile.
@@ -52,7 +52,7 @@ class TileStats:
     start: datetime | None
     end: datetime | None
     days: float
-    reach: float
+    geo_mean: float
     taken: int
     dropped: int
     refused: int

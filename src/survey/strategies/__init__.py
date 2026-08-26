@@ -61,14 +61,18 @@ def _strategy(name: str, spec: Any, path: Path) -> Strategy:
         raise ValueError(
             f"{path.name}: `{name}` should hold its settings, found {spec!r}"
         )
-    demands = spec.get("demands")
-    if isinstance(demands, str) or not isinstance(demands, Sequence) or not demands:
-        raise ValueError(f"{path.name}: `{name}` needs a list of `demands`")
-    for demand in demands:
-        if not isinstance(demand, Mapping) or not demand:
+    constraints = spec.get("constraints")
+    if (
+        isinstance(constraints, str)
+        or not isinstance(constraints, Sequence)
+        or not constraints
+    ):
+        raise ValueError(f"{path.name}: `{name}` needs a list of `constraints`")
+    for constraint in constraints:
+        if not isinstance(constraint, Mapping) or not constraint:
             raise ValueError(
-                f"{path.name}: `{name}` wants each demand as instrument to "
-                f"share, found {demand!r}"
+                f"{path.name}: `{name}` wants each constraint as instrument to "
+                f"share, found {constraint!r}"
             )
     timeless = spec.get("timeless") or []
     if isinstance(timeless, str) or not isinstance(timeless, Sequence):
@@ -80,12 +84,12 @@ def _strategy(name: str, spec: Any, path: Path) -> Strategy:
         )
     return Strategy(
         name=name,
-        demands=tuple(
+        constraints=tuple(
             {
-                str(iid): _number(name, "demands", share, path)
-                for iid, share in demand.items()
+                str(iid): _number(name, "constraints", share, path)
+                for iid, share in constraint.items()
             }
-            for demand in demands
+            for constraint in constraints
         ),
         admits={
             str(iid): _number(name, "admits", pixels, path)

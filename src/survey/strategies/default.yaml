@@ -1,7 +1,7 @@
 # Every setting a strategy can carry is written out here
 
 # The coverage each instrument is asked of a tile, in percent of its area.
-demands:
+constraints:
   - {CTX: 0.50}
   - {CRISM: 0.30}
   - {SHARAD: 0.0}

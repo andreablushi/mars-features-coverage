@@ -108,7 +108,7 @@ def _length(stats: DatasetStats) -> Row:
     Returns:
         The row.
     """
-    days, reach = stats.held.days, stats.held.reach
+    days, geo_mean = stats.held.days, stats.held.geo_mean
     if not days.counted:
         return (stats.strategy,) + (wording.NOTHING,) * 5
     return (
@@ -116,6 +116,6 @@ def _length(stats: DatasetStats) -> Row:
         quantities.duration(days.mean),
         f"± {quantities.duration(days.deviation)}",
         quantities.duration(days.high),
-        f"{reach.mean:.1%}",
-        f"± {reach.deviation:.1%}",
+        f"{geo_mean.mean:.1%}",
+        f"± {geo_mean.deviation:.1%}",
     )

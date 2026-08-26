@@ -16,7 +16,7 @@ class Survey:
         start: When the earliest observation inside it was taken.
         end: When the latest one was taken.
         days: How long it lasts.
-        reach: How much of the tile it reaches, the insisted shares rooted together.
+        geo_mean: The insisted shares rooted together, as a share of the tile.
         kept: The observations it holds, as their places on the timeline, oldest first.
         dropped: How many were dropped from it as repeats of ground it already held.
         standing: The observations kept from outside the window, oldest first.
@@ -27,7 +27,7 @@ class Survey:
     start: datetime
     end: datetime
     days: float
-    reach: float
+    geo_mean: float
     kept: tuple[int, ...]
     dropped: int
     standing: tuple[int, ...]

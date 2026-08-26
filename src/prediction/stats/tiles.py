@@ -106,7 +106,7 @@ def _tile(study: Study, track: Track, picked: Survey | None) -> TileStats:
         start=picked.start if picked else None,
         end=picked.end if picked else None,
         days=picked.days if picked else 0.0,
-        reach=picked.reach if picked else 0.0,
+        geo_mean=picked.geo_mean if picked else 0.0,
         taken=len(kept),
         dropped=picked.dropped if picked else 0,
         refused=sum(

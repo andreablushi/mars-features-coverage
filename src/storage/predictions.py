@@ -48,7 +48,7 @@ def written(
                         "area_km2": held.area_km2,
                         "kept_km2": held.kept_km2,
                         "days": _spread(held.days),
-                        "reach": _spread(held.reach),
+                        "geo_mean": _spread(held.geo_mean),
                         "reached": {
                             iid: _spread(measured)
                             for iid, measured in held.reached.items()
@@ -106,7 +106,7 @@ def loaded(
                     area_km2=held["area_km2"],
                     kept_km2=held["kept_km2"],
                     days=_read(held["days"]),
-                    reach=_read(held["reach"]),
+                    geo_mean=_read(held["geo_mean"]),
                     reached={
                         iid: _read(measured)
                         for iid, measured in held["reached"].items()
