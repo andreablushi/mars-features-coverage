@@ -11,9 +11,6 @@ from prediction.models.spread import Spread
 from prediction.models.tiles import TileStats
 from prediction.sweeping import Searched
 
-# The shares of a tile the bands count the kept tiles reaching, loosest first.
-BANDS = (0.5, 0.75, 0.9)
-
 # How far past the whole tile a share may read before the tile is refused.
 CEILING = 1.01
 
@@ -29,7 +26,6 @@ class DatasetStats:
         sizes: How much ground a tile holds, over the tiles searched.
         offered: How many observations each instrument landed on a tile searched.
         overlap: The share of a tile every instrument reaches at once, over the kept.
-        covered: How many kept tiles two instruments reach that share of at once.
         iids: The instruments reported on, in the order they are drawn.
     """
 
@@ -39,7 +35,6 @@ class DatasetStats:
     sizes: Spread
     offered: dict[str, Spread]
     overlap: Spread
-    covered: dict[float, int]
     iids: list[str]
 
 
@@ -70,14 +65,9 @@ def _under(strategy: str, held: Sequence[Searched]) -> DatasetStats:
     """
     iids = list(dict.fromkeys(iid for searched in held for iid in searched.iids))
     measured = [tile for searched in held for tile in searched.measured if _sound(tile)]
-    # The kept tiles carrying ground, and how much of each so many instruments reach
+    # The kept tiles carrying ground, and the ground each set of instruments reaches
     grounded = [tile for tile in measured if tile.kept and tile.area_km2]
     overlapping = [tiles.shared(tile.overlaps) for tile in grounded]
-    # The share of each of those tiles two instruments or more reach at once
-    together = [
-        sum(km2 for counted, km2 in found.items() if counted > 1) / tile.area_km2
-        for tile, found in zip(grounded, overlapping, strict=True)
-    ]
     return DatasetStats(
         strategy=strategy,
         features=len(held),
@@ -93,7 +83,6 @@ def _under(strategy: str, held: Sequence[Searched]) -> DatasetStats:
                 for tile, found in zip(grounded, overlapping, strict=True)
             ]
         ),
-        covered={band: sum(1 for share in together if share >= band) for band in BANDS},
         iids=iids,
     )
 

@@ -22,13 +22,9 @@ def final(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     Returns:
         The table as a widget.
     """
-    if not read:
-        return tables.written("The dataset each strategy would leave", _HEADINGS, [])
-    first = next(iter(read.values()))
-    headings = _HEADINGS + tuple(f"{band:.0%} shared" for band in first.covered)
     return tables.written(
         "The dataset each strategy would leave",
-        headings,
+        _HEADINGS,
         [_row(stats) for stats in read.values()],
     )
 
@@ -63,4 +59,4 @@ def _row(stats: DatasetStats) -> Row:
         f"{held.searched:,}",
         f"{held.kept:,}",
         _kept(held.kept, held.searched),
-    ) + tuple(f"{tiles:,}" for tiles in stats.covered.values())
+    )
