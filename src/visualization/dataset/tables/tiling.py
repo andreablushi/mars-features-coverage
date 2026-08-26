@@ -26,7 +26,6 @@ _OFFERED = (
     "Instrument",
     "Mean of a tile",
     "Spread",
-    "Most on one tile",
 )
 
 
@@ -89,5 +88,4 @@ def _landed(stats: DatasetStats, iid: str) -> Row:
         iid,
         f"{counted.mean:,.1f}",
         f"± {counted.deviation:,.1f}",
-        f"{counted.high:,.0f}",
     )
