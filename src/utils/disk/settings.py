@@ -79,7 +79,6 @@ def load(path: Path = paths.CONFIG_PATH) -> Settings:
         plot_instrument_sets=tuple(InstrumentSet.from_key(key) for key in plotted)
         if plotted
         else None,
-        feature_names=_setting(config, "features", list, required=False),
         loc=loc,
         keep_metadata=_setting(config, "keep_metadata", bool),
         force=_setting(config, "force", bool),

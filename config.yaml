@@ -33,10 +33,5 @@ plot_instruments:
   - MRO/CRISM/TRDR:msp*
   - MRO/SHARAD/USRDRV2
 
-# Restrict the run to named features. Comment out for the whole catalogue.
-# features:
-#   - Gale
-#   - Jezero
-
 # Which products a box returns: b box overlap, f footprint overlap, o inside, i containing.
 loc: f

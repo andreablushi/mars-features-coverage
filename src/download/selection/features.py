@@ -8,31 +8,18 @@ from download import configs
 from models.feature import Feature
 
 
-def select_features(
-    features: Sequence[Feature], *, names: Sequence[str] | None = None
-) -> tuple[list[Feature], list[Feature]]:
-    """Filter the catalog to the requested features and size the point ones.
+def select_features(features: Sequence[Feature]) -> tuple[list[Feature], list[Feature]]:
+    """Size the point features of the catalog and set aside the sizeless ones.
 
     Args:
         features: The full feature catalog.
-        names: Optional feature names to keep.
 
     Returns:
         The usable features, and the sizeless ones left unqueried for want of an extent.
     """
-    # Format the requested names into a set
-    wanted = {name.strip().lower() for name in names} if names else None
-
-    # Filter the catalog to the requested features, preserving its own spelling
-    selected = [
-        feature
-        for feature in features
-        if wanted is None or feature.name.lower() in wanted
-    ]
-
     usable: list[Feature] = []
     sizeless: list[Feature] = []
-    for feature in selected:
+    for feature in features:
         if not feature.is_point:
             usable.append(feature)
         elif feature.feature_class in configs.SIZED_POINT_CLASSES:
