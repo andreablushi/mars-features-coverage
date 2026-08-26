@@ -5,12 +5,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from prediction.models import aggregate, tiles
+from prediction.models import aggregate
 from prediction.models.aggregate import Aggregate
 from prediction.models.searched import Searched
 from prediction.models.spread import Spread
 from prediction.models.tiles import TileStats
-from prediction.stats import spread
+from prediction.stats import spread, tiles
 
 # How far past the whole tile a share may read before the tile is refused.
 CEILING = 1.01

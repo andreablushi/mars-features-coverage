@@ -7,8 +7,8 @@ from dataclasses import dataclass
 import ipywidgets as widgets
 from IPython.display import display
 
-from prediction.models import tiles
 from prediction.models.tiles import TileStats
+from prediction.stats import tiles
 from survey.models.survey import Survey
 from survey.models.track import Track
 from visualization.common import panels, surveys

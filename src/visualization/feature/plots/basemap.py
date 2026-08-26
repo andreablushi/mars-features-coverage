@@ -14,7 +14,7 @@ from matplotlib.collections import LineCollection, PolyCollection
 from matplotlib.patches import Patch
 
 from analysis.utils import geodesy
-from prediction.models import tiles
+from prediction.stats import tiles
 from survey.models.study import Study
 from utils.maths import quantities
 from visualization.common import panels, surveys

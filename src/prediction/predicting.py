@@ -14,9 +14,8 @@ from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 
 from prediction import storing
-from prediction.models import tiles
 from prediction.models.searched import Searched
-from prediction.stats import dataset
+from prediction.stats import dataset, tiles
 from prediction.stats.dataset import DatasetStats
 from storage import summary
 from survey import strategies, studying
