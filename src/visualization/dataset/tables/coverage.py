@@ -20,7 +20,6 @@ _WINDOWS = (
     "Strategy",
     "Mean window",
     "Spread",
-    "Shortest",
     "Longest",
     "Coverage score",
     "Spread",
@@ -104,12 +103,11 @@ def _length(stats: DatasetStats) -> Row:
     """
     days, reach = stats.held.days, stats.held.reach
     if not days.counted:
-        return (stats.strategy,) + (wording.NOTHING,) * 6
+        return (stats.strategy,) + (wording.NOTHING,) * 5
     return (
         stats.strategy,
         quantities.duration(days.mean),
         f"± {quantities.duration(days.deviation)}",
-        quantities.duration(days.low),
         quantities.duration(days.high),
         f"{reach.mean:.1%}",
         f"± {reach.deviation:.1%}",
