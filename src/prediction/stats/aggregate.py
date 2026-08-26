@@ -7,7 +7,6 @@ from collections.abc import Sequence
 from prediction.models.aggregate import Aggregate
 from prediction.models.spread import Spread
 from prediction.models.tiles import TileStats
-from prediction.stats import spread
 
 
 def over(measured: Sequence[TileStats], iids: Sequence[str]) -> Aggregate:
@@ -31,10 +30,10 @@ def over(measured: Sequence[TileStats], iids: Sequence[str]) -> Aggregate:
         kept=len(held),
         area_km2=sum(tile.area_km2 for tile in measured),
         kept_km2=sum(tile.area_km2 for tile in held),
-        days=spread.over([tile.days for tile in held]),
-        geo_mean=spread.over([tile.geo_mean for tile in held]),
+        days=Spread.over([tile.days for tile in held]),
+        geo_mean=Spread.over([tile.geo_mean for tile in held]),
         reached={
-            iid: spread.over(
+            iid: Spread.over(
                 [
                     tile.reached[iid].km2 / tile.area_km2
                     if iid in tile.reached
@@ -66,7 +65,7 @@ def _landed(held: Sequence[TileStats], iid: str) -> Spread:
         if reach is None:
             counted.append(0.0)
         elif reach.pixels is None:
-            return spread.over([])
+            return Spread.over([])
         else:
             counted.append(reach.pixels)
-    return spread.over(counted)
+    return Spread.over(counted)

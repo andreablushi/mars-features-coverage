@@ -6,8 +6,9 @@ from collections.abc import Sequence
 
 from prediction.models.dataset import DatasetStats
 from prediction.models.searched import Searched
+from prediction.models.spread import Spread
 from prediction.models.tiles import TileStats
-from prediction.stats import aggregate, spread, tiles
+from prediction.stats import aggregate, tiles
 
 # How far past the whole tile a share may read before the tile is refused.
 CEILING = 1.01
@@ -38,12 +39,12 @@ def read(found: Sequence[Searched]) -> dict[str, DatasetStats]:
             strategy=strategy,
             features=len(held),
             held=aggregate.over(measured, iids),
-            sizes=spread.over([tile.area_km2 for tile in measured]),
+            sizes=Spread.over([tile.area_km2 for tile in measured]),
             offered={
-                iid: spread.over([tile.offered.get(iid, 0) for tile in measured])
+                iid: Spread.over([tile.offered.get(iid, 0) for tile in measured])
                 for iid in iids
             },
-            overlap=spread.over(
+            overlap=Spread.over(
                 [
                     found_here.get(len(iids), 0.0) / tile.area_km2
                     for tile, found_here in zip(grounded, overlapping, strict=True)

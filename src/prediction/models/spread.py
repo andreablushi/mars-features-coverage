@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import statistics
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 
@@ -24,6 +26,27 @@ class Spread:
     low: float
     high: float
     counted: int
+
+    @classmethod
+    def over(cls, values: Sequence[float]) -> Spread:
+        """Read one measurement off every tile that took it.
+
+        Args:
+            values: The measurement, one per tile, in any order.
+
+        Returns:
+            The spread, empty at nought where no tile took it.
+        """
+        if not values:
+            return cls(0.0, 0.0, 0.0, 0.0, 0.0, 0)
+        return cls(
+            mean=statistics.fmean(values),
+            middle=statistics.median(values),
+            deviation=statistics.pstdev(values) if len(values) > 1 else 0.0,
+            low=min(values),
+            high=max(values),
+            counted=len(values),
+        )
 
     @property
     def agreed(self) -> bool:
