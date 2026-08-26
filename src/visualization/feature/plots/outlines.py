@@ -10,9 +10,9 @@ from shapely import wkt as reading
 from shapely.geometry.base import BaseGeometry
 
 import utils.disk.paths as paths
+from coverage.records import load_set
+from coverage.results import SetCoverage
 from models.instrument import InstrumentSet
-from models.results import SetCoverage
-from storage.records import load_set
 from utils.disk.slugify import slugify
 
 # How many features' footprints are kept, so a tile already read draws in memory

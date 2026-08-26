@@ -1,0 +1,4 @@
+base: earth-year
+
+tile_km: 20.0
+admits: {CTX: 32768, CRISM: 32, SHARAD: 16}

@@ -7,8 +7,8 @@ import time
 import ipywidgets as widgets
 from IPython.display import display
 
-from prediction import predicting
-from prediction.models.dataset import DatasetStats
+from sampling import sweeping
+from sampling.models.dataset import DatasetStats
 from visualization.common import panels
 
 
@@ -45,7 +45,7 @@ def read(workers: int = 8) -> dict[str, DatasetStats]:
             f"{done:,} of {total:,} features, about {left / 60:.0f} min left"
         )
 
-    found = predicting.read(workers, moved)
+    found = sweeping.read(workers, moved)
     if shown:
         shown["bar"].bar_style = "success"
         elapsed = time.monotonic() - shown["started"]

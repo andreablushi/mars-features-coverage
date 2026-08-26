@@ -8,7 +8,7 @@ import ipywidgets as widgets
 from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
 
-from prediction.stats import tiles
+from sampling.stats import tiles
 from visualization.common import panels, series
 from visualization.feature import picker
 from visualization.feature.picker import TileView

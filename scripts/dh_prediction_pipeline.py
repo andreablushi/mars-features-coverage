@@ -14,11 +14,11 @@ from digitalhub_runtime_python import handler
 import console
 import utils.disk.paths as paths
 import utils.disk.settings as settings
-from prediction import predicting
-from prediction.models.dataset import DatasetStats
-from prediction.stats import dataset
-from storage import predictions, summary
-from survey import strategies
+from coverage import summary
+from sampling import storing, sweeping
+from sampling.models.dataset import DatasetStats
+from sampling.stats import dataset
+from selector import strategies
 
 FUNCTION_NAME = "features-prediction"
 HANDLER = "scripts.dh_prediction_pipeline:save_predictions"
@@ -51,7 +51,7 @@ def save_predictions(project):
     if project.list_artifacts(name=PREDICTIONS_NAME):
         print("fetching the prediction published before", flush=True)
         _unpack(project.get_artifact(PREDICTIONS_NAME).download(overwrite=True))
-        held = predicting.unchanged(predictions.loaded())
+        held = sweeping.unchanged(storing.loaded())
         print(f"kept from it: {', '.join(held) or 'nothing'}", flush=True)
     else:
         print("nothing was published before, sweeping every strategy", flush=True)
@@ -65,13 +65,13 @@ def save_predictions(project):
             f"{', '.join(missing)}",
             flush=True,
         )
-        held.update(dataset.read(predicting.sweep(missing, named, workers)))
+        held.update(dataset.read(sweeping.sweep(missing, named, workers)))
     else:
         print(
             "every strategy is published as it is written, nothing to sweep", flush=True
         )
 
-    predictions.written(held, {name: strategies.digest(name) for name in held})
+    storing.written(held, {name: strategies.digest(name) for name in held})
     # A strategy deleted since it was published leaves its file behind to clear
     for path in sorted(paths.PREDICTIONS_ROOT.glob("*.json")):
         if path.stem not in held:

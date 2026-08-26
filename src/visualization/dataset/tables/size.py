@@ -6,7 +6,7 @@ from collections.abc import Mapping
 
 import ipywidgets as widgets
 
-from prediction.models.dataset import DatasetStats
+from sampling.models.dataset import DatasetStats
 from visualization.common import tables, wording
 from visualization.common.tables import Row
 

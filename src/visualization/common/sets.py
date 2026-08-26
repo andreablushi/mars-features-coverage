@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import utils.disk.settings as settings
-from models.results import SetCoverage
+from coverage.results import SetCoverage
 
 
 def plotted(coverage: Sequence[SetCoverage]) -> list[SetCoverage]:

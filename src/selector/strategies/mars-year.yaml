@@ -1,0 +1,4 @@
+# The base over a whole Mars year, which asks what a longer window buys.
+base: earth-year
+
+span_days: 687.0

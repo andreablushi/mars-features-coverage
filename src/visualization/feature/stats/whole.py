@@ -5,10 +5,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from prediction.models.aggregate import Aggregate
-from prediction.models.tiles import TileStats
-from prediction.stats import aggregate, tiles
-from survey.models.study import Study
+from sampling.models.aggregate import Aggregate
+from sampling.models.tiles import TileStats
+from sampling.stats import aggregate, tiles
+from selector.models.study import Study
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,7 +47,7 @@ def read(
     return FeatureStats(
         held=aggregate.over(measured, iids),
         tiles=study.tiles,
-        across=study.patchwork.across,
+        across=study.grid.across,
         feature_km2=feature_km2,
         iids=iids,
     )

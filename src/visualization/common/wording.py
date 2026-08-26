@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from prediction.models.spread import Spread
+from sampling.models.spread import Spread
 from utils.maths import quantities
 
 NOTHING = "none"
@@ -91,6 +91,23 @@ def landed(measured: Spread) -> str:
     if measured.agreed:
         return f"{middle} px"
     return f"{middle} px ± {quantities.compact(measured.deviation)} px"
+
+
+def columns(measured: Spread) -> str:
+    """Write a count of radargram columns read off many tiles.
+
+    Args:
+        measured: The columns, tile by tile.
+
+    Returns:
+        The average, and how far the tiles sit from it where they disagree.
+    """
+    if not measured.counted:
+        return UNCOUNTED
+    middle = quantities.compact(measured.mean)
+    if measured.agreed:
+        return middle
+    return f"{middle} ± {quantities.compact(measured.deviation)}"
 
 
 def tile(row: int, column: int) -> str:

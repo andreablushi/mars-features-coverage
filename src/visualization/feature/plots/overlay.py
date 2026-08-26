@@ -8,10 +8,10 @@ from functools import lru_cache
 import httpx
 import numpy as np
 
-from analysis.geometry.region import FeatureRegion
-from analysis.utils import geodesy
+from coverage.geometry.region import FeatureRegion
+from coverage.utils import geodesy
+from metadata import catalog
 from models.feature import Feature
-from storage import catalog
 from utils.disk.slugify import slugify
 
 # The global mosaic a feature is drawn on, served as WMS by the USGS.

@@ -1,0 +1,7 @@
+# The base cut into 400 km tiles, where one tile is a whole feature for all but
+# the largest. The bars are scaled up the same way, which is what makes this
+# strategy expensive: at 256 columns only two SHARAD crossings in five are kept.
+base: earth-year
+
+tile_km: 400.0
+admits: {CTX: 16777216, CRISM: 16384, SHARAD: 256}

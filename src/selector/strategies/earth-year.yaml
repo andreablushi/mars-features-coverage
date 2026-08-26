@@ -1,0 +1,29 @@
+# The base every other strategy is written as a change to. A window runs over one
+# Earth year, cut into 100 km tiles, which is where a tile stops outgrowing the
+# feature: asking for wider tiles adds empty block rather than ground.
+
+# The coverage each instrument is asked of a tile, in percent of its area.
+constraints:
+  - {CTX: 0.50}
+  - {CRISM: 0.30}
+  - {SHARAD: 0.0}
+
+# The pixels an instrument has to land on a tile to be counted, at powers of two
+# so a kept observation crops to a model input without padding. CTX and CRISM are
+# 1024 x 1024 and 32 x 32 pixels; SHARAD is 64 radargram columns, which at its
+# 460 m along-track sampling is 29 km of track.
+admits: {CTX: 1048576, CRISM: 1024, SHARAD: 64}
+
+# How wide a tile of a feature is, in kilometres.
+tile_km: 100.0
+
+# The cells an observation has to bring a window that no other observation of
+# its own set already reaches. At one, every look that adds ground is merged
+gain: 1
+
+# How long a window may run, in days.
+span_days: 365.0
+
+# What instruments are excluded from the window, and kept for the tile whenever
+# they came.
+timeless: [SHARAD]

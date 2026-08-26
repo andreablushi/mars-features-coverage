@@ -15,15 +15,15 @@ from contextlib import closing
 from rich.console import Console
 
 import planner
-from analysis.measuring import run_job as compute_coverage
 from console import describe_coverage, describe_download, render
-from download.api.client import ODEClient
-from download.fetching import run_job as download_set
-from download.selection.instruments import verify_sets
+from coverage.measuring import run_job as compute_coverage
+from metadata import catalog, tree
+from metadata.api.client import ODEClient
+from metadata.fetching import run_job as download_set
+from metadata.selection.instruments import verify_sets
 from models.job import Job, Outcome
 from models.progress import ProgressEvent
 from models.settings import Settings
-from storage import catalog, metadata
 
 
 def run_jobs(
@@ -101,7 +101,7 @@ def run_pipeline(
             force=settings.force,
         )
         rewriting = {job.output_path for job in plan.jobs}
-        stored = [held for held in metadata.find_sets() if held not in rewriting]
+        stored = [held for held in tree.find_sets() if held not in rewriting]
         backlog = planner.coverage_plan(stored, force=settings.force)
         describe_download(plan, settings.workers, console)
         describe_coverage(backlog, settings.workers, console)

@@ -7,9 +7,10 @@ from dataclasses import dataclass
 import numpy as np
 from matplotlib.dates import date2num
 
-from survey.models.counter import Counter
-from survey.models.strategy import Strategy
-from survey.models.track import Track
+from selector.models.counter import Counter
+from selector.models.strategy import Strategy
+from selector.models.track import Track
+from utils.maths import ground
 
 # The grid of candidate windows one tile's record is scored on.
 WINDOW_COLUMNS = 240
@@ -18,7 +19,7 @@ WINDOW_MIN_DAYS = 1.0
 
 
 @dataclass(frozen=True, slots=True)
-class Grid:
+class Candidates:
     """What every candidate window over one tile holds.
 
     Attributes:
@@ -38,7 +39,7 @@ class Grid:
     held: int
 
 
-def build(track: Track, strategy: Strategy) -> Grid | None:
+def build(track: Track, strategy: Strategy) -> Candidates | None:
     """Score every window the tile's observations could be clustered into.
 
     Args:
@@ -60,7 +61,7 @@ def build(track: Track, strategy: Strategy) -> Grid | None:
     widened = [1 if one.width_km else 0 for one in track.observations]
     flown = np.concatenate([[0], np.cumsum(widened)])
     rows = [_row(track, moments, centres, width, observed, flown) for width in widths]
-    return Grid(
+    return Candidates(
         centres=centres,
         widths=widths,
         reached=np.array([reached for reached, _, _ in rows]),
@@ -91,10 +92,9 @@ def _row(
     Returns:
         What each window covers, how many instruments saw it, and if a sounder flew.
     """
-    counter = Counter.empty(track.iids, track.grid)
+    counter = Counter.empty(track.iids, track.grid_cells)
     first = np.searchsorted(moments, centres - width / 2.0, side="left")
     last = np.searchsorted(moments, centres + width / 2.0, side="right")
-    share = track.cell_km2 / track.area_km2
     reached: list[float] = []
     instruments: list[int] = []
     sounded: list[bool] = []
@@ -107,7 +107,7 @@ def _row(
             counter.release(track.owners[low], track.cells[low])
             low += 1
         filled = [counter.cells_reached[owner] for owner in observed]
-        reached.append(_evenly(filled) * share)
+        reached.append(ground.share(_evenly(filled), track.cell_km2, track.area_km2))
         instruments.append(
             len(
                 {

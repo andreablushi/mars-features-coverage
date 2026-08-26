@@ -6,8 +6,8 @@ from collections.abc import Sequence
 
 import ipywidgets as widgets
 
-from prediction.models.tiles import TileStats
-from prediction.stats import tiles
+from sampling.models.tiles import TileStats
+from sampling.stats import tiles
 from utils.maths import quantities
 from visualization.common import panels, tables, wording
 from visualization.common.tables import Row
@@ -49,7 +49,7 @@ def _rows(stats: TileStats) -> list[Row]:
     written: list[Row] = [
         ("Ground the tile covers", quantities.area(stats.area_km2)),
         ("How long its window lasts", _window(stats)),
-        ("Ground its window reaches", f"{stats.reach:.0%}" if stats.kept else _NONE),
+        ("Ground its window reaches", f"{stats.geo_mean:.0%}" if stats.kept else _NONE),
     ]
     written += _observations(stats)
     written += [

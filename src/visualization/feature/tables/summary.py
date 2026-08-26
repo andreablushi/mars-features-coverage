@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import ipywidgets as widgets
 
-from prediction.stats import tiles
+from sampling.stats import tiles
 from visualization.common import panels, surveys, tables, wording
 from visualization.common.picker import View
 from visualization.common.tables import Row
