@@ -13,11 +13,13 @@ class Reach:
     Attributes:
         km2: The ground it reaches, counting a cell once however often it was revisited.
         pixels: The pixels it landed there, or None where any carries no count.
+        pixel_km2: The ground one of its pixels covers, or None where none says.
         taken: How many of its observations the window keeps.
     """
 
     km2: float
     pixels: float | None
+    pixel_km2: float | None
     taken: int
 
 

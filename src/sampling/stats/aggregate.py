@@ -45,6 +45,16 @@ def over(measured: Sequence[TileStats], iids: Sequence[str]) -> Aggregate:
             for iid in iids
         },
         landed={iid: _landed(held, iid) for iid in iids},
+        pixel_km2={
+            iid: Spread.over(
+                [
+                    tile.reached[iid].pixel_km2
+                    for tile in held
+                    if iid in tile.reached and tile.reached[iid].pixel_km2
+                ]
+            )
+            for iid in iids
+        },
         overlaps=dict(sorted(overlaps.items(), key=lambda ground: -ground[1])),
     )
 

@@ -120,6 +120,7 @@ def _tile(study: Study, track: Track, picked: Survey | None) -> TileStats:
             iid: Reach(
                 km2=len(filled) * track.cell_km2,
                 pixels=_landed(track, picked, iid),
+                pixel_km2=_pixel_km2(track, iid),
                 taken=len(counted[iid]),
             )
             for iid, filled in cells.items()
@@ -149,3 +150,22 @@ def _landed(track: Track, picked: Survey, iid: str) -> float | None:
         ground_km2 = len(track.cells[index]) * track.cell_km2
         total += observation.pixels * ground_km2 / observation.own_km2
     return total
+
+
+def _pixel_km2(track: Track, iid: str) -> float | None:
+    """Read the ground one pixel of one instrument covers, off its observations.
+
+    Args:
+        track: The tile's admissible observations on one time axis.
+        iid: The instrument to read.
+
+    Returns:
+        The ground one of its pixels covers, or None where none of them says.
+    """
+    for index, owner in enumerate(track.owners):
+        if track.iids[owner] != iid:
+            continue
+        observation = track.observations[index]
+        if observation.pixels and observation.own_km2:
+            return observation.own_km2 / observation.pixels
+    return None

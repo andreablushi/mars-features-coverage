@@ -20,6 +20,7 @@ class Aggregate:
         geo_mean: The geometric mean its window scores, over the kept tiles.
         reached: The share of a tile each instrument reaches, over the kept tiles.
         landed: The pixels each instrument landed on a tile, over the kept tiles.
+        pixel_km2: The ground one pixel of each instrument covers, over them.
         overlaps: The ground each set of instruments reaches, most ground first.
     """
 
@@ -31,4 +32,5 @@ class Aggregate:
     geo_mean: Spread
     reached: dict[str, Spread]
     landed: dict[str, Spread]
+    pixel_km2: dict[str, Spread]
     overlaps: dict[tuple[str, ...], float]

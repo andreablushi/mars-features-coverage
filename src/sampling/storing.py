@@ -57,6 +57,10 @@ def written(
                             iid: _spread(measured)
                             for iid, measured in held.landed.items()
                         },
+                        "pixel_km2": {
+                            iid: _spread(measured)
+                            for iid, measured in held.pixel_km2.items()
+                        },
                         "overlaps": {
                             JOINED.join(names): km2
                             for names, km2 in held.overlaps.items()
@@ -113,6 +117,10 @@ def loaded(
                     },
                     landed={
                         iid: _read(measured) for iid, measured in held["landed"].items()
+                    },
+                    pixel_km2={
+                        iid: _read(measured)
+                        for iid, measured in held["pixel_km2"].items()
                     },
                     overlaps={
                         tuple(names.split(JOINED)): km2
