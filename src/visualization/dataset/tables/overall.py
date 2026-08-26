@@ -18,7 +18,6 @@ _INSTRUMENTS = (
     "Ground reached",
     "First look",
     "Last look",
-    "Record of a feature",
 )
 
 
@@ -69,7 +68,6 @@ def _held(instrument: Held) -> Row:
     Returns:
         The row.
     """
-    spans = instrument.spans
     return (
         instrument.iid,
         f"{instrument.features:,}",
@@ -78,5 +76,4 @@ def _held(instrument: Held) -> Row:
         quantities.area(instrument.covered_km2),
         instrument.first.date().isoformat(),
         instrument.last.date().isoformat(),
-        f"{quantities.duration(spans.mean)} ± {quantities.duration(spans.deviation)}",
     )

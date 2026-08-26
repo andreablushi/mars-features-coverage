@@ -6,8 +6,6 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from models.results import Summary
-from prediction.models import spread
-from prediction.models.spread import Spread
 from storage import summary as index
 
 
@@ -23,7 +21,6 @@ class Held:
         covered_km2: How much of their ground it reached.
         first: When the earliest of its observations was taken.
         last: When the latest of them was taken.
-        spans: How long its record of one feature runs, in days, feature by feature.
     """
 
     iid: str
@@ -33,7 +30,6 @@ class Held:
     covered_km2: float
     first: datetime
     last: datetime
-    spans: Spread
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,7 +84,6 @@ def read() -> CatalogueStats:
                     covered_km2=sum(row.covered_km2 for row in taken),
                     first=min(row.t_first for row in taken),
                     last=max(row.t_last for row in taken),
-                    spans=spread.over([row.span_days for row in taken]),
                 )
                 for iid, taken in grouped.items()
             ),
