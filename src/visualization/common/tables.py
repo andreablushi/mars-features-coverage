@@ -34,6 +34,7 @@ def written(
     rows: Sequence[Row],
     lead: str = "",
     note: str = "",
+    groups: Sequence[int] = (),
 ) -> widgets.HTML:
     """Write a table out as a panel.
 
@@ -43,11 +44,13 @@ def written(
         rows: The rows, each holding one cell per heading.
         lead: A grey line between the title and the table, or empty for none.
         note: A grey line under the table, or empty for none.
+        groups: The rows that open a group, each ruled off from the one above it.
 
     Returns:
         The panel.
     """
-    body = "".join(_row(cells) for cells in rows)
+    opening = set(groups)
+    body = "".join(_row(cells, at in opening) for at, cells in enumerate(rows))
     return widgets.HTML(
         f"""<div style="font-family: sans-serif; font-size: 13px;">
           <div style="font-weight: 600; margin-bottom: 2px;">{escape(title)}</div>
@@ -96,16 +99,19 @@ def _heading(name: str, at: int) -> str:
     )
 
 
-def _row(cells: Row) -> str:
+def _row(cells: Row, opening: bool) -> str:
     """Build one row.
 
     Args:
         cells: One cell per column.
+        opening: Whether it opens a group, so a rule is drawn above it.
 
     Returns:
         The row.
     """
-    return f"<tr>{''.join(_cell(cell, at) for at, cell in enumerate(cells))}</tr>"
+    rule = ' style="border-top: 1px solid #c4c4c4;"' if opening else ""
+    written = "".join(_cell(cell, at) for at, cell in enumerate(cells))
+    return f"<tr{rule}>{written}</tr>"
 
 
 def _cell(cell: Cell, at: int) -> str:

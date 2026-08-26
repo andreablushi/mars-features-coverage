@@ -35,10 +35,18 @@ def reached(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     Returns:
         The table as a widget.
     """
+    rows: list[Row] = []
+    # Every strategy after the first is ruled off from the one above it
+    groups: list[int] = []
+    for stats in read.values():
+        if rows:
+            groups.append(len(rows))
+        rows.extend(_reaching(stats))
     return tables.written(
         "How much of a tile each instrument reaches",
         _REACHED,
-        [row for stats in read.values() for row in _reaching(stats)],
+        rows,
+        groups=groups,
     )
 
 
