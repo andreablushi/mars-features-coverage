@@ -19,6 +19,9 @@ GAIN = 5
 
 STRATEGIES_ROOT = Path(__file__).parent
 
+# The strategies each one is built from, the furthest base first and itself last.
+_CHAINS: dict[str, tuple[str, ...]] = {}
+
 
 def load(root: Path = STRATEGIES_ROOT) -> dict[str, Strategy]:
     """Read every strategy the comparison can be run over.
@@ -32,15 +35,65 @@ def load(root: Path = STRATEGIES_ROOT) -> dict[str, Strategy]:
     Raises:
         ValueError: When the directory holds no strategy, or one cannot be read.
     """
-    found = {
-        path.stem: _strategy(
-            path.stem, yaml.safe_load(path.read_text(encoding="utf-8")), path
-        )
+    written = {
+        path.stem: yaml.safe_load(path.read_text(encoding="utf-8"))
         for path in sorted(root.glob("*.yaml"))
     }
-    if not found:
+    if not written:
         raise ValueError(f"{root} holds no strategy to search under")
-    return found
+    _CHAINS.clear()
+    _CHAINS.update({name: _chain(name, written, root) for name in written})
+    return {
+        name: _strategy(name, _settled(name, written, root), root / f"{name}.yaml")
+        for name in written
+    }
+
+
+def _chain(name: str, written: Mapping[str, Any], root: Path) -> tuple[str, ...]:
+    """Walk the strategies one is written as a change to, itself last.
+
+    Args:
+        name: The strategy to walk from.
+        written: What every file in the directory holds, by name.
+        root: The directory they are written in, named when a base cannot be read.
+
+    Returns:
+        The names it is built from, the furthest base first and itself last.
+
+    Raises:
+        ValueError: When a base is not written, or the bases run in a circle.
+    """
+    held: list[str] = []
+    seen = name
+    while seen is not None:
+        if seen in held:
+            raise ValueError(f"{root}: `{name}` is written as a change to itself")
+        if seen not in written:
+            raise ValueError(f"{root}: `{name}` is a change to `{seen}`, unwritten")
+        held.append(seen)
+        spec = written[seen]
+        seen = spec.get("base") if isinstance(spec, Mapping) else None
+    return tuple(reversed(held))
+
+
+def _settled(name: str, written: Mapping[str, Any], root: Path) -> Any:
+    """Lay one strategy over the strategies it is written as a change to.
+
+    Args:
+        name: The strategy to settle.
+        written: What every file in the directory holds, by name.
+        root: The directory they are written in, named when a base cannot be read.
+
+    Returns:
+        Every setting it runs under, its own overriding the ones it changes.
+    """
+    spec: dict[str, Any] = {}
+    for held in _chain(name, written, root):
+        if not isinstance(written[held], Mapping):
+            return written[held]
+        spec.update(written[held])
+    spec.pop("base", None)
+    return spec
 
 
 def _strategy(name: str, spec: Any, path: Path) -> Strategy:
@@ -134,9 +187,12 @@ def digest(name: str) -> str:
         name: The strategy's name, which is what its file is called.
 
     Returns:
-        The digest of the file it is written in.
+        The digest of its file and of every file it is written as a change to.
     """
-    return hashlib.sha256((STRATEGIES_ROOT / f"{name}.yaml").read_bytes()).hexdigest()
+    running = hashlib.sha256()
+    for held in _CHAINS.get(name, (name,)):
+        running.update((STRATEGIES_ROOT / f"{held}.yaml").read_bytes())
+    return running.hexdigest()
 
 
 def named(name: str) -> Strategy:

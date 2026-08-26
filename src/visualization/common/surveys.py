@@ -14,7 +14,7 @@ from selector.models.survey import Survey
 Stretch = tuple[datetime, datetime]
 
 # The strategy a picker opens on, since a search is told one and never holds one
-DEFAULT_STRATEGY = "default"
+DEFAULT_STRATEGY = "earth-year"
 
 # How many searches are kept, so every panel of a feature shares one.
 STUDY_CACHE = 8

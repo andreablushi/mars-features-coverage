@@ -1,9 +1,0 @@
-constraints:
-  - {CTX: 0.50}
-  - {CRISM: 0.30}
-  - {SHARAD: 0.0}
-admits: {CTX: 40000, CRISM: 32, SHARAD: 10}
-tile_km: 20.0
-gain: 1
-span_days: 687.0
-timeless: [SHARAD]
