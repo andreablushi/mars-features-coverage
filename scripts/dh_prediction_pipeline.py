@@ -14,7 +14,7 @@ from digitalhub_runtime_python import handler
 import console
 import utils.disk.paths as paths
 import utils.disk.settings as settings
-from prediction import storing, sweeping
+from prediction import predicting, storing
 from prediction.stats import dataset
 from storage import summary
 from survey import strategies
@@ -51,7 +51,7 @@ def save_predictions(project):
         f"strategies on {workers} workers",
         flush=True,
     )
-    found = sweeping.sweep(list(strategies.STRATEGIES), named, workers)
+    found = predicting.sweep(list(strategies.STRATEGIES), named, workers)
     storing.written(dataset.read(found))
 
     print("uploading the prediction", flush=True)

@@ -7,9 +7,9 @@ from dataclasses import dataclass
 
 from prediction.models import aggregate, spread, tiles
 from prediction.models.aggregate import Aggregate
+from prediction.models.searched import Searched
 from prediction.models.spread import Spread
 from prediction.models.tiles import TileStats
-from prediction.sweeping import Searched
 
 # How far past the whole tile a share may read before the tile is refused.
 CEILING = 1.01
