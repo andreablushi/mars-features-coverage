@@ -1,0 +1,23 @@
+# Every CTX look in the window shows the same seasonal surface state, on the
+# evidence of Thomas et al. (2024), Space Sci Rev 221:3, and nothing else in the
+# window has to be contemporary at all.
+#
+# Section 6.2 of that paper records possible frost on the Olympus Mons caldera
+# absent at Ls 328.0, 328.6 and 338.6 and present at Ls 346.7, 355.7 and 357.8.
+# The surface changes appearance across about 18 degrees of Ls. Ls runs fastest
+# near perihelion, at 0.635 degrees a day against a mean of 0.524, so 18 degrees
+# passes there in 28 days and takes longer everywhere else. Capping the window at
+# 28 days means it cannot straddle that change anywhere in the orbit.
+base: earth-year
+
+span_days: 28.0
+
+# Section 7.2 rejects seasonal adsorption as the cause of the 3 micron hydration
+# band, on the stability of the band throughout the season over most of the
+# surface, and confines seasonal variability to above 50 degrees latitude. Below
+# that the mineralogy CRISM reads is not a seasonal quantity, so it is asked of
+# the whole record rather than of the window, as the subsurface already is.
+# That leaves CTX as the only instrument the window has to hold contemporary,
+# which is the one the paper says does vary: section 8.1 reports annual albedo
+# variation over vast areas, with and without dust storms.
+timeless: [SHARAD, CRISM]

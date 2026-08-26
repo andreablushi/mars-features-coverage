@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from selector.filters import floors, redundancy, timeless
+from selector.filters import floors, redundancy
 from selector.models.counter import Counter
 from selector.models.strategy import Strategy
 from selector.models.survey import Survey
@@ -31,9 +31,11 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
         whole = Counter.over(track, 0, len(track.observations) - 1)
         if floors.met(standing, whole.cells_reached) is None:
             return None
+    # Take the best window
     picked = _best(track, windowed, strategy)
     if picked is None:
         return None
+    # Clean up the record to only what is worth keeping, and report reached
     kept, geo_mean = redundancy.trimmed(track, picked, windowed, strategy.gain)
     return Survey(
         tile=track.tile,
@@ -44,7 +46,7 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
         geo_mean=geo_mean,
         kept=tuple(kept),
         dropped=picked.last - picked.first + 1 - len(kept),
-        standing=timeless.kept(track, strategy.timeless),
+        standing=standing,
     )
 
 
@@ -62,11 +64,11 @@ def _best(track: Track, windowed: Constraints, strategy: Strategy) -> Window | N
     span_days = strategy.span_days
     best: Window | None = None
     worth = float("-inf")
+    # Loop over the observation as bound of the window
     for left in range(len(track.observations)):
         counter = Counter.empty(track.iids, track.grid_cells)
         for right in range(left, len(track.observations)):
             days = track.times[right] - track.times[left]
-            # The axis runs forwards, so nothing beyond here is short enough
             if days > span_days:
                 break
             counter.hold(track.owners[right], track.cells[right])
