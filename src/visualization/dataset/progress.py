@@ -8,7 +8,7 @@ import ipywidgets as widgets
 from IPython.display import display
 
 from prediction import predicting
-from prediction.stats.dataset import DatasetStats
+from prediction.models.dataset import DatasetStats
 from visualization.common import panels
 
 

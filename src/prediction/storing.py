@@ -9,8 +9,8 @@ from pathlib import Path
 
 import utils.disk.paths as paths
 from prediction.models.aggregate import Aggregate
+from prediction.models.dataset import DatasetStats
 from prediction.models.spread import Spread
-from prediction.stats.dataset import DatasetStats
 from survey import strategies
 
 # What separates the instruments naming one piece of shared ground in a key.

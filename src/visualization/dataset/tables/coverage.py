@@ -6,8 +6,8 @@ from collections.abc import Mapping
 
 import ipywidgets as widgets
 
+from prediction.models.dataset import DatasetStats
 from prediction.models.spread import Spread
-from prediction.stats.dataset import DatasetStats
 from utils.maths import quantities
 from visualization.common import tables, wording
 from visualization.common.tables import Row
