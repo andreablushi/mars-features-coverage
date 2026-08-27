@@ -27,7 +27,7 @@ def plot(view: View) -> widgets.Widget:
     if not view.coverage:
         return panels.unavailable()
     study = surveys.studied(view.coverage, view.strategy)
-    if not study.gridded:
+    if not study.grid.tiles:
         return panels.unavailable(_NOTHING)
     stats = whole.read(
         study, tiles.measured(study), view.coverage[0].summary.feature_area_km2

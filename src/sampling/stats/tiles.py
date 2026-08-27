@@ -6,8 +6,8 @@ from collections import Counter
 from collections.abc import Mapping
 
 from coverage.results import Event
+from sampling.models.study import Study
 from sampling.models.tiles import Reach, TileStats
-from selector.models.study import Study
 from selector.models.survey import Survey
 from selector.models.track import Track
 
@@ -54,6 +54,18 @@ def shared(overlaps: Mapping[tuple[str, ...], float]) -> dict[int, float]:
     for names, km2 in overlaps.items():
         counted[len(names)] = counted.get(len(names), 0.0) + km2
     return dict(sorted(counted.items()))
+
+
+def holding(study: Study) -> int:
+    """Count the tiles holding any of the feature.
+
+    Args:
+        study: What the search found over one feature.
+
+    Returns:
+        How many of them a window could have been found over.
+    """
+    return sum(1 for tile in study.grid.tiles if tile.area_km2)
 
 
 def instruments(study: Study) -> list[str]:
