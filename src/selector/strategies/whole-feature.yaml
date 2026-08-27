@@ -1,0 +1,10 @@
+# The base with the tiling turned off, so a feature is searched whole rather
+# than tile by tile. 21344 km is Mars' equatorial circumference: no feature grid
+# can be that wide, so the cut always comes back as a single tile.
+#
+# The shares and the pixel bars are asked of a tile, so here they are asked of
+# the whole feature. A feature already narrower than 100 km was one tile under
+# the base too, and nothing about it changes.
+base: earth-year
+
+tile_km: 21344.0

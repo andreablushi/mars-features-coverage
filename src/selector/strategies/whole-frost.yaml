@@ -1,0 +1,5 @@
+# frost-safe with the tiling turned off the same way, so the 28 day window is
+# asked of the whole feature at once rather than of each 100 km tile of it.
+base: frost-safe
+
+tile_km: 21344.0
