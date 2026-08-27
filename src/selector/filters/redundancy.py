@@ -13,7 +13,7 @@ from selector.utils.constraints import Constraints
 def trimmed(
     track: Track, window: Window, constraints: Constraints, gain: int
 ) -> tuple[list[int], float]:
-    """Drop the observations a window does not need, its ends first.
+    """Drop the observations a window does not need, oldest first.
 
     Args:
         track: The feature's observations on one time axis.
@@ -27,31 +27,12 @@ def trimmed(
     # List of the observations that are kept
     kept = list(range(window.first, window.last + 1))
     # Count what the window holds in cells
-    counter = Counter.empty(track.iids, track.grid_cells)
-    for index in kept:
-        counter.hold(track.owners[index], track.cells[index])
+    counter = Counter.over(track, window.first, window.last)
     geo_mean = scoring.scored(track, floors.met(constraints, counter.cells_reached))
-    # An end is tried before the middle, since only an end costs the window time
-    while len(kept) > 2:
-        ends = sorted(
-            (
-                (track.times[kept[1]] - track.times[kept[0]], 0),
-                (track.times[kept[-1]] - track.times[kept[-2]], -1),
-            ),
-            reverse=True,
-        )
-        for _, edge in ends:
-            score = _without(track, counter, constraints, kept[edge], gain)
-            # If the window can do without the observation
-            if score is not None:
-                geo_mean = score
-                kept.pop(edge)
-                break
-        else:
-            break
-    # The middle costs the window no time at all, so what is spare there goes
-    for index in kept[1:-1]:
+    # Try to drop each observation, oldest first, and keep the rest
+    for index in list(kept):
         score = _without(track, counter, constraints, index, gain)
+        # If the window can do without the observation
         if score is not None:
             geo_mean = score
             kept.remove(index)

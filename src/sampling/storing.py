@@ -5,11 +5,13 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import Any
 
 import utils.disk.paths as paths
 from sampling.models.aggregate import Aggregate
 from sampling.models.dataset import DatasetStats
 from sampling.models.spread import Spread
+from selector import strategies
 from utils.disk.files import atomic_path
 
 # What separates the instruments naming one piece of shared ground in a key.
@@ -88,6 +90,9 @@ def loaded(
 ) -> dict[str, tuple[str, DatasetStats]]:
     """Read back what a previous run made of the dataset.
 
+    Only the strategies written now are looked for. A file left behind by one
+    since renamed or deleted names no strategy, so it is never opened.
+
     Args:
         root: The directory the files were written in.
 
@@ -95,47 +100,54 @@ def loaded(
         The stats each strategy left and the digest it was filed under, by name.
     """
     found: dict[str, tuple[str, DatasetStats]] = {}
-    for path in sorted(root.glob("*.json")):
-        saved = json.loads(path.read_text(encoding="utf-8"))
-        name = saved["strategy"]
-        held = saved["held"]
-        found[name] = (
-            saved["digest"],
-            DatasetStats(
-                strategy=name,
-                features=saved["features"],
-                held=Aggregate(
-                    searched=held["searched"],
-                    kept=held["kept"],
-                    area_km2=held["area_km2"],
-                    kept_km2=held["kept_km2"],
-                    days=_read(held["days"]),
-                    geo_mean=_read(held["geo_mean"]),
-                    reached={
-                        iid: _read(measured)
-                        for iid, measured in held["reached"].items()
-                    },
-                    landed={
-                        iid: _read(measured) for iid, measured in held["landed"].items()
-                    },
-                    pixel_km2={
-                        iid: _read(measured)
-                        for iid, measured in held["pixel_km2"].items()
-                    },
-                    overlaps={
-                        tuple(names.split(JOINED)): km2
-                        for names, km2 in held["overlaps"].items()
-                    },
-                ),
-                sizes=_read(saved["sizes"]),
-                offered={
-                    iid: _read(measured) for iid, measured in saved["offered"].items()
-                },
-                overlap=_read(saved["overlap"]),
-                iids=saved["iids"],
-            ),
-        )
+    for name in strategies.STRATEGIES:
+        path = root / f"{name}.json"
+        if path.is_file():
+            saved = json.loads(path.read_text(encoding="utf-8"))
+            found[name] = (saved["digest"], _stats(saved))
     return found
+
+
+def _stats(saved: Mapping[str, Any]) -> DatasetStats:
+    """Read one strategy's stats back off what its file holds.
+
+    Args:
+        saved: What the file was written with.
+
+    Returns:
+        The stats that strategy left.
+
+    Raises:
+        KeyError: When it was written without something the stats are read from.
+        TypeError: When something it holds is not the shape it is read as.
+        ValueError: When a measurement it holds is not the numbers a spread is.
+    """
+    held = saved["held"]
+    return DatasetStats(
+        strategy=saved["strategy"],
+        features=saved["features"],
+        held=Aggregate(
+            searched=held["searched"],
+            kept=held["kept"],
+            area_km2=held["area_km2"],
+            kept_km2=held["kept_km2"],
+            days=_read(held["days"]),
+            geo_mean=_read(held["geo_mean"]),
+            reached={iid: _read(measured) for iid, measured in held["reached"].items()},
+            landed={iid: _read(measured) for iid, measured in held["landed"].items()},
+            pixel_km2={
+                iid: _read(measured) for iid, measured in held["pixel_km2"].items()
+            },
+            overlaps={
+                tuple(names.split(JOINED)): km2
+                for names, km2 in held["overlaps"].items()
+            },
+        ),
+        sizes=_read(saved["sizes"]),
+        offered={iid: _read(measured) for iid, measured in saved["offered"].items()},
+        overlap=_read(saved["overlap"]),
+        iids=saved["iids"],
+    )
 
 
 def _spread(measured: Spread) -> list[float]:

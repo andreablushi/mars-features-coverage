@@ -11,7 +11,7 @@ constraints:
 admits: {CTX: 65536, CRISM: 256, SHARAD: 64}
 
 # How wide a tile of a feature is, in kilometres.
-tile_km: 100.0
+tile_km: 21344.0
 
 # How long a window may run, in days.
 span_days: 365.0

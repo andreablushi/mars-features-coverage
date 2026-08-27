@@ -14,7 +14,6 @@ class Strategy:
         constraints: What a window meets all of, any one instrument answering each.
         admits: The pixels each instrument has to land on a whole tile to count, by iid.
         tile_km: The widest a tile of a feature may be, in kilometres.
-        gain: The cells an observation has to bring, or it is dropped as a repeat.
         span_days: How long a window may run, in days.
         timeless: The instruments the ground answers for whenever they came.
     """
@@ -23,6 +22,5 @@ class Strategy:
     constraints: tuple[dict[str, float], ...]
     admits: dict[str, float]
     tile_km: float
-    gain: int
     span_days: float
     timeless: frozenset[str] = frozenset()

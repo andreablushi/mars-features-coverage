@@ -2,7 +2,10 @@
 
 Collects observation metadata from the PDS Orbital Data Explorer
 ([ODE](https://ode.rsl.wustl.edu/mars/index.aspx)) and measures how much of each
-geological feature every instrument has covered, and when.
+geological feature every instrument has covered, and when. Then reads those
+measurements back to say what a training dataset would hold: the time window
+each tile of a feature is best studied over, and the observations inside it
+worth keeping.
 
 ## Development Commands
 
@@ -43,7 +46,7 @@ dhcli register <your-digitalhub-core-endpoint>
 dhcli login                                    # opens a browser tab
 ```
 
-### 2. Start the run
+### 2. Measure the coverage
 
 ```bash
 uv run --group digitalhub python scripts/dh_pipeline.py
@@ -58,64 +61,89 @@ that image, and then starts the job. It prints the run key and returns.
 | `--project` | `mars-features-coverage` | which project to run in |
 | `--ref` | `main` | branch, tag, or commit to run |
 | `--cpu` | `workers` from `config.yaml` | cores to request |
-| `--mem` | `8Gi` | memory to request |
-| `--disk` | `16Gi` | disk to request, sized for a whole catalogue |
+| `--mem` | `16Gi` | memory to request |
+| `--disk` | `64Gi` | disk to request, sized for a whole catalogue |
+
+### 3. Predict the dataset
+
+```bash
+uv run --group digitalhub python scripts/dh_prediction_pipeline.py
+```
+
+It measures nothing. It fetches what the run above published, sweeps every
+strategy in `src/selector/strategies/` over every tile of every measured
+feature, and publishes what each of them would keep. It takes the same
+parameters.
+
+A strategy still written as it was when it was published is read back rather
+than swept again, so only a new or edited one costs time.
 
 ## Downloading the results
 
-`dhcli` makes each of the three entities available on your local machine, so you can run the analysis locally.
-Each download retrieves the latest version.
-
-The downloads are packaged as `.tar.gz` archives and are automatically extracted into the expected directories by the download script.
+`dhcli` brings each entity down to your machine, latest version, and the script
+unpacks the archives into the directories the notebooks read.
 
 ```bash
 chmod +x scripts/dh_download.sh # Only once, to make it executable
 ./scripts/dh_download.sh
 ```
 
-This downloads:
-
-* **Measurements**: the coverage artifacts read by the notebook, extracted to `data/artifacts/`.
-* **ODE records**: the metadata used to compute the measurements, extracted to `data/metadata/`.
-* **Coverage summary**: one row per feature and instrument set, extracted to `data/artifacts/`.
-
-
-## Exploratory Notebook
-
-`notebooks/coverage.ipynb` reads the artifacts one feature at a time. Pick a
-feature, confirm, and the cells below fill themselves in. An instrument that
-reached none of the feature is still drawn, at zero, so a missing line always
-means something. The notebook explains the rest.
+With no argument everything comes down. Name one or more to bring down only
+those.
 
 ```bash
-uv run --group notebook jupyter lab notebooks/coverage.ipynb
+./scripts/dh_download.sh predictions        # just what the strategies predicted
+./scripts/dh_download.sh artifacts summary  # just what the notebooks read
 ```
+
+| Name | What it holds | Where it lands |
+| --- | --- | --- |
+| `artifacts` | the coverage measurements | `data/artifacts/` |
+| `metadata` | the ODE records behind them | `data/metadata/` |
+| `predictions` | what each strategy would keep | `data/predictions/` |
+| `summary` | one row per feature and instrument set | `data/artifacts/` |
+
+## Notebooks
+
+```bash
+uv run --group notebook jupyter lab
+```
+
+`notebooks/coverage.ipynb` is the qualitative one. It reads one feature at a
+time, whole and then tile by tile. Pick a feature, confirm, and the cells below
+fill themselves in. An instrument that reached none of the feature is still
+drawn, at zero, so a missing line always means something.
+
+`notebooks/strategies.ipynb` is the quantitative one. It puts every strategy
+side by side, over every tile of every measured feature rather than a sample of
+them. The sweep costs minutes, so it reads back what the prediction pipeline
+published, and sweeps on the spot only a strategy nothing was published for.
 
 ## Structure
 
 ```
 config.yaml           # Configures the run, local and DigitalHub
 scripts/              # Entrypoints for the pipeline, local and DigitalHub
-notebooks/            # Interactive notebook for exploring the results
+notebooks/            # The two notebooks that read the results
 src/
-  configs.py          # Global constants and paths
-  settings.py         # The config.yaml parser and validator
-  runner.py           # Orchestrates the pipeline stages
   console.py          # Progress bar for console prints
+  planner.py          # What each half has left to do
+  runner.py           # Orchestrates the pipeline stages
+  models/             # The data model: features, instruments, settings
   utils/
     maths/            # Scaling, formatting, and cell packing
     disk/             # Project paths, config.yaml, slugs, record provenance
-  models/             # The data model: features, instruments, coverage, geometry
-  storage/            # Caches and the parquet read/write helpers
-  download/           # ODE metadata fetching
-  analysis/           # Coverage measurement and summary generation
-  survey/             # The best time window search, and whether a feature is kept
-  visualization/      # Notebook and figure generation
+  metadata/           # ODE catalogue and record fetching
+  coverage/           # Coverage measurement, geometry, and what it leaves on disk
+  selector/           # The best time window search
+    strategies/       # One YAML per strategy the search can run under
+  sampling/           # The sweep over every tile, and the aggregates over it
+  visualization/      # What the notebooks draw
 data/
   _catalog/           # Cached ODE catalogs
   metadata/           # Raw ODE records
+  predictions/        # What each strategy made of the dataset, one file each
   artifacts/
     coverage/         # Coverage measurements
-    geometry/         # Projection cache, dropped when a run ends
     summary.parquet   # Every feature's summary rows together
 ```

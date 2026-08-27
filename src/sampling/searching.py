@@ -5,10 +5,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from coverage.results import SetCoverage
+from sampling.models.study import Study
 from selector import algorithm
 from selector.models import track as timeline
 from selector.models.strategy import Strategy
-from selector.models.study import Study
 from selector.models.tiles import Grid
 from selector.utils import tiling
 

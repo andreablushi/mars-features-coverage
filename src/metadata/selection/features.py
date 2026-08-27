@@ -1,29 +1,19 @@
-"""Feature selection: filter the catalog and give a point feature a size."""
+"""Feature selection: keep the catalogue features that carry an extent."""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 
-from metadata import configs
 from models.feature import Feature
 
 
-def select_features(features: Sequence[Feature]) -> tuple[list[Feature], list[Feature]]:
-    """Size the point features of the catalog and set aside the sizeless ones.
+def select_features(features: Sequence[Feature]) -> list[Feature]:
+    """Drop the features the catalogue gives no extent at all.
 
     Args:
         features: The full feature catalog.
 
     Returns:
-        The usable features, and the sizeless ones left unqueried for want of an extent.
+        The features carrying an extent, in the order they came in.
     """
-    usable: list[Feature] = []
-    sizeless: list[Feature] = []
-    for feature in features:
-        if not feature.is_point:
-            usable.append(feature)
-        elif feature.feature_class in configs.SIZED_POINT_CLASSES:
-            usable.append(feature.enlarged(configs.POINT_RADIUS_DEG))
-        else:
-            sizeless.append(feature)
-    return usable, sizeless
+    return [feature for feature in features if not feature.is_point]

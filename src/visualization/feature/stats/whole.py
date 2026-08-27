@@ -6,9 +6,9 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from sampling.models.aggregate import Aggregate
+from sampling.models.study import Study
 from sampling.models.tiles import TileStats
 from sampling.stats import aggregate, tiles
-from selector.models.study import Study
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,7 +46,7 @@ def read(
     iids = tiles.instruments(study)
     return FeatureStats(
         held=aggregate.over(measured, iids),
-        tiles=study.tiles,
+        tiles=tiles.holding(study),
         across=study.grid.across,
         feature_km2=feature_km2,
         iids=iids,

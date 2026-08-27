@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from selector.filters import floors, redundancy
+from selector import configs
+from selector.filters import floors, redundancy, timeless
 from selector.models.counter import Counter
 from selector.models.strategy import Strategy
 from selector.models.survey import Survey
@@ -36,7 +37,7 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
     if picked is None:
         return None
     # Clean up the record to only what is worth keeping, and report reached
-    kept, geo_mean = redundancy.trimmed(track, picked, windowed, strategy.gain)
+    kept, geo_mean = redundancy.trimmed(track, picked, windowed, configs.GAIN)
     return Survey(
         tile=track.tile,
         area_km2=track.area_km2,
@@ -46,7 +47,7 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
         geo_mean=geo_mean,
         kept=tuple(kept),
         dropped=picked.last - picked.first + 1 - len(kept),
-        standing=standing,
+        standing=timeless.kept(track, strategy.timeless),
     )
 
 

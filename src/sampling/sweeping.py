@@ -14,11 +14,11 @@ from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 
 from coverage import summary
-from sampling import storing
+from sampling import searching, storing
 from sampling.models.dataset import DatasetStats
 from sampling.models.searched import Searched
 from sampling.stats import dataset, tiles
-from selector import strategies, studying
+from selector import strategies
 
 Named = tuple[str, str]
 Progress = Callable[[int, int], None]
@@ -83,9 +83,9 @@ def sweep(
         One entry per feature and strategy, in the order the features came in.
     """
     found: list[Searched] = []
-    searching = partial(_searched, under=tuple(under))
+    search = partial(_searched, under=tuple(under))
     with ProcessPoolExecutor(max_workers=workers) as pool:
-        for done, searched in enumerate(pool.map(searching, wanted, chunksize=1), 1):
+        for done, searched in enumerate(pool.map(search, wanted, chunksize=1), 1):
             found.extend(searched)
             if progress is not None:
                 progress(done, len(wanted))
@@ -108,7 +108,7 @@ def _searched(named: Named, under: Sequence[str]) -> list[Searched]:
         return []
     found: list[Searched] = []
     for chosen in under:
-        study = studying.study(coverage, strategies.named(chosen))
+        study = searching.study(coverage, strategies.named(chosen))
         found.append(
             Searched(
                 strategy=chosen,

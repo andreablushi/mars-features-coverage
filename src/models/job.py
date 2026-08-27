@@ -94,11 +94,9 @@ class Plan:
         feature_count: Features selected, or discovered on disk.
         set_count: Instrument sets selected, or discovered on disk.
         skipped_existing: Outputs left in place because they already exist.
-        sizeless_features: The features left unqueried for want of a recoverable extent.
     """
 
     jobs: tuple[Job, ...]
     feature_count: int
     set_count: int
     skipped_existing: int
-    sizeless_features: tuple[str, ...] = ()

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import tarfile
 from pathlib import Path
 
@@ -41,7 +42,10 @@ def save_predictions(project):
     """
     os.environ[console.PLAIN_LOG_ENV] = "1"
     print("fetching the measurements", flush=True)
-    _unpack(project.get_artifact(dh_pipeline.ARTIFACTS_NAME).download(overwrite=True))
+    _unpack(
+        project.get_artifact(dh_pipeline.ARTIFACTS_NAME).download(overwrite=True),
+        paths.ARTIFACTS_ROOT,
+    )
 
     named = summary.catalogued_features()
     if not named:
@@ -50,7 +54,10 @@ def save_predictions(project):
     held: dict[str, DatasetStats] = {}
     if project.list_artifacts(name=PREDICTIONS_NAME):
         print("fetching the prediction published before", flush=True)
-        _unpack(project.get_artifact(PREDICTIONS_NAME).download(overwrite=True))
+        _unpack(
+            project.get_artifact(PREDICTIONS_NAME).download(overwrite=True),
+            paths.PREDICTIONS_ROOT,
+        )
         held = sweeping.unchanged(storing.loaded())
         print(f"kept from it: {', '.join(held) or 'nothing'}", flush=True)
     else:
@@ -90,11 +97,13 @@ def save_predictions(project):
     return prediction
 
 
-def _unpack(downloaded: str) -> None:
-    """Put the published measurements back where the search reads them.
+def _unpack(downloaded: str, into: Path) -> None:
+    """Put what was published back where the search reads it, and nothing else.
 
     Args:
         downloaded: The archive the platform left, or the directory holding it.
+        into: The directory the archive fills, emptied first so that what it
+            holds afterwards is what was published and only that.
 
     Returns:
         None.
@@ -108,6 +117,7 @@ def _unpack(downloaded: str) -> None:
         if not found:
             raise RuntimeError(f"no measurements were downloaded into {path}")
         path = found[0]
+    shutil.rmtree(into, ignore_errors=True)
     paths.DATA_ROOT.mkdir(parents=True, exist_ok=True)
     with tarfile.open(path) as packed:
         packed.extractall(paths.DATA_ROOT, filter="data")

@@ -6,9 +6,10 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from coverage.results import SetCoverage
-from selector import strategies, studying
+from sampling import searching
+from sampling.models.study import Study
+from selector import strategies
 from selector.models.strategy import Strategy
-from selector.models.study import Study
 from selector.models.survey import Survey
 
 Stretch = tuple[datetime, datetime]
@@ -37,7 +38,7 @@ def studied(coverage: Sequence[SetCoverage], strategy: Strategy) -> Study:
     if key not in _found:
         if len(_found) >= STUDY_CACHE:
             _found.clear()
-        _found[key] = studying.study(coverage, strategy)
+        _found[key] = searching.study(coverage, strategy)
     return _found[key]
 
 

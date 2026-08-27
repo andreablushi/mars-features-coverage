@@ -14,9 +14,6 @@ from selector.models.strategy import Strategy
 # How wide a tile is when a strategy does not say, in kilometres.
 TILE_KM = 100.0
 
-# What an observation has to bring a window when a strategy does not say, in cells.
-GAIN = 5
-
 STRATEGIES_ROOT = Path(__file__).parent
 
 # The strategies each one is built from, the furthest base first and itself last.
@@ -149,7 +146,6 @@ def _strategy(name: str, spec: Any, path: Path) -> Strategy:
             for iid, pixels in admits.items()
         },
         tile_km=_number(name, "tile_km", spec.get("tile_km", TILE_KM), path),
-        gain=int(_number(name, "gain", spec.get("gain", GAIN), path)),
         span_days=_number(name, "span_days", spec.get("span_days"), path),
         timeless=frozenset(str(iid) for iid in timeless),
     )

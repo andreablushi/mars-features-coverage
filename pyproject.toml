@@ -22,12 +22,12 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-name = [
+    "coverage",
+    "metadata",
     "models",
-    "storage",
-    "download",
-    "analysis",
-    "survey",
-    "prediction",
+    "sampling",
+    "selector",
+    "utils",
     "visualization",
 ]
 

@@ -15,8 +15,8 @@ from matplotlib.colors import to_rgba
 from matplotlib.patches import Patch
 
 from coverage.utils import geodesy
+from sampling.models.study import Study
 from sampling.stats import tiles
-from selector.models.study import Study
 from utils.maths import quantities
 from visualization.common import panels, surveys
 from visualization.common.picker import View
