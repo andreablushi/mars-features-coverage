@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from selector.filters import floors
 from selector.models.counter import Counter
+from selector.models.strategy import Constraints
 from selector.models.track import Track
 from selector.models.window import Window
 from selector.utils import scoring
-from selector.utils.constraints import Constraints
 
 
 def trimmed(

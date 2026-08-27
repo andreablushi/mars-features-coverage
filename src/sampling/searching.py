@@ -10,7 +10,7 @@ from selector import algorithm
 from selector.models import track as timeline
 from selector.models.strategy import Strategy
 from selector.models.tiles import Grid
-from selector.utils import tiling
+from selector.utils import constraints, tiling
 
 
 def study(coverage: Sequence[SetCoverage], strategy: Strategy) -> Study:
@@ -44,10 +44,12 @@ def study(coverage: Sequence[SetCoverage], strategy: Strategy) -> Study:
         summary.cell_km2,
         summary.grid_mask,
     )
-    tracks = timeline.build(coverage, grid, strategy.admits)
+    # The one place the strategy is read, which everything below takes it from
+    settled = constraints.read(strategy, coverage, grid)
+    tracks = timeline.build(coverage, grid, settled)
     return Study(
-        strategy=strategy,
+        strategy=settled,
         grid=grid,
         tracks=tracks,
-        surveys=[algorithm.search(track, strategy) for track in tracks],
+        surveys=[algorithm.search(track, settled) for track in tracks],
     )

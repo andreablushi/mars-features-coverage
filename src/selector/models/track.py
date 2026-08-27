@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from coverage.results import Event, SetCoverage
 from selector import configs
 from selector.filters import admissible
+from selector.models.strategy import Strategy
 from selector.models.tiles import Grid
 
 
@@ -43,19 +44,19 @@ class Track:
 
 
 def build(
-    coverage: Sequence[SetCoverage], grid: Grid, admits: dict[str, float]
+    coverage: Sequence[SetCoverage], grid: Grid, strategy: Strategy
 ) -> list[Track]:
     """Merge a feature's instrument sets into one timeline per tile.
 
     Args:
         coverage: The feature's instrument sets, in any order.
         grid: The feature cut into tiles.
-        admits: The pixels each instrument has to land on a whole tile.
+        strategy: The strategy read against the feature, read once.
 
     Returns:
         One timeline per tile holding anything measurable, in grid order.
     """
-    held, refused = admissible.admit_observation(coverage, grid, admits)
+    held, refused = admissible.admit_observation(coverage, grid, strategy)
     labels = [instrument.label for instrument in coverage]
     iids = [instrument.summary.iid for instrument in coverage]
     return [

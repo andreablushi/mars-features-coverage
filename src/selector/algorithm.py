@@ -5,12 +5,11 @@ from __future__ import annotations
 from selector import configs
 from selector.filters import floors, redundancy, timeless
 from selector.models.counter import Counter
-from selector.models.strategy import Strategy
+from selector.models.strategy import Constraints, Strategy
 from selector.models.survey import Survey
 from selector.models.track import Track
 from selector.models.window import Window
-from selector.utils import constraints, scoring
-from selector.utils.constraints import Constraints
+from selector.utils import scoring
 
 
 def search(track: Track, strategy: Strategy) -> Survey | None:
@@ -18,15 +17,13 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
 
     Args:
         track: The admissible observations on one time axis.
-        strategy: Which instruments the window has to hold, and how much ground each.
+        strategy: The strategy read against the feature, holding what a tile is asked.
 
     Returns:
         The chosen window, or None when no window is worth keeping.
     """
-    # Pick up the strategy's requirements, every one of which is mandatory
-    windowed, standing = constraints.read_strategy(
-        strategy, track.iids, track.area_km2, track.cell_km2
-    )
+    # What the strategy asks of this tile, worked out once when it was read
+    windowed, standing = strategy.windowed[track.tile], strategy.standing[track.tile]
     # What time cannot change is asked of the whole record rather than a window
     if standing:
         whole = Counter.over(track, 0, len(track.observations) - 1)

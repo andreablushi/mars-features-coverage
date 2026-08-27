@@ -1,30 +1,56 @@
-"""What one strategy asks of one tile, in the sets, cells and pixels it counts in."""
+"""Reading one strategy against one feature, once, into what every tile is asked."""
 
 from __future__ import annotations
 
+import dataclasses
 import math
 from collections.abc import Sequence
 
 from coverage.results import SetCoverage
-from selector.models.strategy import Strategy
+from selector.models.strategy import Constraints, Strategy
 from selector.models.tiles import Grid
 from utils.maths import ground
 
-# One instrument answering a constraint: the sets that speak for it and its floor
-Answer = tuple[tuple[int, ...], int]
-# A constraint any one of its instruments can answer, and what a window is asked.
-Constraints = list[list[Answer]]
+
+def read(strategy: Strategy, coverage: Sequence[SetCoverage], grid: Grid) -> Strategy:
+    """Settle everything a strategy asks of a feature, for every tile at once.
+
+    This is the only place a strategy is read. What it works out is held on the
+    strategy it hands back, so the search and the admission both take what they
+    need off that rather than working it out again per tile.
+
+    Args:
+        strategy: What the instruments are asked for, and which of them are timeless.
+        coverage: The feature's instrument sets, in any order.
+        grid: The feature cut into tiles.
+
+    Returns:
+        The same strategy, carrying what it asks of every tile in grid order.
+    """
+    iids = [instrument.summary.iid for instrument in coverage]
+    windowed: list[Constraints] = []
+    standing: list[Constraints] = []
+    for patch in grid.tiles:
+        asked, held = _per_tile(strategy, iids, patch.area_km2, grid.cell_km2)
+        windowed.append(asked)
+        standing.append(held)
+    return dataclasses.replace(
+        strategy,
+        least=_least(coverage, grid, strategy.admits),
+        windowed=windowed,
+        standing=standing,
+    )
 
 
-def read_strategy(
+def _per_tile(
     strategy: Strategy, iids: Sequence[str], area_km2: float, cell_km2: float
 ) -> tuple[Constraints, Constraints]:
-    """Read what a strategy asks for into the sets and the cells of one tile.
+    """Read what a strategy asks into the sets and the cells of one tile.
 
     Args:
         strategy: What the instruments are asked for, and which of them are timeless.
         iids: The instrument each set on the timeline belongs to, in order.
-        area_km2: How much ground the search is run over.
+        area_km2: How much ground the tile covers.
         cell_km2: How much ground one cell of that ground covers.
 
     Returns:
@@ -53,7 +79,7 @@ def read_strategy(
     )
 
 
-def least_pixels(
+def _least(
     coverage: Sequence[SetCoverage], grid: Grid, admits: dict[str, float]
 ) -> list[list[float]]:
     """Work out the pixels each set has to land on each tile to be a look at it.

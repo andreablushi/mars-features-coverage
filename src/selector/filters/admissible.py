@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from coverage.results import Event, SetCoverage
+from selector.models.strategy import Strategy
 from selector.models.tiles import Grid
-from selector.utils import constraints
 from utils.maths import mask as packing
 
 # One tile's admitted observations, the set each belongs to, and the cells it fills
@@ -14,22 +14,21 @@ Held = list[tuple[Event, int, list[int]]]
 
 
 def admit_observation(
-    coverage: Sequence[SetCoverage], grid: Grid, admits: dict[str, float]
+    coverage: Sequence[SetCoverage], grid: Grid, strategy: Strategy
 ) -> tuple[list[Held], list[list[Event]]]:
     """Keep every observation big enough for its tile, and turn the rest away.
 
     Args:
         coverage: The feature's instrument sets, in any order.
         grid: The feature cut into tiles.
-        admits: The pixels each instrument has to land on a whole tile, by iid.
+        strategy: The strategy read against the feature, holding the pixel floors.
 
     Returns:
         What each tile keeps and what it turned away, both in grid order.
     """
     held: list[Held] = [[] for _ in grid.tiles]
     refused: list[list[Event]] = [[] for _ in grid.tiles]
-    # What each set has to land on each tile, worked out once for the feature
-    least = constraints.least_pixels(coverage, grid, admits)
+    least = strategy.least
     for owner, instrument in enumerate(coverage):
         for observation in instrument.events:
             spread, pixels = observation.own_km2, observation.pixels
