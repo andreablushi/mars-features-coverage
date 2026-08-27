@@ -72,7 +72,8 @@ def save_predictions(project):
             f"{', '.join(missing)}",
             flush=True,
         )
-        held.update(dataset.read(sweeping.sweep(missing, named, workers)))
+        swept = sweeping.sweep(missing, named, workers, console.logged("sweep"))
+        held.update(dataset.read(swept))
     else:
         print(
             "every strategy is published as it is written, nothing to sweep", flush=True

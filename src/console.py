@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
 
 from rich.console import Console
@@ -93,6 +93,32 @@ def render(
             progress.update(task, completed=event.completed)
 
 
+def logged(description: str) -> Callable[[int, int], None]:
+    """Return a progress callback printing how far a stage has got.
+
+    Args:
+        description: The label for the stage, carried on every line printed.
+
+    Returns:
+        A callback taking how many units are done and how many there are.
+    """
+
+    def moved(done: int, total: int) -> None:
+        """Print where the stage has reached, on the units it reports on.
+
+        Args:
+            done: How many units are finished.
+            total: How many there are.
+
+        Returns:
+            None.
+        """
+        if done % _step(total) == 0 or done == total:
+            _reached(description, done, total)
+
+    return moved
+
+
 def _log(events: Iterable[ProgressEvent], total: int, description: str) -> None:
     """Print which job a stage has reached, every so many jobs.
 
@@ -104,18 +130,43 @@ def _log(events: Iterable[ProgressEvent], total: int, description: str) -> None:
     Returns:
         None.
     """
-    step = max(1, total // LOGGED_LINES)
+    step = _step(total)
     for event in events:
         outcome = event.outcome
         if outcome.failed:
             print(f"error {outcome.label}: {outcome.error}", flush=True)
         if event.completed % step == 0 or event.completed == total:
-            share = event.completed / total
-            print(
-                f"{description} {event.completed}/{total} ({share:.0%}) "
-                f"{outcome.label}",
-                flush=True,
-            )
+            _reached(description, event.completed, total, outcome.label)
+
+
+def _step(total: int) -> int:
+    """Return how many units pass between the lines a stage prints.
+
+    Args:
+        total: The number of units in the run.
+
+    Returns:
+        The stride, never less than one unit.
+    """
+    return max(1, total // LOGGED_LINES)
+
+
+def _reached(description: str, completed: int, total: int, label: str = "") -> None:
+    """Print how far a stage has got, in the plain form a platform log takes.
+
+    Args:
+        description: The label for the stage.
+        completed: How many units are finished.
+        total: How many there are.
+        label: What just finished, where the stage names its units.
+
+    Returns:
+        None.
+    """
+    share = completed / total
+    print(
+        f"{description} {completed}/{total} ({share:.0%}) {label}".rstrip(), flush=True
+    )
 
 
 def print_interrupted(noun: str, console: Console | None = None) -> None:
