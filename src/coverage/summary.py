@@ -111,6 +111,34 @@ def catalogued_features(root: Path = paths.ARTIFACTS_ROOT) -> list[tuple[str, st
     return sorted(dict.fromkeys(named))
 
 
+def catalogued_observations(
+    root: Path = paths.ARTIFACTS_ROOT,
+) -> dict[tuple[str, str], int]:
+    """Count the observations the computed artifacts hold for each feature.
+
+    Args:
+        root: The artifacts root directory holding the catalogue index.
+
+    Returns:
+        How many observations each feature holds in all, by class and name.
+    """
+    path = catalog_summary_path(root)
+    if not path.exists():
+        return {}
+    table = _summary_table(path)
+    counted: dict[tuple[str, str], int] = {}
+    for feature_class, name, observations in zip(
+        table.column("feature_class").to_pylist(),
+        table.column("feature_name").to_pylist(),
+        table.column("n_obs").to_pylist(),
+        strict=True,
+    ):
+        counted[(feature_class, name)] = counted.get((feature_class, name), 0) + (
+            observations or 0
+        )
+    return counted
+
+
 def catalogued_rows(root: Path = paths.ARTIFACTS_ROOT) -> list[Summary]:
     """Read every row the computed artifacts hold anywhere.
 

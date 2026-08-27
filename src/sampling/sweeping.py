@@ -73,6 +73,10 @@ def sweep(
 ) -> list[Searched]:
     """Search every tile of every named feature under every strategy named.
 
+    A search costs far more than the observations a feature holds, and the busiest
+    features are a handful, so they are searched first. One of them starting last
+    would run on alone for hours after the rest of the pool had drained.
+
     Args:
         under: The strategies to search under, by name.
         wanted: The features to search, as class and name.
@@ -82,14 +86,17 @@ def sweep(
     Returns:
         One entry per feature and strategy, in the order the features came in.
     """
-    found: list[Searched] = []
+    found: list[list[Searched]] = [[] for _ in wanted]
     search = partial(_searched, under=tuple(under))
+    counted = summary.catalogued_observations()
+    order = sorted(range(len(wanted)), key=lambda place: -counted.get(wanted[place], 0))
     with ProcessPoolExecutor(max_workers=workers) as pool:
-        for done, searched in enumerate(pool.map(search, wanted, chunksize=1), 1):
-            found.extend(searched)
+        searched = pool.map(search, [wanted[place] for place in order], chunksize=1)
+        for done, (place, entry) in enumerate(zip(order, searched, strict=True), 1):
+            found[place] = entry
             if progress is not None:
                 progress(done, len(wanted))
-    return found
+    return [entry for held in found for entry in held]
 
 
 def _searched(named: Named, under: Sequence[str]) -> list[Searched]:
