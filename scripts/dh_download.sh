@@ -33,11 +33,17 @@ download_and_extract() {
         -n "$name" \
         -d "$staged"
 
-    tar -xzf "$staged"/*.tar.gz \
-        -C "$staged" \
-        --strip-components=1
+    # An artifact comes down as one archive to unpack. A dataitem comes down as
+    # the file itself, so there is nothing to unpack and it is kept as it landed.
+    local packed
+    packed="$(find "$staged" -maxdepth 1 -name '*.tar.gz' -print -quit)"
+    if [[ -n $packed ]]; then
+        tar -xzf "$packed" \
+            -C "$staged" \
+            --strip-components=1
 
-    rm -f "$staged"/*.tar.gz
+        rm -f "$packed"
+    fi
 
     # Nothing already on disk is touched unless there is something to put in its
     # place, so a download that came down empty leaves the last one alone.
