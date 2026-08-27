@@ -33,14 +33,6 @@ def describe_download(plan: Plan, workers: int, console: Console) -> None:
     Returns:
         None.
     """
-    if plan.sizeless_features:
-        shown = ", ".join(plan.sizeless_features[:LISTED])
-        rest = len(plan.sizeless_features) - LISTED
-        console.print(
-            f"[yellow]{len(plan.sizeless_features)} features carry no extent in "
-            f"the catalogue and were not queried: {shown}"
-            f"{f', and {rest} more' if rest > 0 else ''}[/yellow]"
-        )
     console.print(
         f"download: {plan.feature_count} features x {plan.set_count} sets, "
         f"{len(plan.jobs)} to run, {plan.skipped_existing} already downloaded, "

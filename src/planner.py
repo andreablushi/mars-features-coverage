@@ -60,7 +60,7 @@ def download_plan(
     Returns:
         The plan describing the selection and the jobs to run.
     """
-    usable, sizeless = select_features(features)
+    usable = select_features(features)
     pairs = [
         (feature, instrument_set)
         for feature in usable
@@ -79,7 +79,6 @@ def download_plan(
         feature_count=len(usable),
         set_count=len(instrument_sets),
         skipped_existing=skipped,
-        sizeless_features=tuple(feature.name for feature in sizeless),
     )
 
 
