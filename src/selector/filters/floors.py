@@ -22,7 +22,11 @@ def met(constraints: Constraints, cells_reached: Sequence[int]) -> list[int] | N
         # A constraint is answered by whichever instrument reaches most of its bar
         cell_count = 0
         for answering, floor in answers:
-            reached = max((cells_reached[owner] for owner in answering), default=0)
+            reached = (
+                cells_reached[answering[0]]
+                if len(answering) == 1
+                else max((cells_reached[owner] for owner in answering), default=0)
+            )
             if reached < floor:
                 continue
             if reached > cell_count:

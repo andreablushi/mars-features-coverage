@@ -97,18 +97,17 @@ def _tile(study: Study, track: Track, picked: Survey | None) -> TileStats:
     # What each instrument left inside the window, and which of them each cell holds
     cells: dict[str, set[int]] = {}
     counted: dict[str, list[Event]] = {}
-    here: list[set[str]] = [set() for _ in range(track.grid_cells)] if kept else []
+    here: dict[int, set[str]] = {}
     for index in kept:
         iid = track.iids[track.owners[index]]
         cells.setdefault(iid, set()).update(track.cells[index])
         counted.setdefault(iid, []).append(track.observations[index])
-        for cell in track.cells[index]:
-            here[cell].add(iid)
+        for cell in track.cells[index].tolist():
+            here.setdefault(cell, set()).add(iid)
     overlaps: dict[tuple[str, ...], float] = {}
-    for reaching in here:
-        if reaching:
-            names = tuple(sorted(reaching))
-            overlaps[names] = overlaps.get(names, 0.0) + track.cell_km2
+    for cell in sorted(here):
+        names = tuple(sorted(here[cell]))
+        overlaps[names] = overlaps.get(names, 0.0) + track.cell_km2
     return TileStats(
         tile=track.tile,
         row=row,
