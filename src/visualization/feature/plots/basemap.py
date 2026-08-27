@@ -30,8 +30,8 @@ MAP_PLACEHOLDER = "320px"
 REPORT_WIDTH = "360px"
 
 # How a tile is drawn, by what the search made of it.
-TILE_KEPT = "#2e7d32"
-TILE_REFUSED = "#c62828"
+TILE_KEPT = panels.KEPT
+TILE_REFUSED = panels.REFUSED
 TILE_FILL = 0.18
 TILE_WIDTH = 1.1
 

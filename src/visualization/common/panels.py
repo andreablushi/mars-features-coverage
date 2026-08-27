@@ -19,6 +19,10 @@ from visualization.common.series import Series
 
 GREY = "#8a8a8a"
 
+# How a tile that earned a window is marked, and one the search refused.
+KEPT = "#2e7d32"
+REFUSED = "#c62828"
+
 # How wide every stacked figure is drawn.
 FIGURE_WIDTH = 11
 

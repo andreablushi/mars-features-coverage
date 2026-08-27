@@ -35,6 +35,10 @@ def read(found: Sequence[Searched]) -> dict[str, DatasetStats]:
         # The kept tiles carrying ground, and the ground each set of instruments reaches
         grounded = [tile for tile in measured if tile.kept and tile.area_km2]
         overlapping = [tiles.shared(tile.overlaps) for tile in grounded]
+        shared = [
+            found_here.get(len(iids), 0.0) / tile.area_km2
+            for tile, found_here in zip(grounded, overlapping, strict=True)
+        ]
         read_back[strategy] = DatasetStats(
             strategy=strategy,
             features=len(held),
@@ -44,11 +48,9 @@ def read(found: Sequence[Searched]) -> dict[str, DatasetStats]:
                 iid: Spread.over([tile.offered.get(iid, 0) for tile in measured])
                 for iid in iids
             },
-            overlap=Spread.over(
-                [
-                    found_here.get(len(iids), 0.0) / tile.area_km2
-                    for tile, found_here in zip(grounded, overlapping, strict=True)
-                ]
+            overlap=Spread.over(shared),
+            overlap_per_observation=aggregate.per_observation(
+                shared, [tile.taken for tile in grounded]
             ),
             iids=iids,
         )

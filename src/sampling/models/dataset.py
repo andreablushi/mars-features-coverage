@@ -19,6 +19,8 @@ class DatasetStats:
         sizes: How much ground a tile holds, over the tiles searched.
         offered: How many observations each instrument landed on a tile searched.
         overlap: The share of a tile every instrument reaches at once, over the kept.
+        overlap_per_observation: The same share, averaged over the observations
+            the kept tiles hold rather than over the tiles.
         iids: The instruments reported on, in the order they are drawn.
     """
 
@@ -28,4 +30,5 @@ class DatasetStats:
     sizes: Spread
     offered: dict[str, Spread]
     overlap: Spread
+    overlap_per_observation: float
     iids: list[str]

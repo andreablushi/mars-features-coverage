@@ -55,6 +55,7 @@ def written(
                             iid: _spread(measured)
                             for iid, measured in held.reached.items()
                         },
+                        "per_observation": held.per_observation,
                         "landed": {
                             iid: _spread(measured)
                             for iid, measured in held.landed.items()
@@ -74,6 +75,7 @@ def written(
                         for iid, measured in stats.offered.items()
                     },
                     "overlap": _spread(stats.overlap),
+                    "overlap_per_observation": stats.overlap_per_observation,
                 },
                 indent=1,
             )
@@ -91,7 +93,9 @@ def loaded(
     """Read back what a previous run made of the dataset.
 
     Only the strategies written now are looked for. A file left behind by one
-    since renamed or deleted names no strategy, so it is never opened.
+    since renamed or deleted names no strategy, so it is never opened. A file
+    written before the stats took the shape they have now holds no reading of
+    them either, so it is passed over and the strategy is swept again.
 
     Args:
         root: The directory the files were written in.
@@ -102,9 +106,13 @@ def loaded(
     found: dict[str, tuple[str, DatasetStats]] = {}
     for name in strategies.STRATEGIES:
         path = root / f"{name}.json"
-        if path.is_file():
-            saved = json.loads(path.read_text(encoding="utf-8"))
+        if not path.is_file():
+            continue
+        saved = json.loads(path.read_text(encoding="utf-8"))
+        try:
             found[name] = (saved["digest"], _stats(saved))
+        except KeyError:
+            continue
     return found
 
 
@@ -134,6 +142,7 @@ def _stats(saved: Mapping[str, Any]) -> DatasetStats:
             days=_read(held["days"]),
             geo_mean=_read(held["geo_mean"]),
             reached={iid: _read(measured) for iid, measured in held["reached"].items()},
+            per_observation=held["per_observation"],
             landed={iid: _read(measured) for iid, measured in held["landed"].items()},
             pixel_km2={
                 iid: _read(measured) for iid, measured in held["pixel_km2"].items()
@@ -146,6 +155,7 @@ def _stats(saved: Mapping[str, Any]) -> DatasetStats:
         sizes=_read(saved["sizes"]),
         offered={iid: _read(measured) for iid, measured in saved["offered"].items()},
         overlap=_read(saved["overlap"]),
+        overlap_per_observation=saved["overlap_per_observation"],
         iids=saved["iids"],
     )
 

@@ -8,6 +8,9 @@ from utils.maths import quantities
 NOTHING = "none"
 UNCOUNTED = "not counted"
 
+# The instrument whose pixels are radargram columns rather than picture elements.
+SOUNDER = "SHARAD"
+
 
 def share(measured: Spread) -> str:
     """Write a share read off many tiles.
