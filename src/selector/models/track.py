@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+import numpy as np
+
 from coverage.results import Event, SetCoverage
 from selector import configs
 from selector.filters import admissible
@@ -21,7 +23,7 @@ class Track:
         observations: The observations the search may pick from, oldest first.
         times: When each of them started, in days, which is what a span is measured in.
         owners: The instrument set each belongs to, as its index into labels.
-        cells: The tile's own cells each fills, in the same order.
+        cells: The tile's own cells each fills, in the same order, each named once.
         labels: The name of each set, in the order owners index them.
         iids: The instrument each set belongs to, in the same order.
         grid_cells: How many cells the tile holds.
@@ -34,7 +36,7 @@ class Track:
     observations: list[Event]
     times: list[float]
     owners: list[int]
-    cells: list[list[int]]
+    cells: list[np.ndarray]
     labels: list[str]
     iids: list[str]
     grid_cells: int
@@ -97,7 +99,7 @@ def _track(
             for observation, _, _ in held
         ],
         owners=[owner for _, owner, _ in held],
-        cells=[cells for _, _, cells in held],
+        cells=[np.asarray(cells, dtype=np.intp) for _, _, cells in held],
         labels=labels,
         iids=iids,
         grid_cells=patch.cells,

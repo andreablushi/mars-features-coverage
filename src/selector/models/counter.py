@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+import numpy as np
+
 from selector.models.track import Track
 
 
@@ -13,11 +15,12 @@ class Counter:
     """What one window holds, kept true as the window slides along the axis.
 
     Attributes:
-        observations_per_cell: The window's observations filling each cell, per set.
+        observations_per_cell: The window's observations filling each cell, per set,
+            as one row of counts per set.
         cells_reached: How many cells of the tile each set reaches.
     """
 
-    observations_per_cell: list[list[int]]
+    observations_per_cell: np.ndarray
     cells_reached: list[int]
 
     @classmethod
@@ -32,7 +35,7 @@ class Counter:
             The counter, counting nothing.
         """
         return cls(
-            observations_per_cell=[[0] * grid_cells for _ in iids],
+            observations_per_cell=np.zeros((len(iids), grid_cells), dtype=np.int32),
             cells_reached=[0] * len(iids),
         )
 
@@ -53,38 +56,35 @@ class Counter:
             counter.hold(track.owners[index], track.cells[index])
         return counter
 
-    def hold(self, owner: int, cells: Sequence[int]) -> None:
+    def hold(self, owner: int, cells: np.ndarray) -> None:
         """Take one more observation into the window.
 
         Args:
             owner: The instrument set the observation belongs to.
-            cells: The tile's cells it fills.
+            cells: The tile's cells it fills, each of them named once.
 
         Returns:
             None.
         """
         filled = self.observations_per_cell[owner]
-        fresh = 0
-        for cell in cells:
-            if not filled[cell]:
-                fresh += 1
-            filled[cell] += 1
-        self.cells_reached[owner] += fresh
+        held = filled[cells]
+        self.cells_reached[owner] += cells.size - int(np.count_nonzero(held))
+        held += 1
+        filled[cells] = held
 
-    def release(self, owner: int, cells: Sequence[int]) -> None:
+    def release(self, owner: int, cells: np.ndarray) -> None:
         """Drop the oldest observation back out of the window.
 
         Args:
             owner: The instrument set the observation belongs to.
-            cells: The tile's cells it fills.
+            cells: The tile's cells it fills, each of them named once.
 
         Returns:
             None.
         """
         filled = self.observations_per_cell[owner]
-        lost = 0
-        for cell in cells:
-            filled[cell] -= 1
-            if not filled[cell]:
-                lost += 1  # ground nothing else left in the window reaches
-        self.cells_reached[owner] -= lost
+        left = filled[cells]
+        left -= 1
+        filled[cells] = left
+        # ground nothing else left in the window reaches
+        self.cells_reached[owner] -= cells.size - int(np.count_nonzero(left))

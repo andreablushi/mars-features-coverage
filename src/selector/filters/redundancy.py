@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import numpy as np
+
 from selector.filters import floors
 from selector.models.counter import Counter
 from selector.models.strategy import Constraints
@@ -56,7 +58,7 @@ def _without(
     """
     owner, cells = track.owners[index], track.cells[index]
     filled = counter.observations_per_cell[owner]
-    if sum(1 for cell in cells if filled[cell] == 1) >= gain:
+    if int(np.count_nonzero(filled[cells] == 1)) >= gain:
         return None
     counter.release(owner, cells)
     counts = floors.met(constraints, counter.cells_reached)
