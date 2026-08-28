@@ -28,19 +28,13 @@ def reached(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     Returns:
         The table as a widget.
     """
-    rows, groups = tables.grouped(
-        read.values(),
-        lambda stats: (
-            [
-                _share(stats.strategy, iid, stats.tiles.reached[iid])
-                for iid in stats.iids
-            ]
-            + [_share(stats.strategy, _OVERLAP, stats.overlap)]
-        ),
-    )
-    return tables.written(
-        "How much of a tile each instrument reaches", _REACHED, rows, groups=groups
-    )
+    rows: list[Row] = []
+    for stats in read.values():
+        rows.extend(
+            _share(stats.strategy, iid, stats.tiles.reached[iid]) for iid in stats.iids
+        )
+        rows.append(_share(stats.strategy, _OVERLAP, stats.overlap))
+    return tables.written("How much of a tile each instrument reaches", _REACHED, rows)
 
 
 def windows(read: Mapping[str, DatasetStats]) -> widgets.Widget:
