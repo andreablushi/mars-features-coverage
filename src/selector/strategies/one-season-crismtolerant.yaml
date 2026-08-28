@@ -1,0 +1,12 @@
+constraints:
+  - {CTX: 0.50}
+  - {CRISM: 0.20}
+  - {SHARAD: 0.0}
+
+admits: {CTX: 65536, CRISM: 256, SHARAD: 64}
+
+tile_km: 21344.0
+
+span_days: 140.0
+
+timeless: [SHARAD]

@@ -14,6 +14,20 @@ UNCOUNTED = "not counted"
 SOUNDER = "SHARAD"
 
 
+def counted(number: float, noun: str) -> str:
+    """Write how many of something there are, with the noun made plural to match.
+
+    Args:
+        number: How many there are.
+        noun: What they are, spelled singular and cased as the caller wants it.
+
+    Returns:
+        The count and the noun, such as "2 instruments".
+
+    """
+    return f"{number:,.0f} {noun}" + ("" if number == 1 else "s")
+
+
 def spread(measured: Spread, written: Callable[[float], str]) -> str:
     """Write a measurement read off many tiles, and how far they sit from it.
 

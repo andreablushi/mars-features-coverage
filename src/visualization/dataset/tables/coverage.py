@@ -28,16 +28,13 @@ def reached(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     Returns:
         The table as a widget.
     """
-    rows: list[Row] = []
-    # Every strategy after the first is ruled off from the one above it
-    groups: list[int] = []
-    for stats in read.values():
-        if rows:
-            groups.append(len(rows))
-        rows.extend(
-            _share(stats.strategy, iid, stats.held.reached[iid]) for iid in stats.iids
-        )
-        rows.append(_share(stats.strategy, _OVERLAP, stats.overlap))
+    rows, groups = tables.grouped(
+        read.values(),
+        lambda stats: (
+            [_share(stats.strategy, iid, stats.held.reached[iid]) for iid in stats.iids]
+            + [_share(stats.strategy, _OVERLAP, stats.overlap)]
+        ),
+    )
     return tables.written(
         "How much of a tile each instrument reaches", _REACHED, rows, groups=groups
     )

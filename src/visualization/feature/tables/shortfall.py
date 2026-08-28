@@ -31,11 +31,10 @@ def plot(chosen: TileView | None) -> widgets.Widget:
     """
     if chosen is None:
         return panels.unavailable(picker.NO_TILE)
-    attempt = shortfall.best(chosen)
     return tables.written(
         f"{chosen.name}  -  the most it could bring",
         _HEADINGS,
-        [_row(asked) for asked in attempt.asked],
+        [_row(asked) for asked in shortfall.best(chosen)],
     )
 
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 
 import ipywidgets as widgets
 
@@ -81,7 +81,9 @@ def filling(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     Returns:
         The table as a widget.
     """
-    rows, groups = _grouped(read, _fills)
+    rows, groups = tables.grouped(
+        read.values(), lambda stats: [_fills(stats, iid) for iid in stats.iids]
+    )
     return tables.written("What it takes to fill a tile", _FILLING, rows, groups=groups)
 
 
@@ -94,31 +96,12 @@ def landed(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     Returns:
         The table as a widget.
     """
-    rows, groups = _grouped(read, _lands)
+    rows, groups = tables.grouped(
+        read.values(), lambda stats: [_lands(stats, iid) for iid in stats.iids]
+    )
     return tables.written(
         "What each instrument lands on a tile", _LANDED, rows, groups=groups
     )
-
-
-def _grouped(
-    read: Mapping[str, DatasetStats], write: Callable[[DatasetStats, str], Row]
-) -> tuple[list[Row], list[int]]:
-    """Write every strategy's instrument rows, each strategy ruled off the last.
-
-    Args:
-        read: What each strategy made of the features swept, by strategy name.
-        write: How one instrument's row of one strategy is written.
-
-    Returns:
-        The rows, and the places a rule is drawn above.
-    """
-    rows: list[Row] = []
-    groups: list[int] = []
-    for stats in read.values():
-        if rows:
-            groups.append(len(rows))
-        rows.extend(write(stats, iid) for iid in stats.iids)
-    return rows, groups
 
 
 def _fills(stats: DatasetStats, iid: str) -> Row:

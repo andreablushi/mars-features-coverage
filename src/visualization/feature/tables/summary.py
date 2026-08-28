@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 import ipywidgets as widgets
 
-from sampling.stats import tiles
+from sampling.models.aggregate import Aggregate
+from sampling.stats import aggregate, tiles
 from visualization.common import panels, surveys, tables, wording
 from visualization.common.picker import View
 from visualization.common.tables import Row
-from visualization.feature.stats import whole
-from visualization.feature.stats.whole import FeatureStats
 
 _HEADINGS = ("Statistic", "Value")
 _NOTHING = "No instrument set filled a cell of this feature."
@@ -29,36 +30,37 @@ def plot(view: View) -> widgets.Widget:
     study = surveys.studied(view.coverage, view.strategy)
     if not study.grid.tiles:
         return panels.unavailable(_NOTHING)
-    stats = whole.read(
-        study, tiles.measured(study), view.coverage[0].summary.feature_area_km2
-    )
+    iids = tiles.instruments(study)
     return tables.written(
-        f"{panels.title(view.coverage)}  -  across its tiles", _HEADINGS, _rows(stats)
+        f"{panels.title(view.coverage)}  -  across its tiles",
+        _HEADINGS,
+        _rows(aggregate.over(tiles.measured(study), iids), tiles.holding(study), iids),
     )
 
 
-def _rows(stats: FeatureStats) -> list[Row]:
+def _rows(held: Aggregate, holding: int, iids: Sequence[str]) -> list[Row]:
     """Write out how the feature is tiled and what its tiles hold.
 
     Args:
-        stats: The feature read across them.
+        held: Its tiles read as one.
+        holding: How many tiles hold any of the feature.
+        iids: The instruments reported on, in the order they are drawn.
 
     Returns:
         Every row, the tiling first, then each instrument, then where they meet.
     """
-    held = stats.held
     written: list[Row] = [
-        ("Tiles Holding Feature", f"{stats.tiles:,}"),
+        ("Tiles Holding Feature", f"{holding:,}"),
         ("Tiles Kept", f"{held.kept:,}"),
     ]
-    for iid in stats.iids:
+    for iid in iids:
         written += [
             (f"{iid} Ground Mean Across Tiles", wording.share(held.reached[iid])),
             (f"{iid} Pixel Mean Across Tiles", wording.landed(held.landed[iid])),
         ]
     written += [
         (
-            f"Ground Reached By {counted} Instrument{'' if counted == 1 else 's'}",
+            f"Ground Reached By {wording.counted(counted, 'Instrument')}",
             wording.ground(km2, held.kept_km2),
         )
         for counted, km2 in tiles.shared(held.overlaps).items()

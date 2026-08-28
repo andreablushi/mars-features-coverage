@@ -25,9 +25,6 @@ REFUSED = "#c62828"
 # How wide every stacked figure is drawn.
 FIGURE_WIDTH = 11
 
-# The ramp a heat panel is coloured by.
-COLORMAP = "YlGnBu"
-
 # The strip left clear under a map for the key naming what it draws.
 KEY_HEIGHT = 0.085
 KEY_DROP = 0.015
@@ -111,6 +108,30 @@ def key_beside(figure: Figure, handles: Sequence) -> None:
         loc="upper left",
         bbox_to_anchor=(KEY_SIDE, KEY_TOP),
         frameon=False,
+    )
+
+
+def note(axis: Axes, text: str, colour: str = GREY, size: float = 9) -> None:
+    """Write a line across the middle of a panel that has nothing to draw.
+
+    Args:
+        axis: The panel to write on.
+        text: What the line reads.
+        colour: The colour to write it in, grey unless the panel is a dark map.
+        size: How large to write it.
+
+    Returns:
+        None.
+    """
+    axis.text(
+        0.5,
+        0.5,
+        text,
+        transform=axis.transAxes,
+        ha="center",
+        va="center",
+        fontsize=size,
+        color=colour,
     )
 
 

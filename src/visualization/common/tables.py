@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from html import escape
 
@@ -46,7 +46,11 @@ def written(
         The panel.
     """
     opening = set(groups)
-    body = "".join(_row(cells, at in opening) for at, cells in enumerate(rows))
+    written = (
+        "".join(_cell(cell, at, row in opening) for at, cell in enumerate(cells))
+        for row, cells in enumerate(rows)
+    )
+    body = "".join(f"<tr>{cells}</tr>" for cells in written)
     return widgets.HTML(
         f"""<div style="font-family: sans-serif; font-size: 13px;">
           <div style="font-weight: 600; margin-bottom: 8px;">{escape(title)}</div>
@@ -56,6 +60,27 @@ def written(
           </table>
         </div>"""
     )
+
+
+def grouped[Held](
+    over: Iterable[Held], write: Callable[[Held], Iterable[Row]]
+) -> tuple[list[Row], list[int]]:
+    """Write out several runs of rows, each run ruled off from the one above it.
+
+    Args:
+        over: What each run of rows is written for, in the order they read.
+        write: The rows one of them is written as.
+
+    Returns:
+        Every row, and the places a rule is drawn above.
+    """
+    rows: list[Row] = []
+    groups: list[int] = []
+    for held in over:
+        if rows:
+            groups.append(len(rows))
+        rows.extend(write(held))
+    return rows, groups
 
 
 def _heading(name: str, at: int) -> str:
@@ -72,21 +97,6 @@ def _heading(name: str, at: int) -> str:
     return (
         f'<th style="text-align: {align}; padding: 4px 14px 4px 0;'
         f' border-bottom: 1px solid #c4c4c4; font-weight: 600;">{escape(name)}</th>'
-    )
-
-
-def _row(cells: Row, opening: bool) -> str:
-    """Build one row.
-
-    Args:
-        cells: One cell per column.
-        opening: Whether it opens a group, so a rule is drawn above it.
-
-    Returns:
-        The row.
-    """
-    return (
-        f"<tr>{''.join(_cell(cell, at, opening) for at, cell in enumerate(cells))}</tr>"
     )
 
 

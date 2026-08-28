@@ -51,45 +51,32 @@ class Shortfall:
         return self.whole >= self.asked
 
 
-@dataclass(frozen=True, slots=True)
-class Attempt:
-    """The best one tile could do when the ground its strategy insists on is lifted.
-
-    Attributes:
-        asked: What each instrument is asked and the most it brings, in the order
-            the strategy names its constraints.
-    """
-
-    asked: list[Shortfall]
-
-
-def best(chosen: TileView) -> Attempt:
+def best(chosen: TileView) -> list[Shortfall]:
     """Search one tile again with no ground asked, and read what it came back with.
 
     Args:
         chosen: The tile on show, and the strategy it was really searched under.
 
     Returns:
-        The window it earns when only a look is asked, and what fell short.
+        What each instrument is asked and the most it brings, in the order the
+        strategy names its constraints.
     """
     strategy = chosen.view.strategy
     study = surveys.studied(chosen.view.coverage, relaxing.unfloored(strategy))
     measured = {stats.tile: stats for stats in tiles.measured(study)}
     stats = measured.get(chosen.stats.tile)
     whole = _whole(chosen.track)
-    return Attempt(
-        asked=[
-            Shortfall(
-                iid=iid,
-                asked=share,
-                windowed=_reached(stats, iid),
-                whole=whole.get(iid, 0.0),
-                timeless=iid in strategy.timeless,
-            )
-            for constraint in strategy.constraints
-            for iid, share in constraint.items()
-        ],
-    )
+    return [
+        Shortfall(
+            iid=iid,
+            asked=share,
+            windowed=_reached(stats, iid),
+            whole=whole.get(iid, 0.0),
+            timeless=iid in strategy.timeless,
+        )
+        for constraint in strategy.constraints
+        for iid, share in constraint.items()
+    ]
 
 
 def _whole(track: Track) -> dict[str, float]:

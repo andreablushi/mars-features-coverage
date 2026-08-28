@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
 import numpy as np
@@ -58,19 +56,7 @@ def plot(chosen: TileView | None) -> widgets.Widget:
     """
     if chosen is None:
         return panels.unavailable(NO_TILE)
-    return _draw(landed.read(chosen), f"{chosen.name}  -  pixels per observation")
-
-
-def _draw(drawn: Sequence[Landed], title: str) -> widgets.Widget:
-    """Draw one panel per instrument set, none of them sharing a scale.
-
-    Args:
-        drawn: What each set landed on the tile, look by look.
-        title: The line above the top panel.
-
-    Returns:
-        The figure as a widget.
-    """
+    drawn = landed.read(chosen)
     colours = panels.colours([one.label for one in drawn])
     tall = PANEL_HEIGHT * len(drawn) + TITLE_BAND
     figure, axes = plt.subplots(len(drawn), 1, figsize=(panels.FIGURE_WIDTH, tall))
@@ -82,7 +68,13 @@ def _draw(drawn: Sequence[Landed], title: str) -> widgets.Widget:
     # The strip is measured in inches, so it holds however many panels there are
     above = TITLE_BAND / tall
     figure.tight_layout(rect=(0.0, 0.0, 1.0, 1.0 - above))
-    figure.text(0.01, 1.0 - above / 2.0, title, fontsize=12, va="center")
+    figure.text(
+        0.01,
+        1.0 - above / 2.0,
+        f"{chosen.name}  -  pixels per observation",
+        fontsize=12,
+        va="center",
+    )
     return panels.rendered(figure)
 
 
@@ -102,23 +94,23 @@ def _panel(axis: Axes, one: Landed, colour) -> None:
     top = max(float(counts.max()), one.bar) if counts.size else 0.0
     if top > 0.0:
         tallest = _looks(axis, counts, colour, top)
-        _bar(axis, one.bar)
+        if one.bar > 0.0:
+            axis.axvline(
+                one.bar,
+                color=BAR_COLOUR,
+                linestyle=BAR_STYLE,
+                linewidth=BAR_WIDTH,
+                zorder=3,
+            )
         _reading(axis, one, counts)
         axis.set_xlim(0.0, top * MARGIN)
         axis.set_ylim(0.0, tallest * HEADROOM)
-        axis.xaxis.set_major_formatter(FuncFormatter(_short))
+        axis.xaxis.set_major_formatter(
+            FuncFormatter(lambda counted, _: quantities.compact(counted))
+        )
         axis.yaxis.set_major_locator(MaxNLocator(integer=True, nbins=3))
     else:
-        axis.text(
-            0.5,
-            0.5,
-            _NOTHING,
-            transform=axis.transAxes,
-            ha="center",
-            va="center",
-            fontsize=9,
-            color=panels.GREY,
-        )
+        panels.note(axis, _NOTHING)
         axis.set_xticks([])
     axis.set_ylabel(one.label, rotation=0, ha="right", va="center", fontsize=9)
     axis.tick_params(labelsize=8)
@@ -155,23 +147,6 @@ def _looks(axis: Axes, counts: np.ndarray, colour, top: float) -> int:
     return int(counted.max())
 
 
-def _bar(axis: Axes, asked: float) -> None:
-    """Mark the pixels the strategy asks before a look counts as one at all.
-
-    Args:
-        axis: The panel to draw on.
-        asked: The pixels it asks of this set on this tile.
-
-    Returns:
-        None.
-    """
-    if asked <= 0.0:
-        return
-    axis.axvline(
-        asked, color=BAR_COLOUR, linestyle=BAR_STYLE, linewidth=BAR_WIDTH, zorder=3
-    )
-
-
 def _reading(axis: Axes, one: Landed, counts: np.ndarray) -> None:
     """Say what the panel holds, in the units the instrument counts in.
 
@@ -192,16 +167,3 @@ def _reading(axis: Axes, one: Landed, counts: np.ndarray) -> None:
         color=panels.GREY,
         loc="left",
     )
-
-
-def _short(value: float, _position: int) -> str:
-    """Write one tick of an axis short enough to read.
-
-    Args:
-        value: The count the tick sits at.
-        _position: Where the tick falls, ignored.
-
-    Returns:
-        The count, in thousands and up where it runs long.
-    """
-    return quantities.compact(value)

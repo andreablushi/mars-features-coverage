@@ -12,7 +12,8 @@ from sampling.stats import tiles
 from selector.models.survey import Survey
 from selector.models.track import Track
 from visualization.common import panels, surveys
-from visualization.common.picker import Areas, FeaturePicker, View
+from visualization.common.areas import Areas
+from visualization.common.picker import FeaturePicker, View
 from visualization.common.surveys import Stretch
 
 NO_TILE = "Confirm a feature above and pick one of its tiles to fill this in."

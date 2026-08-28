@@ -1,11 +1,10 @@
-"""The mosaic under a feature, and where its grid falls back onto it."""
+"""Where a feature's grid falls back onto lon and lat, tile by tile."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
 
-import httpx
 import numpy as np
 
 from coverage.geometry.region import FeatureRegion
@@ -14,17 +13,7 @@ from metadata import catalog
 from models.feature import Feature
 from utils.disk.slugify import slugify
 
-# The global mosaic a feature is drawn on, served as WMS by the USGS.
-BASEMAP_URL = "https://planetarymaps.usgs.gov/cgi-bin/mapserv"
-BASEMAP_MAP = "/maps/mars/mars_simp_cyl.map"
-BASEMAP_LAYER = "THEMIS"
-BASEMAP_PIXELS = 900
-BASEMAP_TIMEOUT = 30.0
-BASEMAP_FAILED = "The basemap could not be fetched: {reason}"
-BASEMAP_LOADING = "Fetching the basemap..."
-BASEMAP_CACHE = 32
-
-# The least ground a side of the crop covers, however thin the box is.
+# The least ground a side of a box covers, however thin the block inside it is.
 MIN_SPAN_DEG = 0.5
 
 # How many points an edge is sampled at, since a straight line curves in lon/lat
@@ -51,15 +40,6 @@ class Box:
     north: float
 
     @property
-    def bounds(self) -> tuple[float, float, float, float]:
-        """Return the box as the service and the axes want it.
-
-        Returns:
-            The west, south, east, and north edges.
-        """
-        return self.west, self.south, self.east, self.north
-
-    @property
     def extent(self) -> tuple[float, float, float, float]:
         """Return the box as an image extent.
 
@@ -67,6 +47,15 @@ class Box:
             The west, east, south, and north edges.
         """
         return self.west, self.east, self.south, self.north
+
+    @property
+    def centre_lat(self) -> float:
+        """Return the latitude the box is centred on.
+
+        Returns:
+            The latitude halfway up it, which its longitudes are stretched about.
+        """
+        return (self.south + self.north) / 2.0
 
 
 class Placed:
@@ -120,9 +109,12 @@ class Placed:
         along = np.linspace(left, right, RING_SAMPLES)
         up = np.linspace(bottom, top, RING_SAMPLES)
         flat = np.full(RING_SAMPLES, 0.0)
-        x = np.concatenate([along, flat + right, along[::-1], flat + left])
-        y = np.concatenate([flat + bottom, up, flat + top, up[::-1]])
-        return self.lonlat(x, y)
+        lon, lat = geodesy.laea_inverse(
+            np.concatenate([along, flat + right, along[::-1], flat + left]),
+            np.concatenate([flat + bottom, up, flat + top, up[::-1]]),
+            *self._centre,
+        )
+        return self.around(lon), lat
 
     def tile(self, row: int, column: int) -> tuple[np.ndarray, np.ndarray]:
         """Trace one tile of the feature as a closed lon/lat ring.
@@ -135,19 +127,6 @@ class Placed:
             The ring longitudes and latitudes.
         """
         return self.ring(column * self.wide, row * self.wide, self.wide, self.wide)
-
-    def lonlat(self, x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Turn projected metres back into lon and lat.
-
-        Args:
-            x: The eastings in metres.
-            y: The northings in metres.
-
-        Returns:
-            The longitudes and latitudes in degrees, kept contiguous around the centre.
-        """
-        lon, lat = geodesy.laea_inverse(x, y, *self._centre)
-        return self.around(lon), lat
 
     def around(self, lon: np.ndarray) -> np.ndarray:
         """Bring longitudes onto the same turn as the feature's own.
@@ -167,16 +146,6 @@ class Placed:
             The box, held open to a minimum span so a thin feature still reads.
         """
         return _around(*self.ring(0, 0, self.side, self.side))
-
-    @property
-    def drawable(self) -> bool:
-        """Report whether the grid can be drawn on a plate carree mosaic.
-
-        Returns:
-            False for a feature wrapping the planet, whose grid has no box to crop to.
-        """
-        lon, _ = self.ring(0, 0, self.side, self.side)
-        return bool(lon.max() - lon.min() <= HALF_TURN_DEG)
 
     def tile_box(self, row: int, column: int) -> Box:
         """Return the lon/lat box one tile falls in.
@@ -207,7 +176,9 @@ def placed(feature_class: str, name: str, side: int, across: int) -> Placed | No
     if feature is None:
         return None
     grid = Placed(feature, side, across)
-    return grid if grid.drawable else None
+    # A feature wrapping the planet has no lon/lat box a plate carree crop can cover
+    lon, _ = grid.ring(0, 0, grid.side, grid.side)
+    return grid if lon.max() - lon.min() <= HALF_TURN_DEG else None
 
 
 def _around(lon: np.ndarray, lat: np.ndarray) -> Box:
@@ -245,76 +216,6 @@ def _floored(low: float, high: float, minimum: float) -> tuple[float, float]:
         return low, high
     centre = (low + high) / 2.0
     return centre - minimum / 2.0, centre + minimum / 2.0
-
-
-def _pixels(box: Box) -> tuple[int, int]:
-    """Return the image size to ask for so the crop is not stretched.
-
-    Args:
-        box: The lon/lat box to draw.
-
-    Returns:
-        The width and height in pixels, neither below one.
-    """
-    tall = box.north - box.south
-    wide = (box.east - box.west) * geodesy.longitude_stretch(
-        (box.south + box.north) / 2.0
-    )
-    longest = max(wide, tall)
-    return (
-        max(1, round(BASEMAP_PIXELS * wide / longest)),
-        max(1, round(BASEMAP_PIXELS * tall / longest)),
-    )
-
-
-def crop(box: Box) -> bytes:
-    """Fetch the mosaic over one lon/lat box.
-
-    Args:
-        box: The box to draw.
-
-    Returns:
-        The image as PNG bytes.
-    """
-    return _fetch(box.bounds, _pixels(box))
-
-
-@lru_cache(maxsize=BASEMAP_CACHE)
-def _fetch(window: tuple[float, float, float, float], size: tuple[int, int]) -> bytes:
-    """Fetch one basemap view.
-
-    Args:
-        window: The west, south, east, and north bounds to draw.
-        size: The width and height to draw them at, in pixels.
-
-    Returns:
-        The image as PNG bytes.
-
-    Raises:
-        ValueError: When the service answers with anything but an image.
-    """
-    response = httpx.get(
-        BASEMAP_URL,
-        params={
-            "map": BASEMAP_MAP,
-            "SERVICE": "WMS",
-            "VERSION": "1.1.1",
-            "REQUEST": "GetMap",
-            "LAYERS": BASEMAP_LAYER,
-            "STYLES": "",
-            "SRS": "EPSG:4326",
-            "BBOX": ",".join(f"{bound:.4f}" for bound in window),
-            "WIDTH": size[0],
-            "HEIGHT": size[1],
-            "FORMAT": "image/png",
-        },
-        timeout=BASEMAP_TIMEOUT,
-        follow_redirects=True,
-    )
-    response.raise_for_status()
-    if not response.headers.get("content-type", "").startswith("image/"):
-        raise ValueError(response.text.strip()[:200])
-    return response.content
 
 
 @lru_cache(maxsize=1)
