@@ -15,7 +15,6 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import PercentFormatter
 
 from coverage.results import SetCoverage
-from visualization.common.series import Series
 
 GREY = "#8a8a8a"
 
@@ -49,17 +48,16 @@ SURVEY_ALPHA = 0.18
 Colour = tuple[float, float, float]
 
 
-def colours(drawn: Sequence[Series]) -> dict[str, Colour]:
+def colours(labels: Sequence[str]) -> dict[str, Colour]:
     """Assign a colour to each instrument set.
 
     Args:
-        drawn: What each set observed, in the order to colour them.
+        labels: The name of each set, in the order to colour them.
 
     Returns:
         One colour per instrument set label.
     """
-    wheel = cycle(plt.cm.tab10.colors)
-    return {one.label: colour for one, colour in zip(drawn, wheel, strict=False)}
+    return dict(zip(labels, cycle(plt.cm.tab10.colors), strict=False))
 
 
 def board(size: tuple[float, float]) -> tuple[Figure, Axes]:

@@ -50,7 +50,7 @@ def _draw(drawn: Sequence[Series], title: str, ground: str) -> widgets.Widget:
     Returns:
         The figure as a widget.
     """
-    colours = panels.colours(drawn)
+    colours = panels.colours([one.label for one in drawn])
     figure, (running, bars) = plt.subplots(
         1,
         2,

@@ -81,7 +81,7 @@ def _draw(
     Returns:
         The figure as a widget.
     """
-    colours = panels.colours(drawn)
+    colours = panels.colours([one.label for one in drawn])
     figure, axes = plt.subplots(
         len(drawn),
         1,
