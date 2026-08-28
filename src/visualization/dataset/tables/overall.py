@@ -8,6 +8,7 @@ import ipywidgets as widgets
 
 from sampling.models.catalogue import CatalogueStats
 from sampling.models.dataset import ClassStats, DatasetStats
+from sampling.models.spread import Spread
 from utils.maths import quantities
 from visualization.common import tables, wording
 from visualization.common.tables import Row
@@ -17,13 +18,13 @@ _INSTRUMENTS = (
     "Instrument",
     "Features reached",
     "Observations",
-    "Mean number of observations",
     "Ground reached",
     "Share of the ground",
     "First look",
     "Last look",
 )
 _CLASSES = ("Feature class", "Features measured", "Mean feature size")
+_OBSERVED = "mean number of observations"
 
 
 def _once(km2: float) -> str:
@@ -91,9 +92,6 @@ def instruments(stats: CatalogueStats) -> widgets.Widget:
                 instrument.iid,
                 f"{instrument.features:,}",
                 f"{instrument.observations:,}",
-                wording.spread(
-                    instrument.per_feature, lambda counted: f"{counted:,.0f}"
-                ),
                 _once(instrument.union_km2),
                 _share(instrument.union_km2, stats.union_km2),
                 instrument.first.date().isoformat(),
@@ -113,18 +111,34 @@ def held(stats: CatalogueStats) -> widgets.Widget:
     Returns:
         The table as a widget.
     """
-    return tables.written(
-        "What each feature class holds",
-        _CLASSES,
-        [
+    iids = [instrument.iid for instrument in stats.instruments]
+    rows: list[Row] = []
+    for name, counted in stats.classes.items():
+        taken = stats.class_observations.get(name, {})
+        rows.append(
             (
                 name,
                 f"{counted:,}",
                 wording.spread(stats.class_km2[name], quantities.area),
             )
-            for name, counted in stats.classes.items()
-        ],
-    )
+            + tuple(_observed(taken.get(iid)) for iid in iids)
+        )
+    headings = _CLASSES + tuple(f"{iid}, {_OBSERVED}" for iid in iids)
+    return tables.written("What each feature class holds", headings, rows)
+
+
+def _observed(measured: Spread | None) -> str:
+    """Write how many observations of a feature one instrument took.
+
+    Args:
+        measured: The count, feature by feature, or None where it reached none.
+
+    Returns:
+        The mean and its spread, or nothing at all where it reached none.
+    """
+    if measured is None or not measured.counted:
+        return wording.NOTHING
+    return wording.spread(measured, lambda counted: f"{counted:,.0f}")
 
 
 def selected(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets.Widget:
