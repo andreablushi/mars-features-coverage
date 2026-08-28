@@ -25,6 +25,31 @@ _INSTRUMENTS = (
 _CLASSES = ("Feature class", "Features measured", "Mean feature size")
 
 
+def _once(km2: float) -> str:
+    """Write an amount of ground the features share nothing of.
+
+    Args:
+        km2: The ground, and nought where it could not be measured.
+
+    Returns:
+        The ground, or that it was never measured.
+    """
+    return quantities.area(km2) if km2 else wording.UNCOUNTED
+
+
+def _share(km2: float, of_km2: float) -> str:
+    """Write what share one amount of ground is of another.
+
+    Args:
+        km2: The ground reached.
+        of_km2: The ground there was to reach.
+
+    Returns:
+        The share, or that it was never measured.
+    """
+    return f"{km2 / of_km2:.1%}" if km2 and of_km2 else wording.UNCOUNTED
+
+
 def measured(stats: CatalogueStats) -> widgets.Widget:
     """Tabulate how big the measured dataset is.
 
@@ -43,6 +68,7 @@ def measured(stats: CatalogueStats) -> widgets.Widget:
             ("Features measured", f"{stats.features:,}"),
             ("Feature classes", f"{len(stats.classes):,}"),
             ("Ground, features summed", quantities.area(stats.area_km2)),
+            ("Ground, overlaps removed", _once(stats.union_km2)),
         ],
     )
 
@@ -64,8 +90,8 @@ def instruments(stats: CatalogueStats) -> widgets.Widget:
                 instrument.iid,
                 f"{instrument.features:,}",
                 f"{instrument.observations:,}",
-                quantities.area(instrument.covered_km2),
-                f"{instrument.covered_km2 / stats.area_km2:.1%}",
+                _once(instrument.union_km2),
+                _share(instrument.union_km2, stats.union_km2),
                 instrument.first.date().isoformat(),
                 instrument.last.date().isoformat(),
             )

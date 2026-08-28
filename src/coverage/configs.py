@@ -44,6 +44,11 @@ SHARAD_ALONG_TRACK_M = 460.0
 # median of the 497,279 that do.
 FALLBACK_PIXEL_M = {"MRO/CRISM/TRDR:msp*": 180.0, "MRO/CTX/EDR": 5.4}
 
+# How wide a cell of the grid of Mars is, in kilometres, on which the features
+# are laid over one another so ground two of them share is counted once. It is
+# finer than the smallest grid a feature is measured on.
+OVERLAP_CELL_KM = 3.0
+
 # Straight lon/lat edges curve once projected, so resample below this step
 MAX_SEGMENT_DEG = 0.25
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Sequence
 
+from coverage import overlaps
 from coverage import summary as index
 from coverage.results import Summary
 from metadata.catalog import read_features
@@ -20,6 +21,8 @@ def read() -> CatalogueStats:
     """
     rows = index.catalogued_rows()
     catalogued = read_features()
+    # What the features hold once, since their boxes overlap one another
+    shared = overlaps.read()
     # One row per feature carries the grid, which every set of it shares
     features: dict[tuple[str, str], Summary] = {}
     grouped: dict[str, list[Summary]] = {}
@@ -37,19 +40,28 @@ def read() -> CatalogueStats:
         classes=dict(counted.most_common()),
         class_km2={name: Spread.over(held) for name, held in grounds.items()},
         area_km2=sum(row.feature_area_km2 for row in features.values()),
+        union_km2=shared.ground_km2 if shared else 0.0,
         instruments=sorted(
-            (_instrument(iid, taken) for iid, taken in grouped.items()),
+            (
+                _instrument(
+                    iid, taken, shared.covered_km2.get(iid, 0.0) if shared else 0.0
+                )
+                for iid, taken in grouped.items()
+            ),
             key=lambda instrument: -instrument.observations,
         ),
     )
 
 
-def _instrument(iid: str, taken: Sequence[Summary]) -> InstrumentStats:
+def _instrument(
+    iid: str, taken: Sequence[Summary], union_km2: float
+) -> InstrumentStats:
     """Read what one instrument holds of every feature it reached.
 
     Args:
         iid: The instrument the rows belong to.
         taken: Its rows, one per feature and instrument set it measured.
+        union_km2: The ground it reached counting shared ground once in all.
 
     Returns:
         What it holds.
@@ -59,6 +71,7 @@ def _instrument(iid: str, taken: Sequence[Summary]) -> InstrumentStats:
         features=len({(row.feature_class, row.feature_name) for row in taken}),
         observations=sum(row.n_obs for row in taken),
         covered_km2=sum(row.covered_km2 for row in taken),
+        union_km2=union_km2,
         first=min(row.t_first for row in taken),
         last=max(row.t_last for row in taken),
         reach=[_reach(row) for row in taken],

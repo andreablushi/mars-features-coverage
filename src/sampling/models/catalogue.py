@@ -31,7 +31,10 @@ class InstrumentStats:
         iid: The instrument, such as CTX.
         features: How many features it reached.
         observations: How many observations of them it took.
-        covered_km2: How much of their ground it reached.
+        covered_km2: How much of their ground it reached, counting ground two
+            overlapping features share once per feature.
+        union_km2: The same, counting that shared ground once in all, and nought
+            where the observations it was read from are not on disk.
         first: When the earliest of its observations was taken.
         last: When the latest of them was taken.
         reach: What it reached of each feature it reached, one entry each.
@@ -41,6 +44,7 @@ class InstrumentStats:
     features: int
     observations: int
     covered_km2: float
+    union_km2: float
     first: datetime
     last: datetime
     reach: list[Reach]
@@ -57,7 +61,10 @@ class CatalogueStats:
         classes: How many features each class holds, most features first.
         class_km2: How much ground a feature of each class holds, feature by
             feature, by class.
-        area_km2: How much ground their bounding boxes cover between them.
+        area_km2: How much ground their bounding boxes cover between them,
+            counting ground two overlapping features share once per feature.
+        union_km2: The same, counting that shared ground once in all, and nought
+            where it could not be measured.
         instruments: What each instrument holds, most observations first.
     """
 
@@ -67,4 +74,5 @@ class CatalogueStats:
     classes: dict[str, int]
     class_km2: dict[str, Spread]
     area_km2: float
+    union_km2: float
     instruments: list[InstrumentStats]
