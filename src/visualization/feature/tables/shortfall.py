@@ -5,7 +5,7 @@ from __future__ import annotations
 import ipywidgets as widgets
 
 from visualization.common import panels, tables
-from visualization.common.tables import Mark, Row
+from visualization.common.tables import Row
 from visualization.feature import picker
 from visualization.feature.picker import TileView
 from visualization.feature.stats import shortfall
@@ -45,25 +45,12 @@ def _row(asked: Shortfall) -> Row:
         asked: What it is asked, and what it reaches in the window and in all.
 
     Returns:
-        The row, with a share short of what was asked marked out.
+        The row, the share asked beside the shares reached so a shortfall reads off it.
     """
     named = f"{asked.iid} ({_WHOLE_RECORD})" if asked.timeless else asked.iid
     return (
         named,
         f"{asked.asked:.0%}",
-        _marked(asked.windowed, asked.met),
-        _marked(asked.whole, asked.reachable),
+        f"{asked.windowed:.0%}",
+        f"{asked.whole:.0%}",
     )
-
-
-def _marked(reached: float, met: bool) -> Mark:
-    """Write one share, coloured by whether it brings what was asked.
-
-    Args:
-        reached: The share of the tile reached.
-        met: Whether that is enough.
-
-    Returns:
-        The cell.
-    """
-    return Mark(f"{reached:.0%}", panels.KEPT if met else panels.REFUSED)

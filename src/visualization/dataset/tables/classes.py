@@ -142,20 +142,16 @@ def _per_instrument(
     iids = list(
         dict.fromkeys(iid for predicted in read.values() for iid in predicted.iids)
     )
-    rows, groups = tables.grouped(
-        stats.classes,
-        lambda name: [
-            (name, iid)
-            + tuple(
-                _measured(predicted.classes.get(name), iid, pick, write)
-                for predicted in read.values()
-            )
-            for iid in iids
-        ],
-    )
-    return tables.written(
-        title, ("Feature class", "Instrument") + tuple(read), rows, groups=groups
-    )
+    rows = [
+        (name, iid)
+        + tuple(
+            _measured(predicted.classes.get(name), iid, pick, write)
+            for predicted in read.values()
+        )
+        for name in stats.classes
+        for iid in iids
+    ]
+    return tables.written(title, ("Feature class", "Instrument") + tuple(read), rows)
 
 
 def _measured(

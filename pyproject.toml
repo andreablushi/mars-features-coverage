@@ -39,6 +39,7 @@ notebook = [
     "ipywidgets>=8.1.5",
     "jupyterlab>=4.3.0",
     "matplotlib>=3.10.0",
+    "pandas>=2.2",
 ]
 digitalhub = [
     "digitalhub>=0.15,<0.16",

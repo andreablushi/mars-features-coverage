@@ -81,10 +81,8 @@ def filling(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     Returns:
         The table as a widget.
     """
-    rows, groups = tables.grouped(
-        read.values(), lambda stats: [_fills(stats, iid) for iid in stats.iids]
-    )
-    return tables.written("What it takes to fill a tile", _FILLING, rows, groups=groups)
+    rows = [_fills(stats, iid) for stats in read.values() for iid in stats.iids]
+    return tables.written("What it takes to fill a tile", _FILLING, rows)
 
 
 def landed(read: Mapping[str, DatasetStats]) -> widgets.Widget:
@@ -96,12 +94,8 @@ def landed(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     Returns:
         The table as a widget.
     """
-    rows, groups = tables.grouped(
-        read.values(), lambda stats: [_lands(stats, iid) for iid in stats.iids]
-    )
-    return tables.written(
-        "What each instrument lands on a tile", _LANDED, rows, groups=groups
-    )
+    rows = [_lands(stats, iid) for stats in read.values() for iid in stats.iids]
+    return tables.written("What each instrument lands on a tile", _LANDED, rows)
 
 
 def _fills(stats: DatasetStats, iid: str) -> Row:

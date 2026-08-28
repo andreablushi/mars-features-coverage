@@ -32,24 +32,6 @@ class Shortfall:
     whole: float
     timeless: bool
 
-    @property
-    def met(self) -> bool:
-        """Report whether the best window brings what the instrument is asked.
-
-        Returns:
-            True when it reaches its share there.
-        """
-        return self.windowed >= self.asked
-
-    @property
-    def reachable(self) -> bool:
-        """Report whether the tile could ever bring what the instrument is asked.
-
-        Returns:
-            True when the whole record reaches its share, whatever a window holds.
-        """
-        return self.whole >= self.asked
-
 
 def best(chosen: TileView) -> list[Shortfall]:
     """Search one tile again with no ground asked, and read what it came back with.

@@ -105,16 +105,12 @@ those.
 
 ## Notebooks
 
-```bash
-uv run --group notebook jupyter lab
-```
-
-`notebooks/coverage.ipynb` is the qualitative one. It reads one feature at a
+`notebooks/qualitative.ipynb` reads one feature at a
 time, whole and then tile by tile. Pick a feature, confirm, and the cells below
 fill themselves in. An instrument that reached none of the feature is still
 drawn, at zero, so a missing line always means something.
 
-`notebooks/strategies.ipynb` is the quantitative one. It puts every strategy
+`notebooks/quantitative.ipynb` puts every strategy
 side by side, over every tile of every measured feature rather than a sample of
 them. The sweep costs minutes, so it reads back what the prediction pipeline
 published, and sweeps on the spot only a strategy nothing was published for.
