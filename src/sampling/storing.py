@@ -106,7 +106,7 @@ def loaded(
     since renamed or deleted names no strategy, so it is never opened. A file
     written before the stats took the shape they have now holds no reading of
     them either, whether it is missing something or holds it in an older shape,
-    so it is passed over and the strategy is swept again.
+    so it is passed over, named on the way past, and the strategy is swept again.
 
     Args:
         root: The directory the files were written in.
@@ -123,7 +123,11 @@ def loaded(
         try:
             found[name] = (saved["digest"], _stats(saved))
         except (KeyError, TypeError, ValueError):
-            continue
+            # Saying so, since the alternative is a silent sweep of many minutes
+            print(
+                f"{path.name} was written in an older shape and cannot be read "
+                f"back, so `{name}` is swept again"
+            )
     return found
 
 
