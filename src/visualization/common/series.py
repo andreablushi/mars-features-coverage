@@ -20,7 +20,6 @@ class Series:
         iid: The instrument it belongs to, which is what a strategy names.
         times: When each of its observations started, oldest first.
         shares: How much of the ground each of them covered on its own.
-        pixels: How many of its pixels each of them landed on that ground.
         running: How much of the ground it had reached by then, revisits counted once.
         covered: The share it ends on.
         first: The earliest moment it is drawn from.
@@ -32,7 +31,6 @@ class Series:
     iid: str
     times: list[datetime]
     shares: list[float]
-    pixels: list[float]
     running: list[float]
     covered: float
     first: datetime
@@ -69,7 +67,6 @@ def over_feature(coverage: Sequence[SetCoverage]) -> list[Series]:
             shares=[
                 observation.own_km2 / area_km2 for observation in instrument.events
             ],
-            pixels=[observation.pixels for observation in instrument.events],
             running=[observation.cum_frac for observation in instrument.events],
             covered=instrument.summary.covered_frac,
             first=first,
@@ -127,27 +124,9 @@ def _tile_series(
             ground.share(len(track.cells[index]), track.cell_km2, track.area_km2)
             for index in held
         ],
-        pixels=[_landed(track, index) for index in held],
         running=running,
         covered=running[-1] if running else 0.0,
         first=first,
         last=last,
         reason="" if held else "nothing on this tile",
     )
-
-
-def _landed(track: Track, index: int) -> float:
-    """Read how many pixels one observation landed inside the tile.
-
-    Args:
-        track: The tile's admissible observations on one time axis.
-        index: Where the observation sits on that axis.
-
-    Returns:
-        Its pixels, scaled to the part of its footprint the tile holds.
-    """
-    observation = track.observations[index]
-    if not observation.own_km2:
-        return 0.0
-    held_km2 = len(track.cells[index]) * track.cell_km2
-    return observation.pixels * held_km2 / observation.own_km2
