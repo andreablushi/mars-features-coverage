@@ -16,9 +16,8 @@ import console
 import utils.disk.paths as paths
 import utils.disk.settings as settings
 from coverage import summary
-from sampling import storing, sweeping
+from sampling import predicting, storing, sweeping
 from sampling.models.dataset import DatasetStats
-from sampling.stats import dataset
 from selector import strategies
 
 FUNCTION_NAME = "features-prediction"
@@ -58,7 +57,7 @@ def save_predictions(project):
             project.get_artifact(PREDICTIONS_NAME).download(overwrite=True),
             paths.PREDICTIONS_ROOT,
         )
-        held = sweeping.unchanged(storing.loaded())
+        held = sweeping.still_current(storing.read_predictions())
         print(f"kept from it: {', '.join(held) or 'nothing'}", flush=True)
     else:
         print("nothing was published before, sweeping every strategy", flush=True)
@@ -73,13 +72,13 @@ def save_predictions(project):
             flush=True,
         )
         swept = sweeping.sweep(missing, named, workers, console.logged("sweep"))
-        held.update(dataset.read(swept))
+        held.update(predicting.predictions(swept))
     else:
         print(
             "every strategy is published as it is written, nothing to sweep", flush=True
         )
 
-    storing.written(held, {name: strategies.digest(name) for name in held})
+    storing.write_predictions(held, {name: strategies.digest(name) for name in held})
     # A strategy deleted since it was published leaves its file behind to clear
     for path in sorted(paths.PREDICTIONS_ROOT.glob("*.json")):
         if path.stem not in held:

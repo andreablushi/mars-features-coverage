@@ -6,7 +6,7 @@ import ipywidgets as widgets
 from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
 
-from sampling.stats import tiles
+from sampling import measuring
 from visualization.common import panels
 from visualization.feature import picker
 from visualization.feature.picker import TileView
@@ -97,7 +97,7 @@ def _traces(axis: Axes, grid: Placed, chosen: TileView) -> dict[str, panels.Colo
     shapes = outlines.read(chosen.view.coverage)
     colours = panels.colours(track.labels)
     drawn: dict[str, panels.Colour] = {}
-    for index in tiles.held(chosen.survey):
+    for index in measuring.kept_observations(chosen.survey):
         shape = shapes.get(track.observations[index].pdsid)
         if shape is None:
             continue

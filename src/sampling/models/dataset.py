@@ -4,8 +4,25 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from sampling.models.aggregate import Aggregate
 from sampling.models.spread import Spread
+from sampling.models.tiles import Aggregate, TileStats
+
+
+@dataclass(frozen=True, slots=True)
+class SearchedFeature:
+    """What searching every tile of one feature under one strategy left.
+
+    Attributes:
+        strategy: The strategy it was searched under.
+        feature_class: The class the catalogue files the feature under.
+        iids: The instruments it holds, in the order they are drawn.
+        tiles: The tiles the search ran over, as it left them.
+    """
+
+    strategy: str
+    feature_class: str
+    iids: list[str]
+    tiles: list[TileStats]
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,7 +57,7 @@ class DatasetStats:
         strategy: The strategy the features were searched under.
         features: How many features were searched.
         classes: What it made of each feature class, by class.
-        held: Every tile of every feature, read as one.
+        tiles: Every tile of every feature, read as one.
         widths: How wide a tile is, as the side of a square holding the feature
             ground it covers, in kilometres, over the tiles searched.
         offered: How many observations each instrument landed on a tile searched.
@@ -51,7 +68,7 @@ class DatasetStats:
     strategy: str
     features: int
     classes: dict[str, ClassStats]
-    held: Aggregate
+    tiles: Aggregate
     widths: Spread
     offered: dict[str, Spread]
     overlap: Spread

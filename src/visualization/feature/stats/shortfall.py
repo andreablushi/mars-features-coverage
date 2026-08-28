@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from sampling import measuring
 from sampling.models.tiles import TileStats
-from sampling.stats import tiles
 from selector import relaxing
 from selector.models.counter import Counter
 from selector.models.track import Track
@@ -45,7 +45,7 @@ def best(chosen: TileView) -> list[Shortfall]:
     """
     strategy = chosen.view.strategy
     study = surveys.studied(chosen.view.coverage, relaxing.unfloored(strategy))
-    measured = {stats.tile: stats for stats in tiles.measured(study)}
+    measured = {stats.tile: stats for stats in measuring.measured_tiles(study)}
     stats = measured.get(chosen.stats.tile)
     whole = _whole(chosen.track)
     return [

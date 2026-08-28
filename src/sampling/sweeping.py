@@ -14,19 +14,19 @@ from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 
 from coverage import summary
-from sampling import searching, storing
-from sampling.models.dataset import DatasetStats
-from sampling.models.searched import Searched
-from sampling.stats import dataset, tiles
+from sampling import configs, measuring, predicting, searching, storing
+from sampling.models.dataset import DatasetStats, SearchedFeature
 from selector import strategies
 
-Named = tuple[str, str]
+FeatureName = tuple[str, str]
 Progress = Callable[[int, int], None]
 
-_held: dict[str, DatasetStats] = {}
+_predicted: dict[str, DatasetStats] = {}
 
 
-def read(workers: int = 8, progress: Progress | None = None) -> dict[str, DatasetStats]:
+def read_predictions(
+    workers: int = configs.DEFAULT_WORKERS, progress: Progress | None = None
+) -> dict[str, DatasetStats]:
     """Return what every strategy written would make of the dataset.
 
     Args:
@@ -36,17 +36,17 @@ def read(workers: int = 8, progress: Progress | None = None) -> dict[str, Datase
     Returns:
         The stats each strategy leaves, by name, in the order they are written.
     """
-    missing = [name for name in strategies.STRATEGIES if name not in _held]
+    missing = [name for name in strategies.STRATEGIES if name not in _predicted]
     if missing:
-        _held.update(unchanged(storing.loaded()))
-        missing = [name for name in missing if name not in _held]
+        _predicted.update(still_current(storing.read_predictions()))
+        missing = [name for name in missing if name not in _predicted]
     if missing:
-        found = sweep(missing, summary.catalogued_features(), workers, progress)
-        _held.update(dataset.read(found))
-    return {name: _held[name] for name in strategies.STRATEGIES}
+        swept = sweep(missing, summary.catalogued_features(), workers, progress)
+        _predicted.update(predicting.predictions(swept))
+    return {name: _predicted[name] for name in strategies.STRATEGIES}
 
 
-def unchanged(
+def still_current(
     published: Mapping[str, tuple[str, DatasetStats]],
 ) -> dict[str, DatasetStats]:
     """Keep the strategies still written as they were when they were published.
@@ -66,11 +66,11 @@ def unchanged(
 
 
 def sweep(
-    under: Sequence[str],
-    wanted: Sequence[Named],
-    workers: int = 8,
+    strategy_names: Sequence[str],
+    features: Sequence[FeatureName],
+    workers: int = configs.DEFAULT_WORKERS,
     progress: Progress | None = None,
-) -> list[Searched]:
+) -> list[SearchedFeature]:
     """Search every tile of every named feature under every strategy named.
 
     A search costs far more than the observations a feature holds, and the busiest
@@ -78,50 +78,57 @@ def sweep(
     would run on alone for hours after the rest of the pool had drained.
 
     Args:
-        under: The strategies to search under, by name.
-        wanted: The features to search, as class and name.
+        strategy_names: The strategies to search under, by name.
+        features: The features to search, as class and name.
         workers: How many processes to search on at once.
         progress: Called with how many features are done and how many there are.
 
     Returns:
         One entry per feature and strategy, in the order the features came in.
     """
-    found: list[list[Searched]] = [[] for _ in wanted]
-    search = partial(_searched, under=tuple(under))
-    counted = summary.catalogued_observations()
-    order = sorted(range(len(wanted)), key=lambda place: -counted.get(wanted[place], 0))
+    searched: list[list[SearchedFeature]] = [[] for _ in features]
+    observations = summary.catalogued_observations()
+    busiest_first = sorted(
+        range(len(features)), key=lambda at: -observations.get(features[at], 0)
+    )
     with ProcessPoolExecutor(max_workers=workers) as pool:
-        searched = pool.map(search, [wanted[place] for place in order], chunksize=1)
-        for done, (place, entry) in enumerate(zip(order, searched, strict=True), 1):
-            found[place] = entry
+        found = pool.map(
+            partial(_search_feature, strategy_names=tuple(strategy_names)),
+            [features[at] for at in busiest_first],
+            chunksize=1,
+        )
+        for done, (at, entry) in enumerate(zip(busiest_first, found, strict=True), 1):
+            searched[at] = entry
             if progress is not None:
-                progress(done, len(wanted))
-    return [entry for held in found for entry in held]
+                progress(done, len(features))
+    return [entry for feature in searched for entry in feature]
 
 
-def _searched(named: Named, under: Sequence[str]) -> list[Searched]:
+def _search_feature(
+    feature: FeatureName, strategy_names: Sequence[str]
+) -> list[SearchedFeature]:
     """Search every tile of one feature under every strategy named.
 
     Args:
-        named: The feature's class and name.
-        under: The strategies to search under, by name.
+        feature: The feature's class and name.
+        strategy_names: The strategies to search under, by name.
 
     Returns:
         One entry per strategy, and nothing where the feature has no set on disk.
     """
-    feature_class, name = named
+    feature_class, name = feature
     coverage = summary.load_feature(feature_class, name)
     if not coverage:
         return []
-    found: list[Searched] = []
-    for chosen in under:
-        study = searching.study(coverage, strategies.named(chosen))
-        found.append(
-            Searched(
-                strategy=chosen,
+    searched: list[SearchedFeature] = []
+    for strategy_name in strategy_names:
+        study = searching.study_feature(coverage, strategies.named(strategy_name))
+        searched.append(
+            SearchedFeature(
+                strategy=strategy_name,
                 feature_class=feature_class,
-                iids=tiles.instruments(study),
-                measured=tiles.measured(study),
+                iids=measuring.instruments_searched(study),
+                tiles=measuring.measured_tiles(study),
             )
         )
-    return found
+    return searched

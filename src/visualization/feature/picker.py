@@ -7,8 +7,8 @@ from dataclasses import dataclass
 import ipywidgets as widgets
 from IPython.display import display
 
+from sampling import measuring
 from sampling.models.tiles import TileStats
-from sampling.stats import tiles
 from selector.models.survey import Survey
 from selector.models.track import Track
 from visualization.common import panels, surveys
@@ -165,7 +165,7 @@ def _tiles(view: View) -> list[TileView]:
             across=study.grid.across,
         )
         for track, picked, stats in zip(
-            study.tracks, study.surveys, tiles.measured(study), strict=True
+            study.tracks, study.surveys, measuring.measured_tiles(study), strict=True
         )
     ]
 

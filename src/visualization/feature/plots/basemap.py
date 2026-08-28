@@ -11,8 +11,8 @@ from matplotlib.collections import LineCollection, PolyCollection
 from matplotlib.colors import to_rgba
 from matplotlib.patches import Patch
 
+from sampling import measuring
 from sampling.models.study import Study
-from sampling.stats import tiles
 from utils.maths import quantities
 from visualization.common import panels, surveys
 from visualization.common.picker import View
@@ -141,7 +141,7 @@ def _tiles(axis: Axes, grid: Placed, study: Study) -> None:
     Returns:
         None.
     """
-    found = {stats.tile: stats.kept for stats in tiles.measured(study)}
+    found = {stats.tile: stats.kept for stats in measuring.measured_tiles(study)}
     rings: dict[bool, list[np.ndarray]] = {True: [], False: []}
     for at, patch in enumerate(study.grid.tiles):
         if not patch.area_km2:

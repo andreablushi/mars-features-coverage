@@ -12,8 +12,12 @@ from selector.models.strategy import Strategy
 from selector.models.tiles import Grid
 from selector.utils import constraints, tiling
 
+_NOTHING_MEASURED = Grid(
+    tiles=[], across=0, owners=[], places=[], cell_km2=0.0, inside=frozenset()
+)
 
-def study(coverage: Sequence[SetCoverage], strategy: Strategy) -> Study:
+
+def study_feature(coverage: Sequence[SetCoverage], strategy: Strategy) -> Study:
     """Search every tile of a feature under one strategy.
 
     Args:
@@ -25,24 +29,9 @@ def study(coverage: Sequence[SetCoverage], strategy: Strategy) -> Study:
     """
     summary = coverage[0].summary
     if not summary.mask_cells:
-        return Study(
-            strategy,
-            Grid(
-                tiles=[],
-                across=0,
-                owners=[],
-                places=[],
-                cell_km2=0.0,
-                inside=frozenset(),
-            ),
-            [],
-            [],
-        )
+        return Study(strategy, _NOTHING_MEASURED, [], [])
     grid = tiling.split(
-        summary.grid_side,
-        strategy.tile_km,
-        summary.cell_km2,
-        summary.grid_mask,
+        summary.grid_side, strategy.tile_km, summary.cell_km2, summary.grid_mask
     )
     # The one place the strategy is read, which everything below takes it from
     settled = constraints.read(strategy, coverage, grid)

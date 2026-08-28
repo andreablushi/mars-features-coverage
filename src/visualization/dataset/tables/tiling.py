@@ -111,7 +111,7 @@ def _fills(stats: DatasetStats, iid: str) -> Row:
     Returns:
         The row, reading nothing at all where no pixel size is known.
     """
-    measured = stats.held.pixel_km2.get(iid)
+    measured = stats.tiles.pixel_km2.get(iid)
     # The median, since a handful of records publish a pixel orders out from the rest
     ground = measured.middle if measured and measured.counted else 0.0
     if not ground:
@@ -151,8 +151,8 @@ def _lands(stats: DatasetStats, iid: str) -> Row:
         stats.strategy,
         iid,
         wording.spread(stats.offered[iid], lambda offered: f"{offered:,.1f}"),
-        counted(stats.held.landed.get(iid)),
-        counted(stats.held.per_look.get(iid)),
+        counted(stats.tiles.landed.get(iid)),
+        counted(stats.tiles.pixels_per_look.get(iid)),
         f"{asked:,.0f}" if asked else wording.NOTHING,
     )
 

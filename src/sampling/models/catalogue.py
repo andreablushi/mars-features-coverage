@@ -9,7 +9,7 @@ from sampling.models.spread import Spread
 
 
 @dataclass(frozen=True, slots=True)
-class Reach:
+class FeatureReach:
     """What one instrument reached of one feature.
 
     Attributes:
@@ -49,7 +49,7 @@ class InstrumentStats:
     union_km2: float
     first: datetime
     last: datetime
-    reach: list[Reach]
+    reach: list[FeatureReach]
 
 
 @dataclass(frozen=True, slots=True)

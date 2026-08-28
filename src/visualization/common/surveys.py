@@ -37,7 +37,7 @@ def studied(coverage: Sequence[SetCoverage], strategy: Strategy) -> Study:
     if key not in _found:
         if len(_found) >= STUDY_CACHE:
             _found.clear()
-        _found[key] = searching.study(coverage, strategy)
+        _found[key] = searching.study_feature(coverage, strategy)
     return _found[key]
 
 

@@ -31,7 +31,10 @@ def reached(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     rows, groups = tables.grouped(
         read.values(),
         lambda stats: (
-            [_share(stats.strategy, iid, stats.held.reached[iid]) for iid in stats.iids]
+            [
+                _share(stats.strategy, iid, stats.tiles.reached[iid])
+                for iid in stats.iids
+            ]
             + [_share(stats.strategy, _OVERLAP, stats.overlap)]
         ),
     )
@@ -51,13 +54,13 @@ def windows(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     """
     rows: list[Row] = []
     for stats in read.values():
-        days = stats.held.days
+        days = stats.tiles.days
         rows.append(
             (
                 stats.strategy,
                 wording.spread(days, quantities.duration),
                 quantities.duration(days.high) if days.counted else wording.NOTHING,
-                wording.spread(stats.held.geo_mean, _percent),
+                wording.spread(stats.tiles.geo_mean, _percent),
             )
         )
     return tables.written("How long a window runs", _WINDOWS, rows)

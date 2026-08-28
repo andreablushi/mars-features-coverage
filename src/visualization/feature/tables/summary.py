@@ -6,8 +6,8 @@ from collections.abc import Sequence
 
 import ipywidgets as widgets
 
-from sampling.models.aggregate import Aggregate
-from sampling.stats import aggregate, tiles
+from sampling import aggregating, measuring
+from sampling.models.tiles import Aggregate
 from visualization.common import panels, surveys, tables, wording
 from visualization.common.picker import View
 from visualization.common.tables import Row
@@ -30,11 +30,15 @@ def plot(view: View) -> widgets.Widget:
     study = surveys.studied(view.coverage, view.strategy)
     if not study.grid.tiles:
         return panels.unavailable(_NOTHING)
-    iids = tiles.instruments(study)
+    iids = measuring.instruments_searched(study)
     return tables.written(
         f"{panels.title(view.coverage)}  -  across its tiles",
         _HEADINGS,
-        _rows(aggregate.over(tiles.measured(study), iids), tiles.holding(study), iids),
+        _rows(
+            aggregating.aggregate_tiles(measuring.measured_tiles(study), iids),
+            measuring.tiles_holding_feature(study),
+            iids,
+        ),
     )
 
 
@@ -63,6 +67,6 @@ def _rows(held: Aggregate, holding: int, iids: Sequence[str]) -> list[Row]:
             f"Ground Reached By {wording.counted(counted, 'Instrument')}",
             wording.ground(km2, held.kept_km2),
         )
-        for counted, km2 in tiles.shared(held.overlaps).items()
+        for counted, km2 in measuring.ground_by_instrument_count(held.overlaps).items()
     ]
     return written

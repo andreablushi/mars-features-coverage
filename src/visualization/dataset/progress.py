@@ -108,7 +108,7 @@ def read(workers: int = 8) -> dict[str, DatasetStats]:
             shown = _Bar.opened(total)
         shown.moved(done, total)
 
-    found = sweeping.read(workers, moved)
+    found = sweeping.read_predictions(workers, moved)
     if shown is not None:
         shown.closed()
     return found

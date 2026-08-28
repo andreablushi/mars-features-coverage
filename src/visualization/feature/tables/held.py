@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import ipywidgets as widgets
 
+from sampling import measuring
 from sampling.models.tiles import TileStats
-from sampling.stats import tiles
 from utils.maths import quantities
 from visualization.common import panels, tables, wording
 from visualization.common.tables import Row
@@ -63,7 +63,7 @@ def _rows(stats: TileStats) -> list[Row]:
             f"Ground reached by {wording.counted(shared, 'instrument')}",
             wording.ground(km2, stats.area_km2),
         )
-        for shared, km2 in tiles.shared(stats.overlaps).items()
+        for shared, km2 in measuring.ground_by_instrument_count(stats.overlaps).items()
     ]
     return written
 
@@ -97,7 +97,7 @@ def _reach(stats: TileStats, iid: str) -> str:
     """
     reach = stats.reached[iid]
     share = f"{reach.km2 / stats.area_km2:.0%}" if stats.area_km2 else wording.NOTHING
-    taken = wording.counted(reach.taken, "observation")
+    taken = wording.counted(reach.observations_taken, "observation")
     return f"{share}, {wording.pixels(reach.pixels)}, from {taken}"
 
 
