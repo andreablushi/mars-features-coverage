@@ -142,7 +142,7 @@ def selected(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets
 
 
 def covered(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets.Widget:
-    """Tabulate how much of a feature of each class each strategy would hold.
+    """Tabulate how much of a feature of each class each instrument would reach.
 
     Args:
         stats: What the catalogue index holds.
@@ -151,12 +151,44 @@ def covered(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets.
     Returns:
         The table as a widget.
     """
-    return _per_class(
-        "How much of a selected feature each strategy would hold, by class",
-        stats,
-        read,
-        lambda made: wording.spread(made.covered, lambda share: f"{share:.1%}"),
+    iids = list(
+        dict.fromkeys(iid for predicted in read.values() for iid in predicted.iids)
     )
+    rows: list[Row] = []
+    # Every feature class after the first is ruled off from the one above it
+    groups: list[int] = []
+    for name in stats.classes:
+        if rows:
+            groups.append(len(rows))
+        for iid in iids:
+            rows.append(
+                (name, iid)
+                + tuple(
+                    _reach(predicted.classes.get(name), iid)
+                    for predicted in read.values()
+                )
+            )
+    return tables.written(
+        "How much of a selected feature each instrument would reach, by class",
+        ("Feature class", "Instrument") + tuple(read),
+        rows,
+        groups=groups,
+    )
+
+
+def _reach(made: ClassStats | None, iid: str) -> str:
+    """Write what one instrument reaches of a feature of one class.
+
+    Args:
+        made: What the strategy made of the class, or None where it took none.
+        iid: The instrument to write.
+
+    Returns:
+        The share, or nothing at all where the strategy selected none of it.
+    """
+    if made is None or iid not in made.covered:
+        return wording.NOTHING
+    return wording.spread(made.covered[iid], lambda share: f"{share:.1%}")
 
 
 def lasting(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets.Widget:

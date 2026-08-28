@@ -46,7 +46,10 @@ def written(
                     "classes": {
                         name: [
                             held.selected,
-                            _spread(held.covered),
+                            {
+                                iid: _spread(measured)
+                                for iid, measured in held.covered.items()
+                            },
                             _spread(held.days),
                         ]
                         for name, held in stats.classes.items()
@@ -150,7 +153,11 @@ def _stats(saved: Mapping[str, Any]) -> DatasetStats:
         strategy=saved["strategy"],
         features=saved["features"],
         classes={
-            name: ClassStats(int(selected), _read(covered), _read(days))
+            name: ClassStats(
+                int(selected),
+                {iid: _read(measured) for iid, measured in covered.items()},
+                _read(days),
+            )
             for name, (selected, covered, days) in saved["classes"].items()
         },
         held=Aggregate(

@@ -14,15 +14,16 @@ class ClassStats:
 
     Attributes:
         selected: How many features of the class earned a window on any tile.
-        covered: The share of a selected feature the dataset would hold, as the
-            mean over its tiles of the ground any instrument reaches on one, so
-            a tile that earned no window counts as nothing. Read feature by
-            feature, so the spread is how much the features of the class differ.
+        covered: The share of a selected feature each instrument would reach, by
+            instrument, as the mean over the feature's tiles of the ground it
+            reaches on one, so a tile that earned no window counts as nothing.
+            Read feature by feature, so the spread is how much the features of
+            the class differ.
         days: How long a window runs on a kept tile, feature by feature.
     """
 
     selected: int
-    covered: Spread
+    covered: dict[str, Spread]
     days: Spread
 
 

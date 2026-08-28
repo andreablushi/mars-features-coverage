@@ -43,7 +43,7 @@ def read(found: Sequence[Searched]) -> dict[str, DatasetStats]:
         read_back[strategy] = DatasetStats(
             strategy=strategy,
             features=len(held),
-            classes=_classes(held),
+            classes=_classes(held, iids),
             held=aggregate.over(measured, iids),
             widths=Spread.over([math.sqrt(tile.area_km2) for tile in measured]),
             offered={
@@ -56,7 +56,7 @@ def read(found: Sequence[Searched]) -> dict[str, DatasetStats]:
     return read_back
 
 
-def _classes(held: Sequence[Searched]) -> dict[str, ClassStats]:
+def _classes(held: Sequence[Searched], iids: Sequence[str]) -> dict[str, ClassStats]:
     """Read what a strategy made of the features of each class.
 
     Only the features it selected are averaged, since a feature it refused
@@ -64,30 +64,50 @@ def _classes(held: Sequence[Searched]) -> dict[str, ClassStats]:
 
     Args:
         held: What the sweep left of every feature searched under it.
+        iids: The instruments to report on, in the order to report them.
 
     Returns:
         What it made of each class, by feature class, in the order swept.
     """
-    covered: dict[str, list[float]] = {}
+    covered: dict[str, dict[str, list[float]]] = {}
     days: dict[str, list[float]] = {}
     for searched in held:
         sound = [tile for tile in searched.measured if _sound(tile) and tile.area_km2]
-        kept = [tile for tile in sound if tile.kept]
-        if not kept:
+        if not any(tile.kept for tile in sound):
             continue
-        reached = [sum(tile.overlaps.values()) / tile.area_km2 for tile in sound]
-        covered.setdefault(searched.feature_class, []).append(statistics.fmean(reached))
+        reached = covered.setdefault(searched.feature_class, {iid: [] for iid in iids})
+        for iid in iids:
+            reached[iid].append(statistics.fmean(_shares(sound, iid)))
         days.setdefault(searched.feature_class, []).append(
-            statistics.fmean(tile.days for tile in kept)
+            statistics.fmean(tile.days for tile in sound if tile.kept)
         )
     return {
         name: ClassStats(
-            selected=len(shares),
-            covered=Spread.over(shares),
+            selected=len(days[name]),
+            covered={iid: Spread.over(shares) for iid, shares in reached.items()},
             days=Spread.over(days[name]),
         )
-        for name, shares in covered.items()
+        for name, reached in covered.items()
     }
+
+
+def _shares(sound: Sequence[TileStats], iid: str) -> list[float]:
+    """Read the share of each tile of one feature one instrument reaches.
+
+    Args:
+        sound: The tiles of the feature the search ran over, each holding ground.
+        iid: The instrument to read.
+
+    Returns:
+        The share it reaches on each tile, nought where the tile earned no
+        window or the instrument left nothing on it.
+    """
+    return [
+        tile.reached[iid].km2 / tile.area_km2
+        if tile.kept and iid in tile.reached
+        else 0.0
+        for tile in sound
+    ]
 
 
 def _sound(tile: TileStats) -> bool:
