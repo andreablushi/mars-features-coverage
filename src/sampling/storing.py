@@ -17,6 +17,12 @@ from utils.disk.files import atomic_path
 # What separates the instruments naming one piece of shared ground in a key.
 JOINED = "|"
 
+# The layout of the file. A run writes it and a run only reads a file back that
+# was written under the same one, so a strategy published before the stats took
+# the shape they have now is swept again rather than misread. Raise it whenever
+# what `written` lays down changes.
+SHAPE = 2
+
 
 def written(
     read: Mapping[str, DatasetStats],
@@ -41,6 +47,7 @@ def written(
             json.dumps(
                 {
                     "strategy": stats.strategy,
+                    "shape": SHAPE,
                     "digest": digests[name],
                     "features": stats.features,
                     "classes": {
@@ -107,9 +114,8 @@ def loaded(
 
     Only the strategies written now are looked for. A file left behind by one
     since renamed or deleted names no strategy, so it is never opened. A file
-    written before the stats took the shape they have now holds no reading of
-    them either, whether it is missing something or holds it in an older shape,
-    so it is passed over, named on the way past, and the strategy is swept again.
+    written under an older `SHAPE`, or one nothing can be read from at all, is
+    passed over, named on the way past, and the strategy is swept again.
 
     Args:
         root: The directory the files were written in.
@@ -122,14 +128,17 @@ def loaded(
         path = root / f"{name}.json"
         if not path.is_file():
             continue
-        saved = json.loads(path.read_text(encoding="utf-8"))
         try:
+            saved = json.loads(path.read_text(encoding="utf-8"))
+            if saved.get("shape") != SHAPE:
+                raise ValueError(f"shape {saved.get('shape')!r}, not {SHAPE}")
             found[name] = (saved["digest"], _stats(saved))
-        except (KeyError, TypeError, ValueError):
-            # Saying so, since the alternative is a silent sweep of many minutes
+        except Exception as why:
+            # Anything at all here means the file cannot be read, and the only
+            # answer is to sweep again. Saying so, since the alternative is a
+            # silent sweep of many minutes.
             print(
-                f"{path.name} was written in an older shape and cannot be read "
-                f"back, so `{name}` is swept again"
+                f"{path.name} cannot be read back ({why}), so `{name}` is swept again"
             )
     return found
 
@@ -144,9 +153,9 @@ def _stats(saved: Mapping[str, Any]) -> DatasetStats:
         The stats that strategy left.
 
     Raises:
-        KeyError: When it was written without something the stats are read from.
-        TypeError: When something it holds is not the shape it is read as.
-        ValueError: When a measurement it holds is not the numbers a spread is.
+        Exception: When anything it holds is not what the stats are read from.
+            The caller checks `SHAPE` first and treats any failure here as a
+            file it cannot read.
     """
     held = saved["held"]
     return DatasetStats(
