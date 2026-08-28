@@ -2,26 +2,18 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 
 import ipywidgets as widgets
 
-from sampling.models.catalogue import CatalogueStats, InstrumentStats
-from sampling.models.dataset import DatasetStats
+from sampling.models.catalogue import CatalogueStats
+from sampling.models.dataset import ClassStats, DatasetStats
 from utils.maths import quantities
-from visualization.common import tables
+from visualization.common import tables, wording
 from visualization.common.tables import Row
 
 _FEATURES = ("Statistic", "Value")
-_POINTS = (
-    "A feature the catalogue gives no extent at all is a point on the map, so there "
-    "is no ground to crop an observation to and it is dropped before any download."
-)
-_CLASSES = ("Feature class", "Features measured")
-_SELECTED = (
-    "A feature is selected by a strategy when at least one of its tiles earned a "
-    "window worth keeping under it, however many of its tiles were refused."
-)
+_CLASSES = ("Feature class", "Features measured", "Mean feature size")
 _INSTRUMENTS = (
     "Instrument",
     "Features reached",
@@ -43,7 +35,7 @@ def measured(stats: CatalogueStats) -> widgets.Widget:
         The table as a widget.
     """
     return tables.written(
-        "The dataset that was measured",
+        "The ODE dataset that was measured",
         _FEATURES,
         [
             ("Features", f"{stats.features:,}"),
@@ -51,42 +43,6 @@ def measured(stats: CatalogueStats) -> widgets.Widget:
             ("Features dropped as points", f"{stats.points:,}"),
             ("Ground", quantities.area(stats.area_km2)),
         ],
-        note=_POINTS,
-    )
-
-
-def classes(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets.Widget:
-    """Tabulate the features of each class measured, and what each strategy took.
-
-    Args:
-        stats: What the catalogue index holds.
-        read: What each strategy made of the features swept, by strategy name.
-
-    Returns:
-        The table as a widget.
-    """
-    headings = _CLASSES + tuple(f"{name} selected" for name in read)
-    return tables.written(
-        "How many features of each class each strategy would select",
-        headings,
-        [_class(name, counted, read) for name, counted in stats.classes.items()],
-        note=_SELECTED,
-    )
-
-
-def _class(name: str, counted: int, read: Mapping[str, DatasetStats]) -> Row:
-    """Write one feature class, and what every strategy selected of it.
-
-    Args:
-        name: The feature class, such as Crater.
-        counted: How many features of it the measurement holds.
-        read: What each strategy made of the features swept, by strategy name.
-
-    Returns:
-        The row.
-    """
-    return (name, f"{counted:,}") + tuple(
-        f"{stats.classes.get(name, 0):,}" for stats in read.values()
     )
 
 
@@ -100,28 +56,133 @@ def instruments(stats: CatalogueStats) -> widgets.Widget:
         The table as a widget.
     """
     return tables.written(
-        "What each instrument holds",
+        "Global instrument coverage",
         _INSTRUMENTS,
-        [_held(instrument, stats.area_km2) for instrument in stats.instruments],
+        [
+            (
+                instrument.iid,
+                f"{instrument.features:,}",
+                f"{instrument.observations:,}",
+                quantities.area(instrument.covered_km2),
+                f"{instrument.covered_km2 / stats.area_km2:.1%}",
+                instrument.first.date().isoformat(),
+                instrument.last.date().isoformat(),
+            )
+            for instrument in stats.instruments
+        ],
     )
 
 
-def _held(instrument: InstrumentStats, area_km2: float) -> Row:
-    """Write one instrument's row.
+def held(stats: CatalogueStats) -> widgets.Widget:
+    """Tabulate how many features each class holds and how big they are.
 
     Args:
-        instrument: What it holds of the dataset.
-        area_km2: The ground every measured feature holds between them.
+        stats: What the catalogue index holds.
 
     Returns:
-        The row.
+        The table as a widget.
     """
-    return (
-        instrument.iid,
-        f"{instrument.features:,}",
-        f"{instrument.observations:,}",
-        quantities.area(instrument.covered_km2),
-        f"{instrument.covered_km2 / area_km2:.1%}",
-        instrument.first.date().isoformat(),
-        instrument.last.date().isoformat(),
+    return tables.written(
+        "What each feature class holds",
+        _CLASSES,
+        [
+            (name, f"{counted:,}", quantities.area(stats.class_km2[name]))
+            for name, counted in stats.classes.items()
+        ],
+    )
+
+
+def selected(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets.Widget:
+    """Tabulate how many features of each class each strategy would select.
+
+    Args:
+        stats: What the catalogue index holds.
+        read: What each strategy made of the features swept, by strategy name.
+
+    Returns:
+        The table as a widget.
+    """
+    return _per_class(
+        "How many features of each class each strategy would select",
+        stats,
+        read,
+        lambda held: f"{held.selected:,}",
+    )
+
+
+def covered(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets.Widget:
+    """Tabulate how much of a feature of each class each strategy would hold.
+
+    Args:
+        stats: What the catalogue index holds.
+        read: What each strategy made of the features swept, by strategy name.
+
+    Returns:
+        The table as a widget.
+    """
+    return _per_class(
+        "How much of a selected feature each strategy would hold, by class",
+        stats,
+        read,
+        lambda held: f"{held.covered:.1%}",
+    )
+
+
+def lasting(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets.Widget:
+    """Tabulate how long a window runs on a feature of each class.
+
+    Args:
+        stats: What the catalogue index holds.
+        read: What each strategy made of the features swept, by strategy name.
+
+    Returns:
+        The table as a widget.
+    """
+    return _per_class(
+        "How long a window runs on a selected feature, by class",
+        stats,
+        read,
+        lambda held: quantities.duration(held.days),
+    )
+
+
+def _per_class(
+    title: str,
+    stats: CatalogueStats,
+    read: Mapping[str, DatasetStats],
+    write: Callable[[ClassStats], str],
+) -> widgets.Widget:
+    """Write one measurement of every feature class, a strategy per column.
+
+    Args:
+        title: The bold line above the table.
+        stats: What the catalogue index holds, which orders the classes.
+        read: What each strategy made of the features swept, by strategy name.
+        write: How one strategy's reading of one class is put into words.
+
+    Returns:
+        The table as a widget.
+    """
+    headings = ("Feature class",) + tuple(read)
+    return tables.written(
+        title, headings, [_row(name, read, write) for name in stats.classes]
+    )
+
+
+def _row(
+    name: str, read: Mapping[str, DatasetStats], write: Callable[[ClassStats], str]
+) -> Row:
+    """Write one feature class, as every strategy reads it.
+
+    Args:
+        name: The feature class, such as Crater.
+        read: What each strategy made of the features swept, by strategy name.
+        write: How one strategy's reading of the class is put into words.
+
+    Returns:
+        The row, reading nothing for a strategy that selected none of the class.
+    """
+    return (name,) + tuple(
+        write(stats.classes[name]) if name in stats.classes else wording.NOTHING
+        for stats in read.values()
     )

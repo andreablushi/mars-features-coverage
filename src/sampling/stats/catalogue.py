@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import statistics
 from collections import Counter
 from collections.abc import Sequence
 
@@ -25,10 +26,14 @@ def read() -> CatalogueStats:
         features.setdefault((row.feature_class, row.feature_name), row)
         grouped.setdefault(row.iid, []).append(row)
     counted = Counter(feature_class for feature_class, _ in features)
+    grounds: dict[str, list[float]] = {}
+    for (feature_class, _), row in features.items():
+        grounds.setdefault(feature_class, []).append(row.feature_area_km2)
     return CatalogueStats(
         features=len(features),
         points=sum(1 for feature in read_features() if feature.is_point),
         classes=dict(counted.most_common()),
+        class_km2={name: statistics.fmean(held) for name, held in grounds.items()},
         area_km2=sum(row.feature_area_km2 for row in features.values()),
         instruments=sorted(
             (_instrument(iid, taken) for iid, taken in grouped.items()),

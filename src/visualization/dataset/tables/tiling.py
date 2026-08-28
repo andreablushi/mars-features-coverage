@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 
 import ipywidgets as widgets
 
@@ -16,48 +16,39 @@ from visualization.common import tables, wording
 from visualization.common.tables import Row
 
 # The track one of the sounder's traces covers, in kilometres.
-_TRACE_KM = configs.SHARAD_ALONG_TRACK_M / 1000.0
+TRACE_KM = configs.SHARAD_ALONG_TRACK_M / 1000.0
 
 # How much further a corner to corner crossing runs than a straight one.
 _DIAGONAL = math.sqrt(2.0)
 
-_SIZES_TITLE = "How big a tile is"
 _TILES = (
     "Strategy",
     "Tile width asked",
-    "Tiles searched",
-    "Mean feature ground in a tile",
-    "Spread",
-    "Smallest",
-    "Largest",
-    f"{wording.SOUNDER} traces across a tile",
-    f"{wording.SOUNDER} traces corner to corner",
+    "Tiles created",
+    "Mean tile width",
+    "Narrowest",
+    "Widest",
 )
-_ASKED = (
-    "The trace and pixel columns are worked out from the tile width asked rather "
-    "than from the ground the features really put in a tile, so two strategies "
-    "cutting to the same width read the same there."
+_FILLING = (
+    "Strategy",
+    "Instrument",
+    "Ground one pixel covers",
+    "Pixels across a tile",
+    "Pixels corner to corner",
+    "Pixels to fill a tile",
 )
-
-_LANDED_TITLE = "What each instrument lands on a tile"
 _LANDED = (
     "Strategy",
     "Instrument",
     "Mean observations offered",
-    "Spread",
     "Mean pixels landed",
     "Mean pixels landed per observation",
     "Pixels asked",
 )
-_OFFERED = (
-    "An observation is offered to a tile when its footprint lands there at all, "
-    "whenever it was taken, so the count runs over the whole record rather than "
-    "over the window the tile keeps. The pixels are what the window keeps."
-)
 
 
 def sizes(read: Mapping[str, DatasetStats]) -> widgets.Widget:
-    """Tabulate how big a tile each strategy cuts into and what fills one.
+    """Tabulate how big a tile each strategy cuts its features into.
 
     Args:
         read: What each strategy made of the features swept, by strategy name.
@@ -65,18 +56,22 @@ def sizes(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     Returns:
         The table as a widget.
     """
-    if not read:
-        return tables.written(_SIZES_TITLE, _TILES, [])
-    first = next(iter(read.values()))
-    headings = _TILES + tuple(
-        f"{iid} pixels to fill a tile" for iid in _imagers(first.iids)
-    )
     return tables.written(
-        _SIZES_TITLE,
-        headings,
-        [_row(stats) for stats in read.values()],
-        note=_ASKED,
+        "How big a tile is", _TILES, [_cut(stats) for stats in read.values()]
     )
+
+
+def filling(read: Mapping[str, DatasetStats]) -> widgets.Widget:
+    """Tabulate how much of each instrument it takes to cover a whole tile.
+
+    Args:
+        read: What each strategy made of the features swept, by strategy name.
+
+    Returns:
+        The table as a widget.
+    """
+    rows, groups = _grouped(read, _fills)
+    return tables.written("What it takes to fill a tile", _FILLING, rows, groups=groups)
 
 
 def landed(read: Mapping[str, DatasetStats]) -> widgets.Widget:
@@ -88,31 +83,35 @@ def landed(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     Returns:
         The table as a widget.
     """
+    rows, groups = _grouped(read, _lands)
+    return tables.written(
+        "What each instrument lands on a tile", _LANDED, rows, groups=groups
+    )
+
+
+def _grouped(
+    read: Mapping[str, DatasetStats], write: Callable[[DatasetStats, str], Row]
+) -> tuple[list[Row], list[int]]:
+    """Write every strategy's instrument rows, each strategy ruled off the last.
+
+    Args:
+        read: What each strategy made of the features swept, by strategy name.
+        write: How one instrument's row of one strategy is written.
+
+    Returns:
+        The rows, and the places a rule is drawn above.
+    """
     rows: list[Row] = []
-    # Every strategy after the first is ruled off from the one above it
     groups: list[int] = []
     for stats in read.values():
         if rows:
             groups.append(len(rows))
-        rows.extend(_landing(stats))
-    return tables.written(_LANDED_TITLE, _LANDED, rows, note=_OFFERED, groups=groups)
+        rows.extend(write(stats, iid) for iid in stats.iids)
+    return rows, groups
 
 
-def _imagers(iids: list[str]) -> list[str]:
-    """Name the instruments whose pixels fill a tile rather than run across it.
-
-    Args:
-        iids: Every instrument reported on, in the order they are drawn.
-
-    Returns:
-        The same instruments less the sounder, whose traces lie along a line and
-        are counted across the tile rather than over its area.
-    """
-    return [iid for iid in iids if iid != wording.SOUNDER]
-
-
-def _row(stats: DatasetStats) -> Row:
-    """Write one strategy's row, its tiles first and what fills one after.
+def _cut(stats: DatasetStats) -> Row:
+    """Write how big a tile one strategy cuts.
 
     Args:
         stats: What the strategy made of the features swept.
@@ -120,33 +119,46 @@ def _row(stats: DatasetStats) -> Row:
     Returns:
         The row.
     """
-    cut = stats.sizes
-    tile_km = strategies.named(stats.strategy).tile_km
+    wide = stats.widths
     return (
         stats.strategy,
-        f"{tile_km:,.0f} km",
-        f"{cut.counted:,}",
-        quantities.area(cut.mean),
-        f"± {quantities.area(cut.deviation)}",
-        quantities.area(cut.low),
-        quantities.area(cut.high),
-        _traces(tile_km),
-        _traces(tile_km * _DIAGONAL),
-    ) + tuple(
-        _fills(stats.held.pixel_km2.get(iid), tile_km) for iid in _imagers(stats.iids)
+        _km(strategies.named(stats.strategy).tile_km),
+        f"{wide.counted:,}",
+        wording.spread(wide, _km),
+        _km(wide.low),
+        _km(wide.high),
     )
 
 
-def _landing(stats: DatasetStats) -> list[Row]:
-    """Write one strategy's rows, an instrument each.
+def _fills(stats: DatasetStats, iid: str) -> Row:
+    """Write how much of one instrument it takes to cover a whole tile.
+
+    A sounder never fills an area, so its pixels are traces counted along the
+    track it flies and it is credited with no count for filling a tile at all.
 
     Args:
         stats: What the strategy made of the features swept.
+        iid: The instrument to write.
 
     Returns:
-        The rows, in the order the instruments are drawn.
+        The row.
     """
-    return [_lands(stats, iid) for iid in stats.iids]
+    tile_km = strategies.named(stats.strategy).tile_km
+    sounder = iid == wording.SOUNDER
+    pixel_km2 = stats.held.pixel_km2.get(iid)
+    # The median, since a handful of records publish a pixel orders out from the rest
+    ground = pixel_km2.middle if pixel_km2 and pixel_km2.counted else 0.0
+    if not ground:
+        return (stats.strategy, iid) + (wording.UNCOUNTED,) * 4
+    across = TRACE_KM if sounder else math.sqrt(ground)
+    return (
+        stats.strategy,
+        iid,
+        f"{ground * 1e6:,.0f} m2",
+        quantities.compact(tile_km / across),
+        quantities.compact(tile_km * _DIAGONAL / across),
+        wording.NOTHING if sounder else quantities.compact(tile_km * tile_km / ground),
+    )
 
 
 def _lands(stats: DatasetStats, iid: str) -> Row:
@@ -159,75 +171,53 @@ def _lands(stats: DatasetStats, iid: str) -> Row:
     Returns:
         Its observations, the pixels it lands, and the bar it clears.
     """
-    offered = stats.offered[iid]
     asked = strategies.named(stats.strategy).admits.get(iid)
+    landed_here = stats.held.landed.get(iid)
+    per_look = stats.held.per_look.get(iid)
     return (
         stats.strategy,
         iid,
-        f"{offered.mean:,.1f}",
-        f"± {offered.deviation:,.1f}",
-        _measured(stats.held.landed.get(iid), iid),
-        _per_look(stats.held.per_look.get(iid), iid),
+        wording.spread(stats.offered[iid], lambda counted: f"{counted:,.1f}"),
+        wording.UNCOUNTED if landed_here is None else _pixels(landed_here, iid),
+        wording.UNCOUNTED if not per_look else _written(per_look, iid),
         f"{asked:,.0f}" if asked else wording.NOTHING,
     )
 
 
-def _fills(pixel_km2: Spread | None, tile_km: float) -> str:
-    """Write how many pixels a look covering a whole tile would land.
+def _pixels(measured: Spread, iid: str) -> str:
+    """Write a pixel count read off many tiles, in the instrument's own units.
 
     Args:
-        pixel_km2: The ground one of its pixels covers, tile by tile, or None.
-        tile_km: How wide the strategy asks a tile to be, in kilometres.
-
-    Returns:
-        The pixels it would land there, and nothing where no pixel size is known.
-    """
-    if pixel_km2 is None or not pixel_km2.counted or not pixel_km2.middle:
-        return wording.UNCOUNTED
-    # The median, since a handful of records publish a pixel orders out from the rest
-    return quantities.compact(tile_km * tile_km / pixel_km2.middle)
-
-
-def _measured(pixels: Spread | None, iid: str) -> str:
-    """Write what an instrument really landed on a tile, in its own units.
-
-    Args:
-        pixels: The pixels it lands on a tile, tile by tile, or None.
+        measured: The pixels it lands on a tile, tile by tile.
         iid: The instrument, which says whether its pixels are traces.
 
     Returns:
-        The measurement, as traces for a sounder and as pixels for an imager.
+        The average, and how far the tiles sit from it where they disagree.
     """
-    if pixels is None:
-        return wording.UNCOUNTED
-    return wording.columns(pixels) if iid == wording.SOUNDER else wording.landed(pixels)
+    return wording.spread(measured, lambda counted: _written(counted, iid))
 
 
-def _per_look(pixels: float | None, iid: str) -> str:
-    """Write what one observation of an instrument landed on a tile.
+def _written(counted: float, iid: str) -> str:
+    """Write one pixel count in the units the instrument measures in.
 
     Args:
-        pixels: The pixels it landed per observation kept, or None where it lands none.
-        iid: The instrument, which says whether its pixels are traces.
+        counted: The pixels.
+        iid: The instrument, whose pixels are traces where it is the sounder.
 
     Returns:
-        The measurement, as traces for a sounder and as pixels for an imager.
+        The count, unmarked for a sounder since its pixels are traces.
     """
-    if not pixels:
-        return wording.UNCOUNTED
-    written = quantities.compact(pixels)
+    written = quantities.compact(counted)
     return written if iid == wording.SOUNDER else f"{written} px"
 
 
-def _traces(track_km: float) -> str:
-    """Write how many radargram traces a stretch of track comes to.
+def _km(width_km: float) -> str:
+    """Write a width in kilometres.
 
     Args:
-        track_km: How far the sounder reaches, in kilometres.
+        width_km: The width.
 
     Returns:
-        The traces it lays down there, and nothing where it reaches no ground.
+        The width, to a tenth below ten kilometres and whole above it.
     """
-    if track_km <= 0.0:
-        return wording.NOTHING
-    return quantities.compact(track_km / _TRACE_KM)
+    return f"{width_km:,.0f} km" if width_km >= 10.0 else f"{width_km:,.1f} km"

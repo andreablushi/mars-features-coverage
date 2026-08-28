@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from sampling.models.spread import Spread
 from utils.maths import quantities
 
@@ -10,6 +12,24 @@ UNCOUNTED = "not counted"
 
 # The instrument whose pixels are radargram columns rather than picture elements.
 SOUNDER = "SHARAD"
+
+
+def spread(measured: Spread, written: Callable[[float], str]) -> str:
+    """Write a measurement read off many tiles, and how far they sit from it.
+
+    Args:
+        measured: The measurement, tile by tile.
+        written: How one of its numbers is put into words and units.
+
+    Returns:
+        The average, and the deviation after it where the tiles disagree.
+    """
+    if not measured.counted:
+        return NOTHING
+    middle = written(measured.mean)
+    if measured.agreed:
+        return middle
+    return f"{middle} ± {written(measured.deviation)}"
 
 
 def share(measured: Spread) -> str:

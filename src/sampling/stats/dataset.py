@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import math
+import statistics
 from collections.abc import Sequence
 
-from sampling.models.dataset import DatasetStats
+from sampling.models.dataset import ClassStats, DatasetStats
 from sampling.models.searched import Searched
 from sampling.models.spread import Spread
 from sampling.models.tiles import TileStats
@@ -32,19 +34,18 @@ def read(found: Sequence[Searched]) -> dict[str, DatasetStats]:
         measured = [
             tile for searched in held for tile in searched.measured if _sound(tile)
         ]
-        # The kept tiles carrying ground, and the ground each set of instruments reaches
+        # The kept tiles carrying ground, and the ground every instrument shares
         grounded = [tile for tile in measured if tile.kept and tile.area_km2]
-        overlapping = [tiles.shared(tile.overlaps) for tile in grounded]
         shared = [
-            found_here.get(len(iids), 0.0) / tile.area_km2
-            for tile, found_here in zip(grounded, overlapping, strict=True)
+            tiles.shared(tile.overlaps).get(len(iids), 0.0) / tile.area_km2
+            for tile in grounded
         ]
         read_back[strategy] = DatasetStats(
             strategy=strategy,
             features=len(held),
             classes=_classes(held),
             held=aggregate.over(measured, iids),
-            sizes=Spread.over([tile.area_km2 for tile in measured]),
+            widths=Spread.over([math.sqrt(tile.area_km2) for tile in measured]),
             offered={
                 iid: Spread.over([tile.offered.get(iid, 0) for tile in measured])
                 for iid in iids
@@ -55,21 +56,38 @@ def read(found: Sequence[Searched]) -> dict[str, DatasetStats]:
     return read_back
 
 
-def _classes(held: Sequence[Searched]) -> dict[str, int]:
-    """Count the features of each class a strategy kept anything of.
+def _classes(held: Sequence[Searched]) -> dict[str, ClassStats]:
+    """Read what a strategy made of the features of each class.
+
+    Only the features it selected are averaged, since a feature it refused
+    outright would otherwise drag the class down to nothing.
 
     Args:
         held: What the sweep left of every feature searched under it.
 
     Returns:
-        How many features of each class earned a window on at least one tile,
-        by feature class, in the order the features came in.
+        What it made of each class, by feature class, in the order swept.
     """
-    counted: dict[str, int] = {}
+    covered: dict[str, list[float]] = {}
+    days: dict[str, list[float]] = {}
     for searched in held:
-        kept = any(tile.kept for tile in searched.measured if _sound(tile))
-        counted[searched.feature_class] = counted.get(searched.feature_class, 0) + kept
-    return counted
+        sound = [tile for tile in searched.measured if _sound(tile) and tile.area_km2]
+        kept = [tile for tile in sound if tile.kept]
+        if not kept:
+            continue
+        reached = [sum(tile.overlaps.values()) / tile.area_km2 for tile in sound]
+        covered.setdefault(searched.feature_class, []).append(statistics.fmean(reached))
+        days.setdefault(searched.feature_class, []).append(
+            statistics.fmean(tile.days for tile in kept)
+        )
+    return {
+        name: ClassStats(
+            selected=len(shares),
+            covered=statistics.fmean(shares),
+            days=statistics.fmean(days[name]),
+        )
+        for name, shares in covered.items()
+    }
 
 
 def _sound(tile: TileStats) -> bool:

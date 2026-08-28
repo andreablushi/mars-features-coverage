@@ -9,7 +9,7 @@ from typing import Any
 
 import utils.disk.paths as paths
 from sampling.models.aggregate import Aggregate
-from sampling.models.dataset import DatasetStats
+from sampling.models.dataset import ClassStats, DatasetStats
 from sampling.models.spread import Spread
 from selector import strategies
 from utils.disk.files import atomic_path
@@ -43,7 +43,10 @@ def written(
                     "strategy": stats.strategy,
                     "digest": digests[name],
                     "features": stats.features,
-                    "classes": stats.classes,
+                    "classes": {
+                        name: [held.selected, held.covered, held.days]
+                        for name, held in stats.classes.items()
+                    },
                     "iids": stats.iids,
                     "held": {
                         "searched": held.searched,
@@ -70,7 +73,7 @@ def written(
                             for names, km2 in held.overlaps.items()
                         },
                     },
-                    "sizes": _spread(stats.sizes),
+                    "widths": _spread(stats.widths),
                     "offered": {
                         iid: _spread(measured)
                         for iid, measured in stats.offered.items()
@@ -134,7 +137,10 @@ def _stats(saved: Mapping[str, Any]) -> DatasetStats:
     return DatasetStats(
         strategy=saved["strategy"],
         features=saved["features"],
-        classes=saved["classes"],
+        classes={
+            name: ClassStats(int(selected), covered, days)
+            for name, (selected, covered, days) in saved["classes"].items()
+        },
         held=Aggregate(
             searched=held["searched"],
             kept=held["kept"],
@@ -153,7 +159,7 @@ def _stats(saved: Mapping[str, Any]) -> DatasetStats:
                 for names, km2 in held["overlaps"].items()
             },
         ),
-        sizes=_read(saved["sizes"]),
+        widths=_read(saved["widths"]),
         offered={iid: _read(measured) for iid, measured in saved["offered"].items()},
         overlap=_read(saved["overlap"]),
         iids=saved["iids"],
