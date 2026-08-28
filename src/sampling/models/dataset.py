@@ -15,20 +15,19 @@ class DatasetStats:
     Attributes:
         strategy: The strategy the features were searched under.
         features: How many features were searched.
+        classes: How many features of each class it kept, by feature class.
         held: Every tile of every feature, read as one.
         sizes: How much ground a tile holds, over the tiles searched.
         offered: How many observations each instrument landed on a tile searched.
         overlap: The share of a tile every instrument reaches at once, over the kept.
-        overlap_per_observation: The same share, averaged over the observations
-            the kept tiles hold rather than over the tiles.
         iids: The instruments reported on, in the order they are drawn.
     """
 
     strategy: str
     features: int
+    classes: dict[str, int]
     held: Aggregate
     sizes: Spread
     offered: dict[str, Spread]
     overlap: Spread
-    overlap_per_observation: float
     iids: list[str]

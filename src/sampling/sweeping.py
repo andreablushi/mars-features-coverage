@@ -119,6 +119,7 @@ def _searched(named: Named, under: Sequence[str]) -> list[Searched]:
         found.append(
             Searched(
                 strategy=chosen,
+                feature_class=feature_class,
                 iids=tiles.instruments(study),
                 measured=tiles.measured(study),
             )

@@ -13,10 +13,6 @@ from visualization.common import panels
 
 _HEIGHT = 4.6
 
-# How the points are drawn, since thousands of them sit on one panel.
-_POINT = 9
-_ALPHA = 0.18
-
 # How many size bands the middle of each instrument is read over, and the least
 # features a band needs before it is drawn.
 _BANDS = 18
@@ -39,12 +35,12 @@ def against_size(stats: CatalogueStats) -> widgets.Widget:
     axis.set_xscale("log")
     axis.set_ylim(0.0, 1.02)
     axis.set_title(
-        "How much of a feature was reached, against how big it is",
+        "Median share of a feature reached, against how big it is",
         fontsize=12,
         loc="left",
     )
     axis.set_xlabel("Ground the feature's bounding box holds (km2)")
-    axis.set_ylabel("Ground the instrument reached")
+    axis.set_ylabel("Median share of the ground the instrument reached")
     panels.tidy(axis, "y", "both")
     axis.legend(fontsize=9, frameon=False, loc="lower left")
     figure.tight_layout()
@@ -52,7 +48,7 @@ def against_size(stats: CatalogueStats) -> widgets.Widget:
 
 
 def _draw(axis, instrument: InstrumentStats, colour: panels.Colour) -> None:
-    """Draw one instrument as a feature apiece, with the middle of them over it.
+    """Draw one instrument as the middle of the features in each size band.
 
     Args:
         axis: The panel to draw on, whose x axis runs over the feature sizes.
@@ -64,7 +60,6 @@ def _draw(axis, instrument: InstrumentStats, colour: panels.Colour) -> None:
     """
     areas = np.array([one.area_km2 for one in instrument.reach])
     reached = np.array([one.covered_frac for one in instrument.reach])
-    axis.scatter(areas, reached, s=_POINT, alpha=_ALPHA, color=colour, linewidths=0.0)
     middles, heights = _middle(areas, reached)
     axis.plot(
         middles,
@@ -73,8 +68,7 @@ def _draw(axis, instrument: InstrumentStats, colour: panels.Colour) -> None:
         linewidth=1.8,
         marker="o",
         markersize=3.5,
-        label=f"{instrument.iid}, middle of a size band",
-        zorder=3,
+        label=f"{instrument.iid}, median of a size band",
     )
 
 

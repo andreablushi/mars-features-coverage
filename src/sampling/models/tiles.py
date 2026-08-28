@@ -13,13 +13,11 @@ class Reach:
     Attributes:
         km2: The ground it reaches, counting a cell once however often it was revisited.
         pixels: The pixels it landed there, or None where any carries no count.
-        pixel_km2: The ground one of its pixels covers, or None where none says.
         taken: How many of its observations the window keeps.
     """
 
     km2: float
     pixels: float | None
-    pixel_km2: float | None
     taken: int
 
 
@@ -42,6 +40,8 @@ class TileStats:
         refused: How many looks fell inside the window but were too small for the tile.
         turned_away: How many looks were too small for the tile at all.
         offered: How many observations of each instrument landed on the tile at all.
+        pixel_km2: The ground one pixel of each instrument covers, read off the
+            observations offered to the tile rather than off the ones a window kept.
         reached: What each instrument left on the tile, by instrument.
         overlaps: The ground each set of instruments reaches, most ground first.
     """
@@ -60,5 +60,6 @@ class TileStats:
     refused: int
     turned_away: int
     offered: dict[str, int]
+    pixel_km2: dict[str, float]
     reached: dict[str, Reach]
     overlaps: dict[tuple[str, ...], float]

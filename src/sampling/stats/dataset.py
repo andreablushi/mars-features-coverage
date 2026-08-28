@@ -42,6 +42,7 @@ def read(found: Sequence[Searched]) -> dict[str, DatasetStats]:
         read_back[strategy] = DatasetStats(
             strategy=strategy,
             features=len(held),
+            classes=_classes(held),
             held=aggregate.over(measured, iids),
             sizes=Spread.over([tile.area_km2 for tile in measured]),
             offered={
@@ -49,12 +50,26 @@ def read(found: Sequence[Searched]) -> dict[str, DatasetStats]:
                 for iid in iids
             },
             overlap=Spread.over(shared),
-            overlap_per_observation=aggregate.per_observation(
-                shared, [tile.taken for tile in grounded]
-            ),
             iids=iids,
         )
     return read_back
+
+
+def _classes(held: Sequence[Searched]) -> dict[str, int]:
+    """Count the features of each class a strategy kept anything of.
+
+    Args:
+        held: What the sweep left of every feature searched under it.
+
+    Returns:
+        How many features of each class earned a window on at least one tile,
+        by feature class, in the order the features came in.
+    """
+    counted: dict[str, int] = {}
+    for searched in held:
+        kept = any(tile.kept for tile in searched.measured if _sound(tile))
+        counted[searched.feature_class] = counted.get(searched.feature_class, 0) + kept
+    return counted
 
 
 def _sound(tile: TileStats) -> bool:

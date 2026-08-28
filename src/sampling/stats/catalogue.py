@@ -30,7 +30,6 @@ def read() -> CatalogueStats:
         points=sum(1 for feature in read_features() if feature.is_point),
         classes=dict(counted.most_common()),
         area_km2=sum(row.feature_area_km2 for row in features.values()),
-        tiles=sum(row.tiles_across**2 for row in features.values()),
         instruments=sorted(
             (_instrument(iid, taken) for iid, taken in grouped.items()),
             key=lambda instrument: -instrument.observations,

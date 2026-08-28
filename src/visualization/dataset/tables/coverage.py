@@ -18,12 +18,6 @@ _REACHED = (
     "Mean of a tile",
     "Spread",
     "Least",
-    "Mean of an observation",
-)
-_WEIGHTED = (
-    "The tile mean counts every tile that earned a window once. The observation "
-    "mean counts a tile once per observation that reached it there, so the tiles "
-    "an instrument really worked over weigh most."
 )
 
 # What the row holding the ground every instrument reaches at once is called.
@@ -58,7 +52,6 @@ def reached(read: Mapping[str, DatasetStats]) -> widgets.Widget:
         "How much of a tile each instrument reaches",
         _REACHED,
         rows,
-        note=_WEIGHTED,
         groups=groups,
     )
 
@@ -72,18 +65,8 @@ def _reaching(stats: DatasetStats) -> list[Row]:
     Returns:
         The rows, in the order the instruments are drawn.
     """
-    rows = [
-        _share(
-            stats.strategy,
-            iid,
-            stats.held.reached[iid],
-            stats.held.per_observation[iid],
-        )
-        for iid in stats.iids
-    ]
-    return rows + [
-        _share(stats.strategy, OVERLAP, stats.overlap, stats.overlap_per_observation)
-    ]
+    rows = [_share(stats.strategy, iid, stats.held.reached[iid]) for iid in stats.iids]
+    return rows + [_share(stats.strategy, OVERLAP, stats.overlap)]
 
 
 def windows(read: Mapping[str, DatasetStats]) -> widgets.Widget:
@@ -102,14 +85,13 @@ def windows(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     )
 
 
-def _share(strategy: str, name: str, measured: Spread, per_observation: float) -> Row:
+def _share(strategy: str, name: str, measured: Spread) -> Row:
     """Write one share read off every tile that earned a window.
 
     Args:
         strategy: The strategy the tiles were searched under.
         name: What the share is of, such as an instrument or a count of them.
         measured: The share, tile by tile.
-        per_observation: The same share, averaged over the observations instead.
 
     Returns:
         The row.
@@ -120,7 +102,6 @@ def _share(strategy: str, name: str, measured: Spread, per_observation: float) -
         f"{measured.mean:.1%}",
         f"± {measured.deviation:.1%}",
         f"{measured.low:.1%}",
-        f"{per_observation:.1%}",
     )
 
 

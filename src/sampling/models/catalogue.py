@@ -53,7 +53,6 @@ class CatalogueStats:
         points: How many the catalogue gives no extent, so none could be measured.
         classes: How many features each class holds, most features first.
         area_km2: How much ground their bounding boxes cover between them.
-        tiles: How many tiles the measurement cut them into between them.
         instruments: What each instrument holds, most observations first.
     """
 
@@ -61,5 +60,4 @@ class CatalogueStats:
     points: int
     classes: dict[str, int]
     area_km2: float
-    tiles: int
     instruments: list[InstrumentStats]

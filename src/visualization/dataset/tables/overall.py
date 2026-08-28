@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 import ipywidgets as widgets
 
 from sampling.models.catalogue import CatalogueStats, InstrumentStats
+from sampling.models.dataset import DatasetStats
 from utils.maths import quantities
 from visualization.common import tables
 from visualization.common.tables import Row
@@ -14,7 +17,11 @@ _POINTS = (
     "A feature the catalogue gives no extent at all is a point on the map, so there "
     "is no ground to crop an observation to and it is dropped before any download."
 )
-_CLASSES = ("Feature class", "Features kept", "Share of the features")
+_CLASSES = ("Feature class", "Features measured")
+_SELECTED = (
+    "A feature is selected by a strategy when at least one of its tiles earned a "
+    "window worth keeping under it, however many of its tiles were refused."
+)
 _INSTRUMENTS = (
     "Instrument",
     "Features reached",
@@ -43,28 +50,43 @@ def measured(stats: CatalogueStats) -> widgets.Widget:
             ("Feature classes", f"{len(stats.classes):,}"),
             ("Features dropped as points", f"{stats.points:,}"),
             ("Ground", quantities.area(stats.area_km2)),
-            ("Tiles", f"{stats.tiles:,}"),
         ],
         note=_POINTS,
     )
 
 
-def classes(stats: CatalogueStats) -> widgets.Widget:
-    """Tabulate how many features of each class the measurement kept.
+def classes(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets.Widget:
+    """Tabulate the features of each class measured, and what each strategy took.
 
     Args:
         stats: What the catalogue index holds.
+        read: What each strategy made of the features swept, by strategy name.
 
     Returns:
         The table as a widget.
     """
+    headings = _CLASSES + tuple(f"{name} selected" for name in read)
     return tables.written(
-        "How many features of each class were kept",
-        _CLASSES,
-        [
-            (name, f"{counted:,}", f"{counted / stats.features:.1%}")
-            for name, counted in stats.classes.items()
-        ],
+        "How many features of each class each strategy would select",
+        headings,
+        [_class(name, counted, read) for name, counted in stats.classes.items()],
+        note=_SELECTED,
+    )
+
+
+def _class(name: str, counted: int, read: Mapping[str, DatasetStats]) -> Row:
+    """Write one feature class, and what every strategy selected of it.
+
+    Args:
+        name: The feature class, such as Crater.
+        counted: How many features of it the measurement holds.
+        read: What each strategy made of the features swept, by strategy name.
+
+    Returns:
+        The row.
+    """
+    return (name, f"{counted:,}") + tuple(
+        f"{stats.classes.get(name, 0):,}" for stats in read.values()
     )
 
 

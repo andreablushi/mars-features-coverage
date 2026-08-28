@@ -19,10 +19,11 @@ class Aggregate:
         days: How long the windows last, over the kept tiles.
         geo_mean: The geometric mean its window scores, over the kept tiles.
         reached: The share of a tile each instrument reaches, over the kept tiles.
-        per_observation: The same share, averaged over the observations that
-            reached it rather than over the tiles.
         landed: The pixels each instrument landed on a tile, over the kept tiles.
-        pixel_km2: The ground one pixel of each instrument covers, over them.
+        per_look: The pixels one observation of each instrument landed, over them.
+        pixel_km2: The ground one pixel of each instrument covers, over every tile
+            searched, since an instrument's pixel is the same size whichever tile
+            it falls on and whether or not the tile earned a window.
         overlaps: The ground each set of instruments reaches, most ground first.
     """
 
@@ -33,7 +34,7 @@ class Aggregate:
     days: Spread
     geo_mean: Spread
     reached: dict[str, Spread]
-    per_observation: dict[str, float]
     landed: dict[str, Spread]
+    per_look: dict[str, float]
     pixel_km2: dict[str, Spread]
     overlaps: dict[tuple[str, ...], float]

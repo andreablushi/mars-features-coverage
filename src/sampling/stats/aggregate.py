@@ -32,7 +32,6 @@ def over(measured: Sequence[TileStats], iids: Sequence[str]) -> Aggregate:
         kept_km2=sum(tile.area_km2 for tile in held),
         days=Spread.over([tile.days for tile in held]),
         geo_mean=Spread.over([tile.geo_mean for tile in held]),
-        per_observation={iid: _per_observation(held, iid) for iid in iids},
         reached={
             iid: Spread.over(
                 [
@@ -46,56 +45,17 @@ def over(measured: Sequence[TileStats], iids: Sequence[str]) -> Aggregate:
             for iid in iids
         },
         landed={iid: _landed(held, iid) for iid in iids},
+        per_look={iid: _per_look(held, iid) for iid in iids},
+        # A pixel is the same size wherever it falls, so every tile the search ran
+        # over says as much about it as a kept one does
         pixel_km2={
             iid: Spread.over(
-                [
-                    tile.reached[iid].pixel_km2
-                    for tile in held
-                    if iid in tile.reached and tile.reached[iid].pixel_km2
-                ]
+                [tile.pixel_km2[iid] for tile in measured if iid in tile.pixel_km2]
             )
             for iid in iids
         },
         overlaps=dict(sorted(overlaps.items(), key=lambda ground: -ground[1])),
     )
-
-
-def per_observation(shares: Sequence[float], taken: Sequence[int]) -> float:
-    """Average a share over the observations that reached it, not over the tiles.
-
-    Args:
-        shares: The share one tile reached, tile by tile.
-        taken: How many observations reached it there, in the same order.
-
-    Returns:
-        The share the mean observation sits on, and nought where none was taken.
-    """
-    counted = sum(taken)
-    if not counted:
-        return 0.0
-    held = zip(shares, taken, strict=True)
-    return sum(share * counted_here for share, counted_here in held) / counted
-
-
-def _per_observation(held: Sequence[TileStats], iid: str) -> float:
-    """Read the share one instrument reaches, averaged over its own observations.
-
-    Args:
-        held: The tiles that earned a window.
-        iid: The instrument to read.
-
-    Returns:
-        The share of a tile the mean observation of it sits on.
-    """
-    shares: list[float] = []
-    taken: list[int] = []
-    for tile in held:
-        if not tile.area_km2:
-            continue
-        reach = tile.reached.get(iid)
-        shares.append(reach.km2 / tile.area_km2 if reach else 0.0)
-        taken.append(reach.taken if reach else 0)
-    return per_observation(shares, taken)
 
 
 def _landed(held: Sequence[TileStats], iid: str) -> Spread:
@@ -118,3 +78,27 @@ def _landed(held: Sequence[TileStats], iid: str) -> Spread:
         else:
             counted.append(reach.pixels)
     return Spread.over(counted)
+
+
+def _per_look(held: Sequence[TileStats], iid: str) -> float:
+    """Read how many pixels one observation of an instrument lands on a tile.
+
+    Args:
+        held: The tiles that earned a window.
+        iid: The instrument to read.
+
+    Returns:
+        The pixels landed over the observations that landed them, and nought
+        where none was kept or where any of them carries no pixel count.
+    """
+    pixels = 0.0
+    taken = 0
+    for tile in held:
+        reach = tile.reached.get(iid)
+        if reach is None:
+            continue
+        if reach.pixels is None:
+            return 0.0
+        pixels += reach.pixels
+        taken += reach.taken
+    return pixels / taken if taken else 0.0

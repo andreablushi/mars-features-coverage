@@ -43,6 +43,7 @@ def written(
                     "strategy": stats.strategy,
                     "digest": digests[name],
                     "features": stats.features,
+                    "classes": stats.classes,
                     "iids": stats.iids,
                     "held": {
                         "searched": held.searched,
@@ -55,11 +56,11 @@ def written(
                             iid: _spread(measured)
                             for iid, measured in held.reached.items()
                         },
-                        "per_observation": held.per_observation,
                         "landed": {
                             iid: _spread(measured)
                             for iid, measured in held.landed.items()
                         },
+                        "per_look": held.per_look,
                         "pixel_km2": {
                             iid: _spread(measured)
                             for iid, measured in held.pixel_km2.items()
@@ -75,7 +76,6 @@ def written(
                         for iid, measured in stats.offered.items()
                     },
                     "overlap": _spread(stats.overlap),
-                    "overlap_per_observation": stats.overlap_per_observation,
                 },
                 indent=1,
             )
@@ -134,6 +134,7 @@ def _stats(saved: Mapping[str, Any]) -> DatasetStats:
     return DatasetStats(
         strategy=saved["strategy"],
         features=saved["features"],
+        classes=saved["classes"],
         held=Aggregate(
             searched=held["searched"],
             kept=held["kept"],
@@ -142,8 +143,8 @@ def _stats(saved: Mapping[str, Any]) -> DatasetStats:
             days=_read(held["days"]),
             geo_mean=_read(held["geo_mean"]),
             reached={iid: _read(measured) for iid, measured in held["reached"].items()},
-            per_observation=held["per_observation"],
             landed={iid: _read(measured) for iid, measured in held["landed"].items()},
+            per_look=held["per_look"],
             pixel_km2={
                 iid: _read(measured) for iid, measured in held["pixel_km2"].items()
             },
@@ -155,7 +156,6 @@ def _stats(saved: Mapping[str, Any]) -> DatasetStats:
         sizes=_read(saved["sizes"]),
         offered={iid: _read(measured) for iid, measured in saved["offered"].items()},
         overlap=_read(saved["overlap"]),
-        overlap_per_observation=saved["overlap_per_observation"],
         iids=saved["iids"],
     )
 
