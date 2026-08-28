@@ -111,6 +111,9 @@ class TilePicker(Areas[TileView | None]):
     def _follows(self, view: View) -> None:
         """Rebuild the tile list from the feature the picker just confirmed.
 
+        The first tile is picked as the list is filled, so every area below is
+        drawn for it rather than waiting on a choice.
+
         Args:
             view: The feature on show and the strategy it is judged under.
 
@@ -122,6 +125,7 @@ class TilePicker(Areas[TileView | None]):
         self._choice.options = [
             (_named(held), at) for at, held in enumerate(self._held)
         ]
+        self._choice.index = 0 if self._held else None
         self._loading = False
         self._status.children = () if self._held else (panels.unavailable(NO_TILES),)
         self.refill()
