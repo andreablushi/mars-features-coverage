@@ -15,7 +15,7 @@ Held = list[tuple[Event, int, list[int]]]
 
 def admit_observation(
     coverage: Sequence[SetCoverage], grid: Grid, strategy: Strategy
-) -> tuple[list[Held], list[list[Event]]]:
+) -> tuple[list[Held], list[Held]]:
     """Keep every observation big enough for its tile, and turn the rest away.
 
     Args:
@@ -24,10 +24,11 @@ def admit_observation(
         strategy: The strategy read against the feature, holding the pixel floors.
 
     Returns:
-        What each tile keeps and what it turned away, both in grid order.
+        What each tile keeps and what it turned away, both in grid order and
+        both carrying the set each observation belongs to and the cells it fills.
     """
     held: list[Held] = [[] for _ in grid.tiles]
-    refused: list[list[Event]] = [[] for _ in grid.tiles]
+    refused: list[Held] = [[] for _ in grid.tiles]
     least = strategy.least
     for owner, instrument in enumerate(coverage):
         for observation in instrument.events:
@@ -42,5 +43,5 @@ def admit_observation(
                 if landed >= least[tile][owner]:
                     held[tile].append((observation, owner, cells))
                 else:
-                    refused[tile].append(observation)
+                    refused[tile].append((observation, owner, cells))
     return held, refused

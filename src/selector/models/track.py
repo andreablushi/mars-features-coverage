@@ -29,7 +29,8 @@ class Track:
         grid_cells: How many cells the tile holds.
         area_km2: How much ground the tile covers.
         cell_km2: How much ground one cell covers.
-        refused: The observations left off the axis, oldest first.
+        refused: The observations left off the axis, each with the set it belongs
+            to and the cells it fills, oldest first.
     """
 
     tile: int
@@ -42,7 +43,7 @@ class Track:
     grid_cells: int
     area_km2: float
     cell_km2: float
-    refused: list[Event]
+    refused: admissible.Held
 
 
 def build(
@@ -72,7 +73,7 @@ def _track(
     tile: int,
     grid: Grid,
     held: admissible.Held,
-    refused: list[Event],
+    refused: admissible.Held,
     labels: list[str],
     iids: list[str],
 ) -> Track:
@@ -105,5 +106,5 @@ def _track(
         grid_cells=patch.cells,
         area_km2=patch.area_km2,
         cell_km2=grid.cell_km2,
-        refused=sorted(refused, key=lambda observation: observation.t_start),
+        refused=sorted(refused, key=lambda item: item[0].t_start),
     )

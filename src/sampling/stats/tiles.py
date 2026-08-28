@@ -122,7 +122,7 @@ def _tile(study: Study, track: Track, picked: Survey | None) -> TileStats:
         dropped=picked.dropped if picked else 0,
         refused=sum(
             1
-            for observation in track.refused
+            for observation, _, _ in track.refused
             if picked and picked.start <= observation.t_start <= picked.end
         ),
         turned_away=len(track.refused),
