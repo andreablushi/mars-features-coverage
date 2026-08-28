@@ -18,13 +18,13 @@ _INSTRUMENTS = (
     "Instrument",
     "Features reached",
     "Observations",
+    "Mean number of observations",
     "Ground reached",
     "Share of the ground",
     "First look",
     "Last look",
 )
 _CLASSES = ("Feature class", "Features measured", "Mean feature size")
-_OBSERVED = "mean number of observations"
 
 
 def _once(km2: float) -> str:
@@ -92,6 +92,9 @@ def instruments(stats: CatalogueStats) -> widgets.Widget:
                 instrument.iid,
                 f"{instrument.features:,}",
                 f"{instrument.observations:,}",
+                wording.spread(
+                    instrument.per_feature, lambda counted: f"{counted:,.0f}"
+                ),
                 _once(instrument.union_km2),
                 _share(instrument.union_km2, stats.union_km2),
                 instrument.first.date().isoformat(),
@@ -111,34 +114,18 @@ def held(stats: CatalogueStats) -> widgets.Widget:
     Returns:
         The table as a widget.
     """
-    iids = [instrument.iid for instrument in stats.instruments]
-    rows: list[Row] = []
-    for name, counted in stats.classes.items():
-        taken = stats.class_observations.get(name, {})
-        rows.append(
+    return tables.written(
+        "What each feature class holds",
+        _CLASSES,
+        [
             (
                 name,
                 f"{counted:,}",
                 wording.spread(stats.class_km2[name], quantities.area),
             )
-            + tuple(_observed(taken.get(iid)) for iid in iids)
-        )
-    headings = _CLASSES + tuple(f"{iid}, {_OBSERVED}" for iid in iids)
-    return tables.written("What each feature class holds", headings, rows)
-
-
-def _observed(measured: Spread | None) -> str:
-    """Write how many observations of a feature one instrument took.
-
-    Args:
-        measured: The count, feature by feature, or None where it reached none.
-
-    Returns:
-        The mean and its spread, or nothing at all where it reached none.
-    """
-    if measured is None or not measured.counted:
-        return wording.NOTHING
-    return wording.spread(measured, lambda counted: f"{counted:,.0f}")
+            for name, counted in stats.classes.items()
+        ],
+    )
 
 
 def selected(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets.Widget:
@@ -169,6 +156,55 @@ def covered(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets.
     Returns:
         The table as a widget.
     """
+    return _per_instrument(
+        "How much of a selected feature each instrument would reach, by class",
+        stats,
+        read,
+        lambda made, iid: made.covered.get(iid),
+        lambda share: f"{share:.1%}",
+    )
+
+
+def taken(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets.Widget:
+    """Tabulate how many observations of a feature of each class would be kept.
+
+    Args:
+        stats: What the catalogue index holds.
+        read: What each strategy made of the features swept, by strategy name.
+
+    Returns:
+        The table as a widget.
+    """
+    return _per_instrument(
+        "How many observations of a selected feature each instrument would keep, "
+        "by class",
+        stats,
+        read,
+        lambda made, iid: made.taken.get(iid),
+        lambda counted: f"{counted:,.0f}",
+    )
+
+
+def _per_instrument(
+    title: str,
+    stats: CatalogueStats,
+    read: Mapping[str, DatasetStats],
+    pick: Callable[[ClassStats, str], Spread | None],
+    write: Callable[[float], str],
+) -> widgets.Widget:
+    """Write one measurement of every class and instrument, a strategy per column.
+
+    Args:
+        title: The bold line above the table.
+        stats: What the catalogue index holds, which orders the classes.
+        read: What each strategy made of the features swept, by strategy name.
+        pick: The measurement to read off one class under one instrument.
+        write: How one of its numbers is put into words and units.
+
+    Returns:
+        The table as a widget, reading nothing where a strategy selected none
+        of a class.
+    """
     iids = list(
         dict.fromkeys(iid for predicted in read.values() for iid in predicted.iids)
     )
@@ -182,31 +218,38 @@ def covered(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets.
             rows.append(
                 (name, iid)
                 + tuple(
-                    _reach(predicted.classes.get(name), iid)
+                    _measured(predicted.classes.get(name), iid, pick, write)
                     for predicted in read.values()
                 )
             )
     return tables.written(
-        "How much of a selected feature each instrument would reach, by class",
-        ("Feature class", "Instrument") + tuple(read),
-        rows,
-        groups=groups,
+        title, ("Feature class", "Instrument") + tuple(read), rows, groups=groups
     )
 
 
-def _reach(made: ClassStats | None, iid: str) -> str:
-    """Write what one instrument reaches of a feature of one class.
+def _measured(
+    made: ClassStats | None,
+    iid: str,
+    pick: Callable[[ClassStats, str], Spread | None],
+    write: Callable[[float], str],
+) -> str:
+    """Write one instrument's reading of one class under one strategy.
 
     Args:
         made: What the strategy made of the class, or None where it took none.
         iid: The instrument to write.
+        pick: The measurement to read off it.
+        write: How one of its numbers is put into words and units.
 
     Returns:
-        The share, or nothing at all where the strategy selected none of it.
+        The measurement, or nothing where the strategy selected none of the class.
     """
-    if made is None or iid not in made.covered:
+    if made is None:
         return wording.NOTHING
-    return wording.spread(made.covered[iid], lambda share: f"{share:.1%}")
+    measured = pick(made, iid)
+    if measured is None or not measured.counted:
+        return wording.NOTHING
+    return wording.spread(measured, write)
 
 
 def lasting(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets.Widget:

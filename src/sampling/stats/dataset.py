@@ -70,21 +70,27 @@ def _classes(held: Sequence[Searched], iids: Sequence[str]) -> dict[str, ClassSt
         What it made of each class, by feature class, in the order swept.
     """
     covered: dict[str, dict[str, list[float]]] = {}
+    taken: dict[str, dict[str, list[float]]] = {}
     days: dict[str, list[float]] = {}
     for searched in held:
         sound = [tile for tile in searched.measured if _sound(tile) and tile.area_km2]
-        if not any(tile.kept for tile in sound):
+        kept = [tile for tile in sound if tile.kept]
+        if not kept:
             continue
-        reached = covered.setdefault(searched.feature_class, {iid: [] for iid in iids})
+        name = searched.feature_class
+        reached = covered.setdefault(name, {iid: [] for iid in iids})
+        counted = taken.setdefault(name, {iid: [] for iid in iids})
         for iid in iids:
             reached[iid].append(statistics.fmean(_shares(sound, iid)))
-        days.setdefault(searched.feature_class, []).append(
-            statistics.fmean(tile.days for tile in sound if tile.kept)
-        )
+            counted[iid].append(
+                sum(tile.reached[iid].taken for tile in kept if iid in tile.reached)
+            )
+        days.setdefault(name, []).append(statistics.fmean(tile.days for tile in kept))
     return {
         name: ClassStats(
             selected=len(days[name]),
             covered={iid: Spread.over(shares) for iid, shares in reached.items()},
+            taken={iid: Spread.over(counts) for iid, counts in taken[name].items()},
             days=Spread.over(days[name]),
         )
         for name, reached in covered.items()

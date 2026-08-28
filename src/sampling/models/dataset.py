@@ -19,11 +19,16 @@ class ClassStats:
             reaches on one, so a tile that earned no window counts as nothing.
             Read feature by feature, so the spread is how much the features of
             the class differ.
+        taken: How many observations of a selected feature each instrument
+            keeps, by instrument, added over the feature's kept tiles so an
+            observation serving two of them counts once for each. Read feature
+            by feature, like the rest.
         days: How long a window runs on a kept tile, feature by feature.
     """
 
     selected: int
     covered: dict[str, Spread]
+    taken: dict[str, Spread]
     days: Spread
 
 

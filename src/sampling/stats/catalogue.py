@@ -33,22 +33,12 @@ def read() -> CatalogueStats:
     grounds: dict[str, list[float]] = {}
     for (feature_class, _), row in features.items():
         grounds.setdefault(feature_class, []).append(row.feature_area_km2)
-    # One entry per feature and instrument, so a class reads feature by feature
-    taken: dict[str, dict[str, list[int]]] = {}
-    for row in rows:
-        taken.setdefault(row.feature_class, {}).setdefault(row.iid, []).append(
-            row.n_obs
-        )
     return CatalogueStats(
         catalogued=len(catalogued),
         features=len(features),
         points=sum(1 for feature in catalogued if feature.is_point),
         classes=dict(counted.most_common()),
         class_km2={name: Spread.over(held) for name, held in grounds.items()},
-        class_observations={
-            name: {iid: Spread.over(counts) for iid, counts in held.items()}
-            for name, held in taken.items()
-        },
         area_km2=sum(row.feature_area_km2 for row in features.values()),
         union_km2=shared.ground_km2 if shared else 0.0,
         instruments=sorted(
@@ -80,6 +70,7 @@ def _instrument(
         iid=iid,
         features=len({(row.feature_class, row.feature_name) for row in taken}),
         observations=sum(row.n_obs for row in taken),
+        per_feature=Spread.over([row.n_obs for row in taken]),
         covered_km2=sum(row.covered_km2 for row in taken),
         union_km2=union_km2,
         first=min(row.t_first for row in taken),

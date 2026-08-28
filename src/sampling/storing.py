@@ -21,7 +21,7 @@ JOINED = "|"
 # was written under the same one, so a strategy published before the stats took
 # the shape they have now is swept again rather than misread. Raise it whenever
 # what `written` lays down changes.
-SHAPE = 2
+SHAPE = 3
 
 
 def written(
@@ -56,6 +56,10 @@ def written(
                             {
                                 iid: _spread(measured)
                                 for iid, measured in held.covered.items()
+                            },
+                            {
+                                iid: _spread(measured)
+                                for iid, measured in held.taken.items()
                             },
                             _spread(held.days),
                         ]
@@ -165,9 +169,10 @@ def _stats(saved: Mapping[str, Any]) -> DatasetStats:
             name: ClassStats(
                 int(selected),
                 {iid: _read(measured) for iid, measured in covered.items()},
+                {iid: _read(measured) for iid, measured in taken.items()},
                 _read(days),
             )
-            for name, (selected, covered, days) in saved["classes"].items()
+            for name, (selected, covered, taken, days) in saved["classes"].items()
         },
         held=Aggregate(
             searched=held["searched"],
