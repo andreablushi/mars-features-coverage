@@ -12,7 +12,6 @@ class Settings:
     """The settled choices for a run, read from one flat config file.
 
     Attributes:
-        grid_km: How wide one block of the measurement grid is, in kilometres.
         grid_cells: Cells along each axis of one block.
         instrument_sets: The instrument sets to download for every feature.
         plot_instrument_sets: The sets the figures draw, or None for every one held.
@@ -24,7 +23,6 @@ class Settings:
         workers: How many jobs each half runs at once.
     """
 
-    grid_km: int
     grid_cells: int
     instrument_sets: tuple[InstrumentSet, ...]
     plot_instrument_sets: tuple[InstrumentSet, ...] | None
