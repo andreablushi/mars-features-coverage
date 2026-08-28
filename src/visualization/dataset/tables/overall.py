@@ -13,7 +13,6 @@ from visualization.common import tables, wording
 from visualization.common.tables import Row
 
 _FEATURES = ("Statistic", "Value")
-_CLASSES = ("Feature class", "Features measured", "Mean feature size")
 _INSTRUMENTS = (
     "Instrument",
     "Features reached",
@@ -23,6 +22,7 @@ _INSTRUMENTS = (
     "First look",
     "Last look",
 )
+_CLASSES = ("Feature class", "Features measured", "Mean feature size")
 
 
 def measured(stats: CatalogueStats) -> widgets.Widget:
@@ -106,7 +106,7 @@ def selected(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets
         "How many features of each class each strategy would select",
         stats,
         read,
-        lambda held: f"{held.selected:,}",
+        lambda made: f"{made.selected:,}",
     )
 
 
@@ -124,7 +124,7 @@ def covered(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets.
         "How much of a selected feature each strategy would hold, by class",
         stats,
         read,
-        lambda held: f"{held.covered:.1%}",
+        lambda made: f"{made.covered:.1%}",
     )
 
 
@@ -142,7 +142,7 @@ def lasting(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets.
         "How long a window runs on a selected feature, by class",
         stats,
         read,
-        lambda held: quantities.duration(held.days),
+        lambda made: quantities.duration(made.days),
     )
 
 
@@ -161,28 +161,14 @@ def _per_class(
         write: How one strategy's reading of one class is put into words.
 
     Returns:
-        The table as a widget.
+        The table as a widget, reading nothing where a strategy selected none
+        of a class.
     """
-    headings = ("Feature class",) + tuple(read)
-    return tables.written(
-        title, headings, [_row(name, read, write) for name in stats.classes]
-    )
-
-
-def _row(
-    name: str, read: Mapping[str, DatasetStats], write: Callable[[ClassStats], str]
-) -> Row:
-    """Write one feature class, as every strategy reads it.
-
-    Args:
-        name: The feature class, such as Crater.
-        read: What each strategy made of the features swept, by strategy name.
-        write: How one strategy's reading of the class is put into words.
-
-    Returns:
-        The row, reading nothing for a strategy that selected none of the class.
-    """
-    return (name,) + tuple(
-        write(stats.classes[name]) if name in stats.classes else wording.NOTHING
-        for stats in read.values()
-    )
+    rows: list[Row] = []
+    for name in stats.classes:
+        made = [predicted.classes.get(name) for predicted in read.values()]
+        rows.append(
+            (name,)
+            + tuple(wording.NOTHING if one is None else write(one) for one in made)
+        )
+    return tables.written(title, ("Feature class",) + tuple(read), rows)

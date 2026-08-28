@@ -8,7 +8,7 @@ import ipywidgets as widgets
 import matplotlib.pyplot as plt
 import numpy as np
 
-from sampling.models.catalogue import CatalogueStats, InstrumentStats
+from sampling.models.catalogue import CatalogueStats
 from visualization.common import panels
 
 _HEIGHT = 4.6
@@ -20,7 +20,7 @@ _LEAST = 5
 
 
 def against_size(stats: CatalogueStats) -> widgets.Widget:
-    """Draw the share of a feature each instrument reached against its size.
+    """Draw the median share of a feature each instrument reached against its size.
 
     Args:
         stats: What the catalogue index holds.
@@ -31,7 +31,19 @@ def against_size(stats: CatalogueStats) -> widgets.Widget:
     figure, axis = panels.board((panels.FIGURE_WIDTH, _HEIGHT))
     wheel = cycle(plt.cm.tab10.colors)
     for instrument, colour in zip(stats.instruments, wheel, strict=False):
-        _draw(axis, instrument, colour)
+        middles, heights = _middle(
+            np.array([one.area_km2 for one in instrument.reach]),
+            np.array([one.covered_frac for one in instrument.reach]),
+        )
+        axis.plot(
+            middles,
+            heights,
+            color=colour,
+            linewidth=1.8,
+            marker="o",
+            markersize=3.5,
+            label=f"{instrument.iid}, median of a size band",
+        )
     axis.set_xscale("log")
     axis.set_ylim(0.0, 1.02)
     axis.set_title(
@@ -45,31 +57,6 @@ def against_size(stats: CatalogueStats) -> widgets.Widget:
     axis.legend(fontsize=9, frameon=False, loc="lower left")
     figure.tight_layout()
     return panels.rendered(figure)
-
-
-def _draw(axis, instrument: InstrumentStats, colour: panels.Colour) -> None:
-    """Draw one instrument as the middle of the features in each size band.
-
-    Args:
-        axis: The panel to draw on, whose x axis runs over the feature sizes.
-        instrument: What it holds of the dataset.
-        colour: The colour to draw it in.
-
-    Returns:
-        None.
-    """
-    areas = np.array([one.area_km2 for one in instrument.reach])
-    reached = np.array([one.covered_frac for one in instrument.reach])
-    middles, heights = _middle(areas, reached)
-    axis.plot(
-        middles,
-        heights,
-        color=colour,
-        linewidth=1.8,
-        marker="o",
-        markersize=3.5,
-        label=f"{instrument.iid}, median of a size band",
-    )
 
 
 def _middle(areas: np.ndarray, reached: np.ndarray) -> tuple[list[float], list[float]]:

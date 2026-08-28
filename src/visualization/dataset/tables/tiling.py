@@ -9,14 +9,13 @@ import ipywidgets as widgets
 
 from coverage import configs
 from sampling.models.dataset import DatasetStats
-from sampling.models.spread import Spread
 from selector import strategies
 from utils.maths import quantities
 from visualization.common import tables, wording
 from visualization.common.tables import Row
 
 # The track one of the sounder's traces covers, in kilometres.
-TRACE_KM = configs.SHARAD_ALONG_TRACK_M / 1000.0
+_TRACE_KM = configs.SHARAD_ALONG_TRACK_M / 1000.0
 
 # How much further a corner to corner crossing runs than a straight one.
 _DIAGONAL = math.sqrt(2.0)
@@ -56,9 +55,20 @@ def sizes(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     Returns:
         The table as a widget.
     """
-    return tables.written(
-        "How big a tile is", _TILES, [_cut(stats) for stats in read.values()]
-    )
+    rows: list[Row] = []
+    for stats in read.values():
+        wide = stats.widths
+        rows.append(
+            (
+                stats.strategy,
+                _km(strategies.named(stats.strategy).tile_km),
+                f"{wide.counted:,}",
+                wording.spread(wide, _km),
+                _km(wide.low),
+                _km(wide.high),
+            )
+        )
+    return tables.written("How big a tile is", _TILES, rows)
 
 
 def filling(read: Mapping[str, DatasetStats]) -> widgets.Widget:
@@ -110,26 +120,6 @@ def _grouped(
     return rows, groups
 
 
-def _cut(stats: DatasetStats) -> Row:
-    """Write how big a tile one strategy cuts.
-
-    Args:
-        stats: What the strategy made of the features swept.
-
-    Returns:
-        The row.
-    """
-    wide = stats.widths
-    return (
-        stats.strategy,
-        _km(strategies.named(stats.strategy).tile_km),
-        f"{wide.counted:,}",
-        wording.spread(wide, _km),
-        _km(wide.low),
-        _km(wide.high),
-    )
-
-
 def _fills(stats: DatasetStats, iid: str) -> Row:
     """Write how much of one instrument it takes to cover a whole tile.
 
@@ -141,16 +131,16 @@ def _fills(stats: DatasetStats, iid: str) -> Row:
         iid: The instrument to write.
 
     Returns:
-        The row.
+        The row, reading nothing at all where no pixel size is known.
     """
-    tile_km = strategies.named(stats.strategy).tile_km
-    sounder = iid == wording.SOUNDER
-    pixel_km2 = stats.held.pixel_km2.get(iid)
+    measured = stats.held.pixel_km2.get(iid)
     # The median, since a handful of records publish a pixel orders out from the rest
-    ground = pixel_km2.middle if pixel_km2 and pixel_km2.counted else 0.0
+    ground = measured.middle if measured and measured.counted else 0.0
     if not ground:
         return (stats.strategy, iid) + (wording.UNCOUNTED,) * 4
-    across = TRACE_KM if sounder else math.sqrt(ground)
+    sounder = iid == wording.SOUNDER
+    tile_km = strategies.named(stats.strategy).tile_km
+    across = _TRACE_KM if sounder else math.sqrt(ground)
     return (
         stats.strategy,
         iid,
@@ -172,29 +162,18 @@ def _lands(stats: DatasetStats, iid: str) -> Row:
         Its observations, the pixels it lands, and the bar it clears.
     """
     asked = strategies.named(stats.strategy).admits.get(iid)
-    landed_here = stats.held.landed.get(iid)
+    measured = stats.held.landed.get(iid)
     per_look = stats.held.per_look.get(iid)
     return (
         stats.strategy,
         iid,
         wording.spread(stats.offered[iid], lambda counted: f"{counted:,.1f}"),
-        wording.UNCOUNTED if landed_here is None else _pixels(landed_here, iid),
+        wording.UNCOUNTED
+        if measured is None
+        else wording.spread(measured, lambda counted: _written(counted, iid)),
         wording.UNCOUNTED if not per_look else _written(per_look, iid),
         f"{asked:,.0f}" if asked else wording.NOTHING,
     )
-
-
-def _pixels(measured: Spread, iid: str) -> str:
-    """Write a pixel count read off many tiles, in the instrument's own units.
-
-    Args:
-        measured: The pixels it lands on a tile, tile by tile.
-        iid: The instrument, which says whether its pixels are traces.
-
-    Returns:
-        The average, and how far the tiles sit from it where they disagree.
-    """
-    return wording.spread(measured, lambda counted: _written(counted, iid))
 
 
 def _written(counted: float, iid: str) -> str:

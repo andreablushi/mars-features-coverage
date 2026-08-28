@@ -10,7 +10,7 @@ from utils.maths import quantities
 NOTHING = "none"
 UNCOUNTED = "not counted"
 
-# The instrument whose pixels are radargram columns rather than picture elements.
+# The instrument whose pixels are radargram traces rather than picture elements.
 SOUNDER = "SHARAD"
 
 
@@ -41,31 +41,21 @@ def share(measured: Spread) -> str:
     Returns:
         The average, and how far the tiles sit from it where they disagree.
     """
-    if not measured.counted:
-        return NOTHING
-    if measured.agreed:
-        return f"{measured.mean:.0%}"
-    return f"{measured.mean:.0%} ± {measured.deviation:.0%}"
+    return spread(measured, lambda held: f"{held:.0%}")
 
 
-def span(measured: Spread) -> str:
-    """Write a length of time read off many tiles.
+def landed(measured: Spread) -> str:
+    """Write a pixel count read off many tiles.
 
     Args:
-        measured: The length in days, tile by tile.
+        measured: The pixels, tile by tile.
 
     Returns:
-        The average, and the shortest and longest where the tiles disagree.
+        The average, and how far the tiles sit from it where they disagree.
     """
     if not measured.counted:
-        return NOTHING
-    middle = quantities.duration(measured.mean)
-    if measured.agreed:
-        return middle
-    return (
-        f"{middle}, {quantities.duration(measured.low)} to "
-        f"{quantities.duration(measured.high)}"
-    )
+        return UNCOUNTED
+    return spread(measured, lambda counted: f"{quantities.compact(counted)} px")
 
 
 def ground(km2: float, of_km2: float) -> str:
@@ -97,50 +87,3 @@ def pixels(counted: float | None) -> str:
     if counted is None:
         return UNCOUNTED
     return f"{quantities.compact(counted)} px"
-
-
-def landed(measured: Spread) -> str:
-    """Write a pixel count read off many tiles.
-
-    Args:
-        measured: The pixels, tile by tile.
-
-    Returns:
-        The average, and how far the tiles sit from it where they disagree.
-    """
-    if not measured.counted:
-        return UNCOUNTED
-    middle = quantities.compact(measured.mean)
-    if measured.agreed:
-        return f"{middle} px"
-    return f"{middle} px ± {quantities.compact(measured.deviation)} px"
-
-
-def columns(measured: Spread) -> str:
-    """Write a count of radargram columns read off many tiles.
-
-    Args:
-        measured: The columns, tile by tile.
-
-    Returns:
-        The average, and how far the tiles sit from it where they disagree.
-    """
-    if not measured.counted:
-        return UNCOUNTED
-    middle = quantities.compact(measured.mean)
-    if measured.agreed:
-        return middle
-    return f"{middle} ± {quantities.compact(measured.deviation)}"
-
-
-def tile(row: int, column: int) -> str:
-    """Name one tile by where it sits on the feature's grid.
-
-    Args:
-        row: Its row, counting north from the south edge.
-        column: Its column, counting east from the west edge.
-
-    Returns:
-        The name, counting from one at the south west corner.
-    """
-    return f"row {row + 1}, column {column + 1}"

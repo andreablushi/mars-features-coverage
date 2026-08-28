@@ -16,7 +16,7 @@ _REACHED = ("Strategy", "Instrument", "Mean coverage inside a tile", "Least")
 _WINDOWS = ("Strategy", "Mean window", "Longest", "Time Window Score")
 
 # What the row holding the ground every instrument reaches at once is called.
-OVERLAP = "Overlap"
+_OVERLAP = "Overlap"
 
 
 def reached(read: Mapping[str, DatasetStats]) -> widgets.Widget:
@@ -37,7 +37,7 @@ def reached(read: Mapping[str, DatasetStats]) -> widgets.Widget:
         rows.extend(
             _share(stats.strategy, iid, stats.held.reached[iid]) for iid in stats.iids
         )
-        rows.append(_share(stats.strategy, OVERLAP, stats.overlap))
+        rows.append(_share(stats.strategy, _OVERLAP, stats.overlap))
     return tables.written(
         "How much of a tile each instrument reaches", _REACHED, rows, groups=groups
     )
@@ -52,9 +52,18 @@ def windows(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     Returns:
         The table as a widget.
     """
-    return tables.written(
-        "How long a window runs", _WINDOWS, [_length(stats) for stats in read.values()]
-    )
+    rows: list[Row] = []
+    for stats in read.values():
+        days = stats.held.days
+        rows.append(
+            (
+                stats.strategy,
+                wording.spread(days, quantities.duration),
+                quantities.duration(days.high) if days.counted else wording.NOTHING,
+                wording.spread(stats.held.geo_mean, _percent),
+            )
+        )
+    return tables.written("How long a window runs", _WINDOWS, rows)
 
 
 def _share(strategy: str, name: str, measured: Spread) -> Row:
@@ -73,24 +82,6 @@ def _share(strategy: str, name: str, measured: Spread) -> Row:
         name,
         wording.spread(measured, _percent),
         _percent(measured.low) if measured.counted else wording.NOTHING,
-    )
-
-
-def _length(stats: DatasetStats) -> Row:
-    """Write how long one strategy's windows run.
-
-    Args:
-        stats: What it made of the features swept.
-
-    Returns:
-        The row.
-    """
-    days, score = stats.held.days, stats.held.geo_mean
-    return (
-        stats.strategy,
-        wording.spread(days, quantities.duration),
-        quantities.duration(days.high) if days.counted else wording.NOTHING,
-        wording.spread(score, _percent),
     )
 
 
