@@ -9,6 +9,7 @@ import ipywidgets as widgets
 
 from coverage import configs
 from sampling.models.dataset import DatasetStats
+from sampling.models.spread import Spread
 from selector import strategies
 from utils.maths import quantities
 from visualization.common import tables, wording
@@ -162,16 +163,19 @@ def _lands(stats: DatasetStats, iid: str) -> Row:
         Its observations, the pixels it lands, and the bar it clears.
     """
     asked = strategies.named(stats.strategy).admits.get(iid)
-    measured = stats.held.landed.get(iid)
-    per_look = stats.held.per_look.get(iid)
+
+    def counted(measured: Spread | None) -> str:
+        """Write a pixel count read off many tiles, in the instrument's own units."""
+        if measured is None or not measured.counted:
+            return wording.UNCOUNTED
+        return wording.spread(measured, lambda pixels: _written(pixels, iid))
+
     return (
         stats.strategy,
         iid,
-        wording.spread(stats.offered[iid], lambda counted: f"{counted:,.1f}"),
-        wording.UNCOUNTED
-        if measured is None
-        else wording.spread(measured, lambda counted: _written(counted, iid)),
-        wording.UNCOUNTED if not per_look else _written(per_look, iid),
+        wording.spread(stats.offered[iid], lambda offered: f"{offered:,.1f}"),
+        counted(stats.held.landed.get(iid)),
+        counted(stats.held.per_look.get(iid)),
         f"{asked:,.0f}" if asked else wording.NOTHING,
     )
 

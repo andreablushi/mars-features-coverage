@@ -16,13 +16,14 @@ class ClassStats:
         selected: How many features of the class earned a window on any tile.
         covered: The share of a selected feature the dataset would hold, as the
             mean over its tiles of the ground any instrument reaches on one, so
-            a tile that earned no window counts as nothing.
-        days: How long a window runs on a kept tile, over the selected features.
+            a tile that earned no window counts as nothing. Read feature by
+            feature, so the spread is how much the features of the class differ.
+        days: How long a window runs on a kept tile, feature by feature.
     """
 
     selected: int
-    covered: float
-    days: float
+    covered: Spread
+    days: Spread
 
 
 @dataclass(frozen=True, slots=True)

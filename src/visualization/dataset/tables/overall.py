@@ -87,7 +87,11 @@ def held(stats: CatalogueStats) -> widgets.Widget:
         "What each feature class holds",
         _CLASSES,
         [
-            (name, f"{counted:,}", quantities.area(stats.class_km2[name]))
+            (
+                name,
+                f"{counted:,}",
+                wording.spread(stats.class_km2[name], quantities.area),
+            )
             for name, counted in stats.classes.items()
         ],
     )
@@ -125,7 +129,7 @@ def covered(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets.
         "How much of a selected feature each strategy would hold, by class",
         stats,
         read,
-        lambda made: f"{made.covered:.1%}",
+        lambda made: wording.spread(made.covered, lambda share: f"{share:.1%}"),
     )
 
 
@@ -143,7 +147,7 @@ def lasting(stats: CatalogueStats, read: Mapping[str, DatasetStats]) -> widgets.
         "How long a window runs on a selected feature, by class",
         stats,
         read,
-        lambda made: quantities.duration(made.days),
+        lambda made: wording.spread(made.days, quantities.duration),
     )
 
 

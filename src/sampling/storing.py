@@ -44,7 +44,11 @@ def written(
                     "digest": digests[name],
                     "features": stats.features,
                     "classes": {
-                        name: [held.selected, held.covered, held.days]
+                        name: [
+                            held.selected,
+                            _spread(held.covered),
+                            _spread(held.days),
+                        ]
                         for name, held in stats.classes.items()
                     },
                     "iids": stats.iids,
@@ -63,7 +67,10 @@ def written(
                             iid: _spread(measured)
                             for iid, measured in held.landed.items()
                         },
-                        "per_look": held.per_look,
+                        "per_look": {
+                            iid: _spread(measured)
+                            for iid, measured in held.per_look.items()
+                        },
                         "pixel_km2": {
                             iid: _spread(measured)
                             for iid, measured in held.pixel_km2.items()
@@ -98,7 +105,8 @@ def loaded(
     Only the strategies written now are looked for. A file left behind by one
     since renamed or deleted names no strategy, so it is never opened. A file
     written before the stats took the shape they have now holds no reading of
-    them either, so it is passed over and the strategy is swept again.
+    them either, whether it is missing something or holds it in an older shape,
+    so it is passed over and the strategy is swept again.
 
     Args:
         root: The directory the files were written in.
@@ -114,7 +122,7 @@ def loaded(
         saved = json.loads(path.read_text(encoding="utf-8"))
         try:
             found[name] = (saved["digest"], _stats(saved))
-        except KeyError:
+        except (KeyError, TypeError, ValueError):
             continue
     return found
 
@@ -138,7 +146,7 @@ def _stats(saved: Mapping[str, Any]) -> DatasetStats:
         strategy=saved["strategy"],
         features=saved["features"],
         classes={
-            name: ClassStats(int(selected), covered, days)
+            name: ClassStats(int(selected), _read(covered), _read(days))
             for name, (selected, covered, days) in saved["classes"].items()
         },
         held=Aggregate(
@@ -150,7 +158,9 @@ def _stats(saved: Mapping[str, Any]) -> DatasetStats:
             geo_mean=_read(held["geo_mean"]),
             reached={iid: _read(measured) for iid, measured in held["reached"].items()},
             landed={iid: _read(measured) for iid, measured in held["landed"].items()},
-            per_look=held["per_look"],
+            per_look={
+                iid: _read(measured) for iid, measured in held["per_look"].items()
+            },
             pixel_km2={
                 iid: _read(measured) for iid, measured in held["pixel_km2"].items()
             },

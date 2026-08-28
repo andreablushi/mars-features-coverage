@@ -80,25 +80,26 @@ def _landed(held: Sequence[TileStats], iid: str) -> Spread:
     return Spread.over(counted)
 
 
-def _per_look(held: Sequence[TileStats], iid: str) -> float:
+def _per_look(held: Sequence[TileStats], iid: str) -> Spread:
     """Read how many pixels one observation of an instrument lands on a tile.
+
+    A tile the instrument took nothing on says nothing about what one of its
+    looks is worth, so it is left out rather than counted as nought.
 
     Args:
         held: The tiles that earned a window.
         iid: The instrument to read.
 
     Returns:
-        The pixels landed over the observations that landed them, and nought
-        where none was kept or where any of them carries no pixel count.
+        The pixels one of its observations landed, tile by tile, and empty when
+        any tile it worked carries no pixel count.
     """
-    pixels = 0.0
-    taken = 0
+    counted: list[float] = []
     for tile in held:
         reach = tile.reached.get(iid)
-        if reach is None:
+        if reach is None or not reach.taken:
             continue
         if reach.pixels is None:
-            return 0.0
-        pixels += reach.pixels
-        taken += reach.taken
-    return pixels / taken if taken else 0.0
+            return Spread.over([])
+        counted.append(reach.pixels / reach.taken)
+    return Spread.over(counted)

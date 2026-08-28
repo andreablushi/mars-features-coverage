@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import statistics
 from collections import Counter
 from collections.abc import Sequence
 
@@ -10,6 +9,7 @@ from coverage import summary as index
 from coverage.results import Summary
 from metadata.catalog import read_features
 from sampling.models.catalogue import CatalogueStats, InstrumentStats, Reach
+from sampling.models.spread import Spread
 
 
 def read() -> CatalogueStats:
@@ -35,7 +35,7 @@ def read() -> CatalogueStats:
         features=len(features),
         points=sum(1 for feature in catalogued if feature.is_point),
         classes=dict(counted.most_common()),
-        class_km2={name: statistics.fmean(held) for name, held in grounds.items()},
+        class_km2={name: Spread.over(held) for name, held in grounds.items()},
         area_km2=sum(row.feature_area_km2 for row in features.values()),
         instruments=sorted(
             (_instrument(iid, taken) for iid, taken in grouped.items()),

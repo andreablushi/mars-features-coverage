@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
+from sampling.models.spread import Spread
+
 
 @dataclass(frozen=True, slots=True)
 class Reach:
@@ -53,7 +55,8 @@ class CatalogueStats:
         features: How many of them were measured.
         points: How many the catalogue gives no extent, so none could be measured.
         classes: How many features each class holds, most features first.
-        class_km2: How much ground the mean feature of each class holds, by class.
+        class_km2: How much ground a feature of each class holds, feature by
+            feature, by class.
         area_km2: How much ground their bounding boxes cover between them.
         instruments: What each instrument holds, most observations first.
     """
@@ -62,6 +65,6 @@ class CatalogueStats:
     features: int
     points: int
     classes: dict[str, int]
-    class_km2: dict[str, float]
+    class_km2: dict[str, Spread]
     area_km2: float
     instruments: list[InstrumentStats]

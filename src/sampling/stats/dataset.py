@@ -83,8 +83,8 @@ def _classes(held: Sequence[Searched]) -> dict[str, ClassStats]:
     return {
         name: ClassStats(
             selected=len(shares),
-            covered=statistics.fmean(shares),
-            days=statistics.fmean(days[name]),
+            covered=Spread.over(shares),
+            days=Spread.over(days[name]),
         )
         for name, shares in covered.items()
     }
