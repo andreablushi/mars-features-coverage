@@ -70,6 +70,7 @@ def _instrument(
         iid=iid,
         features=len({(row.feature_class, row.feature_name) for row in taken}),
         observations=sum(row.n_obs for row in taken),
+        per_feature=Spread.over([row.n_obs for row in taken]),
         covered_km2=sum(row.covered_km2 for row in taken),
         union_km2=union_km2,
         first=min(row.t_first for row in taken),

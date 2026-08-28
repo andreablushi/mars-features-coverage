@@ -17,6 +17,7 @@ _INSTRUMENTS = (
     "Instrument",
     "Features reached",
     "Observations",
+    "Mean number of observations",
     "Ground reached",
     "Share of the ground",
     "First look",
@@ -90,6 +91,9 @@ def instruments(stats: CatalogueStats) -> widgets.Widget:
                 instrument.iid,
                 f"{instrument.features:,}",
                 f"{instrument.observations:,}",
+                wording.spread(
+                    instrument.per_feature, lambda counted: f"{counted:,.0f}"
+                ),
                 _once(instrument.union_km2),
                 _share(instrument.union_km2, stats.union_km2),
                 instrument.first.date().isoformat(),
