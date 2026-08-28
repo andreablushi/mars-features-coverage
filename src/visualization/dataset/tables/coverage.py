@@ -12,18 +12,11 @@ from utils.maths import quantities
 from visualization.common import tables, wording
 from visualization.common.tables import Row
 
-_REACHED = ("Strategy", "Instrument", "Mean of a tile", "Spread", "Least")
+_REACHED = ("Strategy", "Instrument", "Mean coverage inside a tile", "Least")
+_WINDOWS = ("Strategy", "Mean window", "Longest", "Time Window Score")
 
 # What the row holding the ground every instrument reaches at once is called.
-OVERLAP = "Overlap"
-_WINDOWS = (
-    "Strategy",
-    "Mean window",
-    "Spread",
-    "Longest",
-    "Coverage score",
-    "Spread",
-)
+_OVERLAP = "Overlap"
 
 
 def reached(read: Mapping[str, DatasetStats]) -> widgets.Widget:
@@ -35,32 +28,19 @@ def reached(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     Returns:
         The table as a widget.
     """
-    rows: list[Row] = []
-    # Every strategy after the first is ruled off from the one above it
-    groups: list[int] = []
-    for stats in read.values():
-        if rows:
-            groups.append(len(rows))
-        rows.extend(_reaching(stats))
-    return tables.written(
-        "How much of a tile each instrument reaches",
-        _REACHED,
-        rows,
-        groups=groups,
+    rows, groups = tables.grouped(
+        read.values(),
+        lambda stats: (
+            [
+                _share(stats.strategy, iid, stats.tiles.reached[iid])
+                for iid in stats.iids
+            ]
+            + [_share(stats.strategy, _OVERLAP, stats.overlap)]
+        ),
     )
-
-
-def _reaching(stats: DatasetStats) -> list[Row]:
-    """Write one strategy's rows, an instrument each and the overlap last.
-
-    Args:
-        stats: What it made of the features swept.
-
-    Returns:
-        The rows, in the order the instruments are drawn.
-    """
-    rows = [_share(stats.strategy, iid, stats.held.reached[iid]) for iid in stats.iids]
-    return rows + [_share(stats.strategy, OVERLAP, stats.overlap)]
+    return tables.written(
+        "How much of a tile each instrument reaches", _REACHED, rows, groups=groups
+    )
 
 
 def windows(read: Mapping[str, DatasetStats]) -> widgets.Widget:
@@ -72,11 +52,18 @@ def windows(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     Returns:
         The table as a widget.
     """
-    return tables.written(
-        "How long a window runs",
-        _WINDOWS,
-        [_length(stats) for stats in read.values()],
-    )
+    rows: list[Row] = []
+    for stats in read.values():
+        days = stats.tiles.days
+        rows.append(
+            (
+                stats.strategy,
+                wording.spread(days, quantities.duration),
+                quantities.duration(days.high) if days.counted else wording.NOTHING,
+                wording.spread(stats.tiles.geo_mean, _percent),
+            )
+        )
+    return tables.written("How long a window runs", _WINDOWS, rows)
 
 
 def _share(strategy: str, name: str, measured: Spread) -> Row:
@@ -93,29 +80,18 @@ def _share(strategy: str, name: str, measured: Spread) -> Row:
     return (
         strategy,
         name,
-        f"{measured.mean:.1%}",
-        f"± {measured.deviation:.1%}",
-        f"{measured.low:.1%}",
+        wording.spread(measured, _percent),
+        _percent(measured.low) if measured.counted else wording.NOTHING,
     )
 
 
-def _length(stats: DatasetStats) -> Row:
-    """Write how long one strategy's windows run.
+def _percent(share: float) -> str:
+    """Write a share as a percentage.
 
     Args:
-        stats: What it made of the features swept.
+        share: The share, from nought to one.
 
     Returns:
-        The row.
+        The percentage, to one decimal place.
     """
-    days, geo_mean = stats.held.days, stats.held.geo_mean
-    if not days.counted:
-        return (stats.strategy,) + (wording.NOTHING,) * 5
-    return (
-        stats.strategy,
-        quantities.duration(days.mean),
-        f"± {quantities.duration(days.deviation)}",
-        quantities.duration(days.high),
-        f"{geo_mean.mean:.1%}",
-        f"± {geo_mean.deviation:.1%}",
-    )
+    return f"{share:.1%}"

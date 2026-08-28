@@ -10,7 +10,6 @@ from sampling import searching
 from sampling.models.study import Study
 from selector import strategies
 from selector.models.strategy import Strategy
-from selector.models.survey import Survey
 
 Stretch = tuple[datetime, datetime]
 
@@ -38,7 +37,7 @@ def studied(coverage: Sequence[SetCoverage], strategy: Strategy) -> Study:
     if key not in _found:
         if len(_found) >= STUDY_CACHE:
             _found.clear()
-        _found[key] = searching.study(coverage, strategy)
+        _found[key] = searching.study_feature(coverage, strategy)
     return _found[key]
 
 
@@ -51,28 +50,6 @@ def opening() -> Strategy:
     if DEFAULT_STRATEGY in strategies.STRATEGIES:
         return strategies.STRATEGIES[DEFAULT_STRATEGY]
     return next(iter(strategies.STRATEGIES.values()))
-
-
-def stretches(found: Sequence[Survey]) -> list[Stretch]:
-    """Merge the windows the tiles earned into the time they are open over.
-
-    Args:
-        found: The windows the tiles earned, in any order.
-
-    Returns:
-        The stretches at least one window is open over, earliest first and disjoint.
-    """
-    if not found:
-        return []
-    ordered = sorted((survey.start, survey.end) for survey in found)
-    merged: list[Stretch] = [ordered[0]]
-    for opened, closed in ordered[1:]:
-        held = merged[-1]
-        if opened <= held[1]:
-            merged[-1] = (held[0], max(held[1], closed))
-        else:
-            merged.append((opened, closed))
-    return merged
 
 
 def _key(coverage: Sequence[SetCoverage]) -> tuple:

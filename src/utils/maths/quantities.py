@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-_STEPS = ((1e9, "G"), (1e6, "M"), (1e3, "k"))
+_STEPS = ((1e12, "T"), (1e9, "G"), (1e6, "M"), (1e3, "k"))
 
 
 def compact(value: float) -> str:
@@ -12,7 +12,7 @@ def compact(value: float) -> str:
         value: The count.
 
     Returns:
-        The count itself when small, and otherwise in thousands, millions, or billions.
+        The count itself when small, and otherwise in thousands and up.
     """
     for limit, suffix in _STEPS:
         if value >= limit:

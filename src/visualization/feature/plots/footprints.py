@@ -2,18 +2,16 @@
 
 from __future__ import annotations
 
-import threading
-
 import ipywidgets as widgets
 from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
 
-from sampling.stats import tiles
-from visualization.common import panels, series
+from sampling import measuring
+from visualization.common import panels
 from visualization.feature import picker
 from visualization.feature.picker import TileView
-from visualization.feature.plots import basemap, outlines, overlay
-from visualization.feature.plots.overlay import Box, Placed
+from visualization.feature.plots import mosaic, outlines, placing
+from visualization.feature.plots.placing import Box, Placed
 
 MAP_FIGURE_SIZE = (9.0, 6.0)
 
@@ -27,7 +25,6 @@ TRACE_ALPHA = 0.85
 NOTE_COLOUR = "#ffffff"
 NOTE_SIZE = 11
 
-_UNKNOWN = "this feature has no lon/lat box to crop the mosaic to"
 _NOTHING = "No footprints available"
 
 
@@ -43,47 +40,16 @@ def plot(chosen: TileView | None) -> widgets.Widget:
     if chosen is None:
         return panels.unavailable(picker.NO_TILE)
     summary = chosen.view.coverage[0].summary
-    grid = overlay.placed(
-        summary.feature_class,
-        summary.feature_name,
-        summary.grid_side,
-        chosen.across,
+    grid = placing.placed(
+        summary.feature_class, summary.feature_name, summary.grid_side, chosen.across
     )
     if grid is None:
-        return panels.unavailable(overlay.BASEMAP_FAILED.format(reason=_UNKNOWN))
-    note = (
-        f"<div style='color: {panels.GREY}; font-family: sans-serif;"
-        f" font-size: 12px; padding: 12px;'>{overlay.BASEMAP_LOADING}</div>"
-    )
-    space = widgets.Box([widgets.HTML(note)])
-    threading.Thread(target=_fill, args=(space, grid, chosen), daemon=True).start()
-    return space
+        return panels.unavailable(mosaic.BASEMAP_FAILED.format(reason=mosaic.NO_BOX))
+    box = grid.tile_box(chosen.stats.row, chosen.stats.column)
+    return mosaic.fetched(box, lambda image: figure(grid, chosen, box, image))
 
 
-def _fill(space: widgets.Box, grid: Placed, chosen: TileView) -> None:
-    """Put the fetched map in the space claimed for it.
-
-    Args:
-        space: The claimed space, already on screen.
-        grid: Where the feature's grid falls on the mosaic.
-        chosen: The tile on show.
-
-    Returns:
-        None.
-    """
-    stats = chosen.stats
-    box = grid.tile_box(stats.row, stats.column)
-    try:
-        image = overlay.crop(box)
-    except Exception as exc:
-        space.children = (
-            panels.unavailable(overlay.BASEMAP_FAILED.format(reason=exc)),
-        )
-        return
-    space.children = (_figure(grid, chosen, box, image),)
-
-
-def _figure(grid: Placed, chosen: TileView, box: Box, image: bytes) -> widgets.Widget:
+def figure(grid: Placed, chosen: TileView, box: Box, image: bytes) -> widgets.Widget:
     """Draw the tile's crop with the footprints its window keeps traced on it.
 
     Args:
@@ -95,55 +61,43 @@ def _figure(grid: Placed, chosen: TileView, box: Box, image: bytes) -> widgets.W
     Returns:
         The figure as a widget, carrying the crop alone where there is nothing to trace.
     """
-    shapes = outlines.read(chosen.view.coverage)
-    figure, axis = panels.board(MAP_FIGURE_SIZE)
-    basemap.mosaic(axis, box, image)
+    drawn, axis = panels.board(MAP_FIGURE_SIZE)
+    mosaic.draw(axis, box, image)
     lon, lat = grid.tile(chosen.stats.row, chosen.stats.column)
     axis.plot(lon, lat, color=TILE_EDGE, linewidth=TILE_WIDTH)
-    colours = _traces(axis, grid, chosen, shapes)
+    colours = _traces(axis, grid, chosen)
     if not colours:
-        axis.text(
-            0.5,
-            0.5,
-            _NOTHING,
-            transform=axis.transAxes,
-            ha="center",
-            va="center",
-            color=NOTE_COLOUR,
-            fontsize=NOTE_SIZE,
-        )
+        panels.note(axis, _NOTHING, colour=NOTE_COLOUR, size=NOTE_SIZE)
     axis.set_title(chosen.name, fontsize=12, loc="left")
     axis.set_xlabel("Longitude")
     axis.set_ylabel("Latitude")
     axis.tick_params(labelsize=8)
     panels.key_beside(
-        figure,
+        drawn,
         [
             Line2D([], [], color=colour, linewidth=TRACE_WIDTH, label=label)
             for label, colour in colours.items()
         ],
     )
-    return panels.rendered(figure)
+    return panels.rendered(drawn)
 
 
-def _traces(
-    axis: Axes, grid: Placed, chosen: TileView, shapes: dict
-) -> dict[str, tuple]:
+def _traces(axis: Axes, grid: Placed, chosen: TileView) -> dict[str, panels.Colour]:
     """Trace the footprint of every observation the tile keeps.
 
     Args:
         axis: The panel to draw on.
         grid: Where the feature's grid falls on the mosaic.
         chosen: The tile on show.
-        shapes: The published footprint of each observation, by product id.
 
     Returns:
         The colour each instrument set was drawn in, by set label.
     """
     track = chosen.track
-    colours = panels.colours(series.over_tile(track))
-    drawn: dict[str, tuple] = {}
-    for index in tiles.held(chosen.survey):
+    shapes = outlines.read(chosen.view.coverage)
+    colours = panels.colours(track.labels)
+    drawn: dict[str, panels.Colour] = {}
+    for index in measuring.kept_observations(chosen.survey):
         shape = shapes.get(track.observations[index].pdsid)
         if shape is None:
             continue

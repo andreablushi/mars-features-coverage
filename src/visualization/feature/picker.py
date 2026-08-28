@@ -7,12 +7,13 @@ from dataclasses import dataclass
 import ipywidgets as widgets
 from IPython.display import display
 
+from sampling import measuring
 from sampling.models.tiles import TileStats
-from sampling.stats import tiles
 from selector.models.survey import Survey
 from selector.models.track import Track
 from visualization.common import panels, surveys
-from visualization.common.picker import Areas, FeaturePicker, View
+from visualization.common.areas import Areas
+from visualization.common.picker import FeaturePicker, View
 from visualization.common.surveys import Stretch
 
 NO_TILE = "Confirm a feature above and pick one of its tiles to fill this in."
@@ -111,6 +112,9 @@ class TilePicker(Areas[TileView | None]):
     def _follows(self, view: View) -> None:
         """Rebuild the tile list from the feature the picker just confirmed.
 
+        The first tile is picked as the list is filled, so every area below is
+        drawn for it rather than waiting on a choice.
+
         Args:
             view: The feature on show and the strategy it is judged under.
 
@@ -122,6 +126,7 @@ class TilePicker(Areas[TileView | None]):
         self._choice.options = [
             (_named(held), at) for at, held in enumerate(self._held)
         ]
+        self._choice.index = 0 if self._held else None
         self._loading = False
         self._status.children = () if self._held else (panels.unavailable(NO_TILES),)
         self.refill()
@@ -160,7 +165,7 @@ def _tiles(view: View) -> list[TileView]:
             across=study.grid.across,
         )
         for track, picked, stats in zip(
-            study.tracks, study.surveys, tiles.measured(study), strict=True
+            study.tracks, study.surveys, measuring.measured_tiles(study), strict=True
         )
     ]
 

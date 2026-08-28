@@ -81,7 +81,7 @@ def _draw(
     Returns:
         The figure as a widget.
     """
-    colours = panels.colours(drawn)
+    colours = panels.colours([one.label for one in drawn])
     figure, axes = plt.subplots(
         len(drawn),
         1,
@@ -131,16 +131,7 @@ def _panel(axis, one: Series, colour) -> None:
         zorder=3,
     )
     if not one.observed:
-        axis.text(
-            0.5,
-            0.5,
-            one.reason,
-            transform=axis.transAxes,
-            ha="center",
-            va="center",
-            fontsize=9,
-            color=panels.GREY,
-        )
+        panels.note(axis, one.reason)
     axis.set_ylabel(one.label, rotation=0, ha="right", va="center", fontsize=9)
     panels.tidy(axis, percent="y", grid="y")
 

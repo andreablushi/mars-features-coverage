@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-
 import ipywidgets as widgets
 
+from sampling import measuring
 from sampling.models.tiles import TileStats
-from sampling.stats import tiles
 from utils.maths import quantities
 from visualization.common import panels, tables, wording
 from visualization.common.tables import Row
@@ -30,10 +28,7 @@ def plot(chosen: TileView | None) -> widgets.Widget:
     if chosen is None:
         return panels.unavailable(picker.NO_TILE)
     return tables.written(
-        f"{chosen.name}  -  what it holds",
-        _HEADINGS,
-        _rows(chosen.stats),
-        lead=f"searched under {chosen.view.strategy.name}",
+        f"{chosen.name}  -  what it holds", _HEADINGS, _rows(chosen.stats)
     )
 
 
@@ -50,17 +45,25 @@ def _rows(stats: TileStats) -> list[Row]:
         ("Ground the tile covers", quantities.area(stats.area_km2)),
         ("How long its window lasts", _window(stats)),
         ("Ground its window reaches", f"{stats.geo_mean:.0%}" if stats.kept else _NONE),
+        (
+            "Looks too small inside the window",
+            f"{stats.refused:,}, with {stats.turned_away:,} too small for the tile "
+            f"at all",
+        ),
+        (
+            "Pixels its window holds",
+            wording.pixels(_pixels(stats)) if stats.kept else _NONE,
+        ),
     ]
-    written += _observations(stats)
     written += [
         (f"Ground {iid} reaches", _reach(stats, iid)) for iid in sorted(stats.reached)
     ]
     written += [
         (
-            f"Ground reached by {counted} instrument{'' if counted == 1 else 's'}",
+            f"Ground reached by {wording.counted(shared, 'instrument')}",
             wording.ground(km2, stats.area_km2),
         )
-        for counted, km2 in tiles.shared(stats.overlaps).items()
+        for shared, km2 in measuring.ground_by_instrument_count(stats.overlaps).items()
     ]
     return written
 
@@ -82,28 +85,6 @@ def _window(stats: TileStats) -> str:
     )
 
 
-def _observations(stats: TileStats) -> list[Row]:
-    """Write what became of the observations the tile was offered.
-
-    Args:
-        stats: The tile, as the search left it.
-
-    Returns:
-        One row per fate an observation could meet, and the pixels the kept landed.
-    """
-    return [
-        (
-            "Looks too small inside the window",
-            f"{stats.refused:,}, with {stats.turned_away:,} too small for the tile "
-            f"at all",
-        ),
-        (
-            "Pixels its window holds",
-            wording.pixels(_pixels(stats)) if stats.kept else _NONE,
-        ),
-    ]
-
-
 def _reach(stats: TileStats, iid: str) -> str:
     """Write what one instrument left on the tile.
 
@@ -116,8 +97,8 @@ def _reach(stats: TileStats, iid: str) -> str:
     """
     reach = stats.reached[iid]
     share = f"{reach.km2 / stats.area_km2:.0%}" if stats.area_km2 else wording.NOTHING
-    counted = f"{reach.taken:,} observation{'' if reach.taken == 1 else 's'}"
-    return f"{share}, {wording.pixels(reach.pixels)}, from {counted}"
+    taken = wording.counted(reach.observations_taken, "observation")
+    return f"{share}, {wording.pixels(reach.pixels)}, from {taken}"
 
 
 def _pixels(stats: TileStats) -> float | None:
@@ -129,7 +110,7 @@ def _pixels(stats: TileStats) -> float | None:
     Returns:
         The total, or None when any instrument carries no count.
     """
-    counted: Sequence[float | None] = [reach.pixels for reach in stats.reached.values()]
+    counted = [reach.pixels for reach in stats.reached.values()]
     if any(count is None for count in counted):
         return None
     return sum(count for count in counted if count is not None)

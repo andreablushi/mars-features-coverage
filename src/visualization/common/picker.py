@@ -2,19 +2,21 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 import ipywidgets as widgets
 from IPython.display import display
 
+import utils.disk.settings as settings
 from coverage import summary
 from coverage.results import SetCoverage
 from metadata import catalog
 from selector import strategies
 from selector.models.strategy import Strategy
 from utils.disk.slugify import slugify
-from visualization.common import panels, sets, surveys
+from visualization.common import panels, surveys
+from visualization.common.areas import Areas
 
 # The feature class the picker opens on.
 DEFAULT_CLASS = "Crater"
@@ -35,55 +37,30 @@ class View:
     strategy: Strategy
 
 
-class Areas[Chosen]:
-    """Areas claimed under a picker, refilled whenever its choice changes."""
+def drawn_sets(coverage: Sequence[SetCoverage]) -> list[SetCoverage]:
+    """Keep the instrument sets the config draws, in the order it names them.
 
-    def __init__(self) -> None:
-        """Open with nothing claimed yet.
+    Args:
+        coverage: Every instrument set loaded for one feature.
 
-        Returns:
-            None.
-        """
-        self._areas: list[tuple[widgets.Box, Callable[[Chosen], widgets.Widget]]] = []
-
-    @property
-    def chosen(self) -> Chosen:
-        """Return what the areas are drawn for.
-
-        Returns:
-            The current choice, which every claimed area is handed.
-
-        Raises:
-            NotImplementedError: When a picker has not said what it picks.
-        """
-        raise NotImplementedError
-
-    def show_panel(self, render: Callable[[Chosen], widgets.Widget]) -> None:
-        """Claim an area here and fill it whenever the choice changes.
-
-        Args:
-            render: What to draw in it, given the current choice.
-
-        Returns:
-            None.
-        """
-        area = widgets.VBox()
-        self._areas = [claimed for claimed in self._areas if claimed[1] is not render]
-        self._areas.append((area, render))
-        display(area)
-        area.children = (render(self.chosen),)
-
-    def refill(self) -> None:
-        """Redraw every claimed area from the current choice.
-
-        Returns:
-            None.
-        """
-        chosen = self.chosen
-        for area, _ in self._areas:
-            area.children = ()
-        for area, render in self._areas:
-            area.children = (render(chosen),)
+    Returns:
+        The sets the config names, in the order it names them.
+    """
+    config = settings.load()
+    wanted = config.plot_instrument_sets
+    # A config naming no set draws every one, in the order the config ranks them
+    keys = {chosen.key for chosen in wanted or ()}
+    kept = (
+        list(coverage)
+        if wanted is None
+        else [one for one in coverage if one.summary.set_key in keys]
+    )
+    ranks = {
+        chosen.key: rank for rank, chosen in enumerate(wanted or config.instrument_sets)
+    }
+    return sorted(
+        kept, key=lambda instrument: ranks.get(instrument.summary.set_key, len(ranks))
+    )
 
 
 class FeaturePicker(Areas[View]):
@@ -110,20 +87,14 @@ class FeaturePicker(Areas[View]):
         self.selection: tuple[str, str] | None = None
         self.coverage: list[SetCoverage] = []
         self._following: list[Callable[[View], None]] = []
-        self._class = widgets.Dropdown(
-            options=sorted(self._names),
-            description="Type:",
-            value=DEFAULT_CLASS if DEFAULT_CLASS in self._names else None,
-            layout=widgets.Layout(width=DROPDOWN_WIDTH),
+        self._class = _dropdown(
+            "Type:", options=sorted(self._names), value=DEFAULT_CLASS
         )
-        self._name = widgets.Dropdown(
-            description="Name:", layout=widgets.Layout(width=DROPDOWN_WIDTH)
-        )
-        self._strategy = widgets.Dropdown(
+        self._name = _dropdown("Name:")
+        self._strategy = _dropdown(
+            "Strategy:",
             options=sorted(strategies.STRATEGIES),
-            description="Strategy:",
             value=surveys.opening().name,
-            layout=widgets.Layout(width=DROPDOWN_WIDTH),
         )
         self._confirm = widgets.Button(
             description="Confirm", button_style="primary", icon="check"
@@ -217,7 +188,7 @@ class FeaturePicker(Areas[View]):
         feature_class, name = self._class.value, self._name.value
         self.selection = (feature_class, name)
         if self._has_data(feature_class, name):
-            self.coverage = sets.plotted(summary.load_feature(feature_class, name))
+            self.coverage = drawn_sets(summary.load_feature(feature_class, name))
             note = widgets.HTML(
                 f"Loaded <b>{feature_class} / {name}</b>. "
                 f"The cells below have filled in."
@@ -240,3 +211,24 @@ class FeaturePicker(Areas[View]):
         self.refill()
         for follow in self._following:
             follow(view)
+
+
+def _dropdown(
+    description: str, options: Sequence[str] = (), value: str | None = None
+) -> widgets.Dropdown:
+    """Build one of the picker's dropdowns, all set to the same width.
+
+    Args:
+        description: The label beside it.
+        options: What it offers, and nothing until a choice above fills it.
+        value: What it opens on, ignored where it is not on offer.
+
+    Returns:
+        The dropdown.
+    """
+    return widgets.Dropdown(
+        description=description,
+        options=options,
+        value=value if value in options else None,
+        layout=widgets.Layout(width=DROPDOWN_WIDTH),
+    )

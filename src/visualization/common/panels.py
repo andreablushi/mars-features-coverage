@@ -15,15 +15,15 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import PercentFormatter
 
 from coverage.results import SetCoverage
-from visualization.common.series import Series
 
 GREY = "#8a8a8a"
 
+# How a tile that earned a window is marked, and one the search refused.
+KEPT = "#2e7d32"
+REFUSED = "#c62828"
+
 # How wide every stacked figure is drawn.
 FIGURE_WIDTH = 11
-
-# The ramp a heat panel is coloured by.
-COLORMAP = "YlGnBu"
 
 # The strip left clear under a map for the key naming what it draws.
 KEY_HEIGHT = 0.085
@@ -45,17 +45,16 @@ SURVEY_ALPHA = 0.18
 Colour = tuple[float, float, float]
 
 
-def colours(drawn: Sequence[Series]) -> dict[str, Colour]:
+def colours(labels: Sequence[str]) -> dict[str, Colour]:
     """Assign a colour to each instrument set.
 
     Args:
-        drawn: What each set observed, in the order to colour them.
+        labels: The name of each set, in the order to colour them.
 
     Returns:
         One colour per instrument set label.
     """
-    wheel = cycle(plt.cm.tab10.colors)
-    return {one.label: colour for one, colour in zip(drawn, wheel, strict=False)}
+    return dict(zip(labels, cycle(plt.cm.tab10.colors), strict=False))
 
 
 def board(size: tuple[float, float]) -> tuple[Figure, Axes]:
@@ -109,6 +108,30 @@ def key_beside(figure: Figure, handles: Sequence) -> None:
         loc="upper left",
         bbox_to_anchor=(KEY_SIDE, KEY_TOP),
         frameon=False,
+    )
+
+
+def note(axis: Axes, text: str, colour: str = GREY, size: float = 9) -> None:
+    """Write a line across the middle of a panel that has nothing to draw.
+
+    Args:
+        axis: The panel to write on.
+        text: What the line reads.
+        colour: The colour to write it in, grey unless the panel is a dark map.
+        size: How large to write it.
+
+    Returns:
+        None.
+    """
+    axis.text(
+        0.5,
+        0.5,
+        text,
+        transform=axis.transAxes,
+        ha="center",
+        va="center",
+        fontsize=size,
+        color=colour,
     )
 
 

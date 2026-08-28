@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
+from bisect import bisect_left
+
 from selector import configs
 from selector.filters import floors, redundancy, timeless
 from selector.models.counter import Counter
-from selector.models.strategy import Strategy
+from selector.models.strategy import Constraints, Strategy
 from selector.models.survey import Survey
 from selector.models.track import Track
 from selector.models.window import Window
-from selector.utils import constraints, scoring
-from selector.utils.constraints import Constraints
+from selector.utils import scoring
 
 
 def search(track: Track, strategy: Strategy) -> Survey | None:
@@ -18,15 +19,13 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
 
     Args:
         track: The admissible observations on one time axis.
-        strategy: Which instruments the window has to hold, and how much ground each.
+        strategy: The strategy read against the feature, holding what a tile is asked.
 
     Returns:
         The chosen window, or None when no window is worth keeping.
     """
-    # Pick up the strategy's requirements, every one of which is mandatory
-    windowed, standing = constraints.read_strategy(
-        strategy, track.iids, track.area_km2, track.cell_km2
-    )
+    # What the strategy asks of this tile, worked out once when it was read
+    windowed, standing = strategy.windowed[track.tile], strategy.standing[track.tile]
     # What time cannot change is asked of the whole record rather than a window
     if standing:
         whole = Counter.over(track, 0, len(track.observations) - 1)
@@ -63,20 +62,49 @@ def _best(track: Track, windowed: Constraints, strategy: Strategy) -> Window | N
         The window worth the most, or None when no window is worth keeping.
     """
     span_days = strategy.span_days
+    looked = _looked_before(track)
+    reached = [0] * len(track.iids)
     best: Window | None = None
     worth = float("-inf")
     # Loop over the observation as bound of the window
     for left in range(len(track.observations)):
-        counter = Counter.empty(track.iids, track.grid_cells)
+        for owner in range(len(reached)):
+            reached[owner] = 0
         for right in range(left, len(track.observations)):
             days = track.times[right] - track.times[left]
             if days > span_days:
                 break
-            counter.hold(track.owners[right], track.cells[right])
-            counts = floors.met(windowed, counter.cells_reached)
+            fresh = bisect_left(looked[right], left)
+            if not fresh:
+                continue
+            reached[track.owners[right]] += fresh
+            counts = floors.met(windowed, reached)
             if counts is None:
                 continue  # the window does not hold what the strategy asks
             paid = scoring.scored(track, counts, days)
             if paid > worth:
                 best, worth = Window(left, right, days), paid
     return best
+
+
+def _looked_before(track: Track) -> list[list[int]]:
+    """Say where each observation's own set last reached each cell it fills.
+
+    Args:
+        track: The admissible observations on one time axis.
+
+    Returns:
+        For each observation, where on the axis its own set last reached each of
+        its cells, or -1 for a cell that set had never reached, in order.
+    """
+    seen: list[dict[int, int]] = [{} for _ in track.iids]
+    looked: list[list[int]] = []
+    for index, owner in enumerate(track.owners):
+        last = seen[owner]
+        before: list[int] = []
+        for cell in track.cells[index].tolist():
+            before.append(last.get(cell, -1))
+            last[cell] = index
+        before.sort()
+        looked.append(before)
+    return looked

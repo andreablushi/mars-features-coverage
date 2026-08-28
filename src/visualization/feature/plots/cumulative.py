@@ -18,7 +18,7 @@ UNOBSERVED_LINESTYLE = (0, (1, 3))
 CUMULATIVE_FIGURE_SIZE = (13, 5)
 CUMULATIVE_WIDTH_RATIOS = [3, 1]
 
-_FEATURE_GROUND = "Share of the feature covered so far"
+_GROUND = "Share of the feature covered so far"
 
 
 def plot(view: View) -> widgets.Widget:
@@ -32,25 +32,8 @@ def plot(view: View) -> widgets.Widget:
     """
     if not view.coverage:
         return panels.unavailable()
-    return _draw(
-        series.over_feature(view.coverage),
-        f"{panels.title(view.coverage)}  -  cumulative coverage",
-        _FEATURE_GROUND,
-    )
-
-
-def _draw(drawn: Sequence[Series], title: str, ground: str) -> widgets.Widget:
-    """Draw the running curve per instrument set beside its final total.
-
-    Args:
-        drawn: What each set observed of the ground on show.
-        title: The line above the running curve.
-        ground: What the heights are a share of.
-
-    Returns:
-        The figure as a widget.
-    """
-    colours = panels.colours(drawn)
+    drawn = series.over_feature(view.coverage)
+    colours = panels.colours([one.label for one in drawn])
     figure, (running, bars) = plt.subplots(
         1,
         2,
@@ -72,9 +55,10 @@ def _draw(drawn: Sequence[Series], title: str, ground: str) -> widgets.Widget:
                 else f"{one.label}  ({one.reason})"
             ),
         )
+    title = f"{panels.title(view.coverage)}  -  cumulative coverage"
     running.set_title(title, fontsize=12, loc="left")
     running.set_xlabel("Observation start time")
-    running.set_ylabel(ground)
+    running.set_ylabel(_GROUND)
     running.set_ylim(0, 1.05)
     running.set_xlim(right=last)
     panels.tidy(running, percent="y", grid="both")
