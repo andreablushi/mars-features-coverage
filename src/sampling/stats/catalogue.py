@@ -19,6 +19,7 @@ def read() -> CatalogueStats:
         What it holds, and nothing at all when no feature was measured.
     """
     rows = index.catalogued_rows()
+    catalogued = read_features()
     # One row per feature carries the grid, which every set of it shares
     features: dict[tuple[str, str], Summary] = {}
     grouped: dict[str, list[Summary]] = {}
@@ -30,8 +31,9 @@ def read() -> CatalogueStats:
     for (feature_class, _), row in features.items():
         grounds.setdefault(feature_class, []).append(row.feature_area_km2)
     return CatalogueStats(
+        catalogued=len(catalogued),
         features=len(features),
-        points=sum(1 for feature in read_features() if feature.is_point),
+        points=sum(1 for feature in catalogued if feature.is_point),
         classes=dict(counted.most_common()),
         class_km2={name: statistics.fmean(held) for name, held in grounds.items()},
         area_km2=sum(row.feature_area_km2 for row in features.values()),

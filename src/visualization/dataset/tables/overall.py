@@ -38,10 +38,11 @@ def measured(stats: CatalogueStats) -> widgets.Widget:
         "The ODE dataset that was measured",
         _FEATURES,
         [
-            ("Features", f"{stats.features:,}"),
-            ("Feature classes", f"{len(stats.classes):,}"),
+            ("Features catalogued", f"{stats.catalogued:,}"),
             ("Features dropped as points", f"{stats.points:,}"),
-            ("Ground", quantities.area(stats.area_km2)),
+            ("Features measured", f"{stats.features:,}"),
+            ("Feature classes", f"{len(stats.classes):,}"),
+            ("Ground, features summed", quantities.area(stats.area_km2)),
         ],
     )
 

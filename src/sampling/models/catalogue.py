@@ -49,7 +49,8 @@ class CatalogueStats:
     """What the measured dataset holds, whatever a strategy would make of it.
 
     Attributes:
-        features: How many features were measured.
+        catalogued: How many features the ODE catalogue holds altogether.
+        features: How many of them were measured.
         points: How many the catalogue gives no extent, so none could be measured.
         classes: How many features each class holds, most features first.
         class_km2: How much ground the mean feature of each class holds, by class.
@@ -57,6 +58,7 @@ class CatalogueStats:
         instruments: What each instrument holds, most observations first.
     """
 
+    catalogued: int
     features: int
     points: int
     classes: dict[str, int]
