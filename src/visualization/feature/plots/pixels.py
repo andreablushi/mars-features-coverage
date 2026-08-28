@@ -8,7 +8,7 @@ import ipywidgets as widgets
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
-from matplotlib.ticker import FuncFormatter
+from matplotlib.ticker import FuncFormatter, MaxNLocator
 
 from utils.maths import quantities
 from visualization.common import panels, wording
@@ -17,18 +17,24 @@ from visualization.feature.stats import landed
 from visualization.feature.stats.landed import Landed
 
 # One panel per instrument set, each on a scale of its own, so height is per panel
-PANEL_HEIGHT = 1.55
+PANEL_HEIGHT = 1.4
 
 # The strip left clear above the panels, in inches, for the line naming the tile.
 TITLE_BAND = 0.42
 
-# How many points one curve is drawn through.
-CURVE_POINTS = 400
-CURVE_WIDTH = 1.6
-CURVE_FILL = 0.15
+# How many places along the axis the observations are counted into.
+BINS = 60
 
-# How wide a bell is drawn where the observations agree too closely to spread one.
-SMOOTHING = 0.02
+# A stem standing where the looks landed, as tall as there are of them, and the
+# room left above the tallest so a point never sits on the panel above.
+STEM_ALPHA = 0.35
+STEM_WIDTH = 0.7
+POINT_SIZE = 12
+POINT_ALPHA = 0.65
+HEADROOM = 1.25
+
+# The room left past the furthest look, so the last stem stands clear of the edge.
+MARGIN = 1.05
 
 # How the pixels a strategy asks for are marked.
 BAR_COLOUR = "#1a1a1a"
@@ -81,7 +87,7 @@ def _draw(drawn: Sequence[Landed], title: str) -> widgets.Widget:
 
 
 def _panel(axis: Axes, one: Landed, colour) -> None:
-    """Draw one instrument set's counts as a bell over its own axis.
+    """Draw a stem for every place the set's looks landed, on its own axis.
 
     Args:
         axis: The panel to draw on.
@@ -95,15 +101,13 @@ def _panel(axis: Axes, one: Landed, colour) -> None:
     # The axis reaches the bar even where every look fell short of it
     top = max(float(counts.max()), one.bar) if counts.size else 0.0
     if top > 0.0:
-        across = np.linspace(0.0, top, CURVE_POINTS)
-        bell = _bell(counts, across, top)
-        axis.plot(across, bell, color=colour, linewidth=CURVE_WIDTH)
-        axis.fill_between(across, bell, color=colour, alpha=CURVE_FILL, linewidth=0)
+        tallest = _looks(axis, counts, colour, top)
         _bar(axis, one.bar)
         _reading(axis, one, counts)
-        axis.set_xlim(0.0, top)
-        axis.set_ylim(bottom=0.0)
+        axis.set_xlim(0.0, top * MARGIN)
+        axis.set_ylim(0.0, tallest * HEADROOM)
         axis.xaxis.set_major_formatter(FuncFormatter(_short))
+        axis.yaxis.set_major_locator(MaxNLocator(integer=True, nbins=3))
     else:
         axis.text(
             0.5,
@@ -117,28 +121,38 @@ def _panel(axis: Axes, one: Landed, colour) -> None:
         )
         axis.set_xticks([])
     axis.set_ylabel(one.label, rotation=0, ha="right", va="center", fontsize=9)
-    axis.set_yticks([])
     axis.tick_params(labelsize=8)
-    axis.grid(axis="x", alpha=0.25, linewidth=0.5)
-    axis.spines[["top", "right", "left"]].set_visible(False)
+    axis.grid(axis="both", alpha=0.25, linewidth=0.5)
+    axis.spines[["top", "right"]].set_visible(False)
 
 
-def _bell(counts: np.ndarray, across: np.ndarray, top: float) -> np.ndarray:
-    """Spread one set's counts into the bell they make along the axis.
+def _looks(axis: Axes, counts: np.ndarray, colour, top: float) -> int:
+    """Stand a stem where the looks landed, as tall as there are of them.
 
     Args:
-        counts: The pixels each of its observations landed.
-        across: The points along the axis the bell is drawn through.
-        top: How far the axis runs, which sets how wide a flat bell is drawn.
+        axis: The panel to draw on.
+        counts: The pixels each of the set's observations landed.
+        colour: The colour the set is drawn in.
+        top: How far the axis runs, which the counting is spread over.
 
     Returns:
-        How thickly the observations sit at each of those points.
+        How many observations the busiest place along the axis holds.
     """
-    spread = float(counts.std())
-    # Silverman's rule, held open so counts that agree closely still draw as a bell
-    width = max(1.06 * spread * counts.size**-0.2, top * SMOOTHING)
-    standard = (across[:, None] - counts[None, :]) / width
-    return np.exp(-0.5 * standard * standard).sum(axis=1) / counts.size
+    counted, edges = np.histogram(counts, bins=BINS, range=(0.0, top))
+    middles = (edges[:-1] + edges[1:]) / 2.0
+    standing = counted > 0
+    at, high = middles[standing], counted[standing]
+    axis.vlines(at, 0.0, high, color=colour, alpha=STEM_ALPHA, linewidth=STEM_WIDTH)
+    axis.scatter(
+        at,
+        high,
+        s=POINT_SIZE,
+        alpha=POINT_ALPHA,
+        color=colour,
+        edgecolors="none",
+        zorder=3,
+    )
+    return int(counted.max())
 
 
 def _bar(axis: Axes, asked: float) -> None:
