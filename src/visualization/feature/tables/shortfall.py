@@ -4,14 +4,12 @@ from __future__ import annotations
 
 import ipywidgets as widgets
 
-from sampling.models.tiles import TileStats
-from utils.maths import quantities
 from visualization.common import panels, tables
 from visualization.common.tables import Mark, Row
 from visualization.feature import picker
 from visualization.feature.picker import TileView
 from visualization.feature.stats import shortfall
-from visualization.feature.stats.shortfall import Attempt, Shortfall
+from visualization.feature.stats.shortfall import Shortfall
 
 _HEADINGS = (
     "Asked of",
@@ -19,18 +17,7 @@ _HEADINGS = (
     "In the best window",
     "Over the whole record",
 )
-_NONE = "-"
 _WHOLE_RECORD = "whole record"
-_NO_WINDOW = (
-    "No window at all, even with no ground asked: an instrument the strategy "
-    "names left nothing on this tile."
-)
-_NOTE = (
-    "The best window is the one scoring highest once the ground bars are lifted, "
-    "so an instrument short of its bar there may still reach it in some other "
-    "window. The whole record is the most it ever reaches, so an instrument short "
-    "there can never answer for this tile at all."
-)
 
 
 def plot(chosen: TileView | None) -> widgets.Widget:
@@ -49,46 +36,6 @@ def plot(chosen: TileView | None) -> widgets.Widget:
         f"{chosen.name}  -  the most it could bring",
         _HEADINGS,
         [_row(asked) for asked in attempt.asked],
-        lead=_lead(chosen, attempt),
-        note=_NOTE,
-    )
-
-
-def _lead(chosen: TileView, attempt: Attempt) -> str:
-    """Say what the tile made of the search, and what the unfloored one found.
-
-    Args:
-        chosen: The tile on show.
-        attempt: What it brings when no ground is asked of it.
-
-    Returns:
-        The grey line set under the title.
-    """
-    verdict = (
-        "earned a window"
-        if chosen.stats.kept
-        else "earned no window, so what follows is what it fell short of"
-    )
-    under = f"searched under {chosen.view.strategy.name}, {verdict}"
-    if attempt.stats is None:
-        return f"{under}. {_NO_WINDOW}"
-    return f"{under}. With no ground asked, the best window {_window(attempt.stats)}"
-
-
-def _window(stats: TileStats) -> str:
-    """Say how long the unfloored window runs and when it is open.
-
-    Args:
-        stats: The tile as the unfloored search left it.
-
-    Returns:
-        The length and the dates it runs between.
-    """
-    if stats.start is None or stats.end is None:
-        return _NONE
-    return (
-        f"runs {quantities.duration(stats.days)}, "
-        f"{stats.start:%Y-%m-%d} to {stats.end:%Y-%m-%d}"
     )
 
 

@@ -30,10 +30,7 @@ def plot(chosen: TileView | None) -> widgets.Widget:
     if chosen is None:
         return panels.unavailable(picker.NO_TILE)
     return tables.written(
-        f"{chosen.name}  -  what it holds",
-        _HEADINGS,
-        _rows(chosen.stats),
-        lead=f"searched under {chosen.view.strategy.name}",
+        f"{chosen.name}  -  what it holds", _HEADINGS, _rows(chosen.stats)
     )
 
 

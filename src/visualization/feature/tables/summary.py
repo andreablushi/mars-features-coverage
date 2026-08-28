@@ -33,10 +33,7 @@ def plot(view: View) -> widgets.Widget:
         study, tiles.measured(study), view.coverage[0].summary.feature_area_km2
     )
     return tables.written(
-        f"{panels.title(view.coverage)}  -  across its tiles",
-        _HEADINGS,
-        _rows(stats),
-        lead=f"searched under {view.strategy.name}",
+        f"{panels.title(view.coverage)}  -  across its tiles", _HEADINGS, _rows(stats)
     )
 
 

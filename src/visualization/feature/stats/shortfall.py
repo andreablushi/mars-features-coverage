@@ -56,13 +56,10 @@ class Attempt:
     """The best one tile could do when the ground its strategy insists on is lifted.
 
     Attributes:
-        stats: The tile as the unfloored search left it, or None when even that
-            found no window over it.
         asked: What each instrument is asked and the most it brings, in the order
             the strategy names its constraints.
     """
 
-    stats: TileStats | None
     asked: list[Shortfall]
 
 
@@ -81,7 +78,6 @@ def best(chosen: TileView) -> Attempt:
     stats = measured.get(chosen.stats.tile)
     whole = _whole(chosen.track)
     return Attempt(
-        stats=stats if stats is not None and stats.kept else None,
         asked=[
             Shortfall(
                 iid=iid,

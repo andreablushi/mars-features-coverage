@@ -32,8 +32,6 @@ def written(
     title: str,
     headings: Sequence[str],
     rows: Sequence[Row],
-    lead: str = "",
-    note: str = "",
     groups: Sequence[int] = (),
 ) -> widgets.HTML:
     """Write a table out as a panel.
@@ -42,8 +40,6 @@ def written(
         title: The bold line above it.
         headings: What each column holds, the first ranged left and the rest right.
         rows: The rows, each holding one cell per heading.
-        lead: A grey line between the title and the table, or empty for none.
-        note: A grey line under the table, or empty for none.
         groups: The rows that open a group, each ruled off from the one above it.
 
     Returns:
@@ -53,32 +49,12 @@ def written(
     body = "".join(_row(cells, at in opening) for at, cells in enumerate(rows))
     return widgets.HTML(
         f"""<div style="font-family: sans-serif; font-size: 13px;">
-          <div style="font-weight: 600; margin-bottom: 2px;">{escape(title)}</div>
-          {_aside(lead, "0 0 8px")}
+          <div style="font-weight: 600; margin-bottom: 8px;">{escape(title)}</div>
           <table style="border-collapse: collapse;">
             <tr>{"".join(_heading(name, at) for at, name in enumerate(headings))}</tr>
             {body}
           </table>
-          {_aside(note, "8px 0 0")}
         </div>"""
-    )
-
-
-def _aside(text: str, margin: str) -> str:
-    """Write one of the grey lines set around the table.
-
-    Args:
-        text: The line, or empty for none.
-        margin: The margin to set it in.
-
-    Returns:
-        The line, or nothing at all when there is none.
-    """
-    if not text:
-        return ""
-    return (
-        f'<div style="color: {panels.GREY}; font-size: 12px; margin: {margin};">'
-        f"{escape(text)}</div>"
     )
 
 
