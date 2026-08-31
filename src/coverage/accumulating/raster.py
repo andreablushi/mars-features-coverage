@@ -56,7 +56,7 @@ class FeatureRaster:
         config = settings.load()
         self.across, side = grid_for(
             math.sqrt((east - west) * (north - south)),
-            config.grid_km,
+            configs.GRID_KM,
             config.grid_cells,
         )
         self.side = side

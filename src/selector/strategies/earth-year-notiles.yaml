@@ -8,7 +8,7 @@ constraints:
 
 # The pixels an instrument has to land on a tile to be counted, at powers of two
 # is preferable
-admits: {CTX: 65536, CRISM: 256, SHARAD: 64}
+admits: {CTX: 65536, CRISM: 4096, SHARAD: 64}
 
 # How wide a tile of a feature is, in kilometres.
 tile_km: 21344.0

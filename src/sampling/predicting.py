@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 import math
-import statistics
 from collections.abc import Sequence
 
-from sampling import aggregating, configs, measuring
+from sampling import aggregating, measuring
 from sampling.models.dataset import ClassStats, DatasetStats, SearchedFeature
 from sampling.models.spread import Spread
-from sampling.models.tiles import TileStats
 
 
 def predictions(searched: Sequence[SearchedFeature]) -> dict[str, DatasetStats]:
@@ -27,7 +25,12 @@ def predictions(searched: Sequence[SearchedFeature]) -> dict[str, DatasetStats]:
     predicted: dict[str, DatasetStats] = {}
     for strategy, features in by_strategy.items():
         iids = list(dict.fromkeys(iid for one in features for iid in one.iids))
-        tiles = [tile for one in features for tile in one.tiles if _plausible(tile)]
+        tiles = [
+            tile
+            for one in features
+            for tile in one.tiles
+            if aggregating.plausible(tile)
+        ]
         grounded = [tile for tile in tiles if tile.kept and tile.area_km2]
         predicted[strategy] = DatasetStats(
             strategy=strategy,
@@ -59,7 +62,7 @@ def _per_class(
 ) -> dict[str, ClassStats]:
     """Read what a strategy made of the features of each class.
 
-    Only the features it selected are averaged, since a feature it refused
+    Only the features it selected are counted, since a feature it refused
     outright would otherwise drag the class down to nothing.
 
     Args:
@@ -69,28 +72,20 @@ def _per_class(
     Returns:
         What it made of each class, by feature class, in the order swept.
     """
-    covered: dict[str, dict[str, list[float]]] = {}
     taken: dict[str, dict[str, list[float]]] = {}
-    days: dict[str, list[float]] = {}
+    selected: dict[str, int] = {}
     for feature in features:
-        grounded = [
-            tile for tile in feature.tiles if _plausible(tile) and tile.area_km2
+        kept = [
+            tile
+            for tile in feature.tiles
+            if aggregating.plausible(tile) and tile.area_km2 and tile.kept
         ]
-        kept = [tile for tile in grounded if tile.kept]
         if not kept:
             continue
         feature_class = feature.feature_class
-        shares = covered.setdefault(feature_class, {iid: [] for iid in iids})
         counts = taken.setdefault(feature_class, {iid: [] for iid in iids})
+        selected[feature_class] = selected.get(feature_class, 0) + 1
         for iid in iids:
-            shares[iid].append(
-                statistics.fmean(
-                    tile.reached[iid].km2 / tile.area_km2
-                    if tile.kept and iid in tile.reached
-                    else 0.0
-                    for tile in grounded
-                )
-            )
             counts[iid].append(
                 sum(
                     tile.reached[iid].observations_taken
@@ -98,34 +93,10 @@ def _per_class(
                     if iid in tile.reached
                 )
             )
-        days.setdefault(feature_class, []).append(
-            statistics.fmean(tile.days for tile in kept)
-        )
     return {
         feature_class: ClassStats(
-            selected=len(days[feature_class]),
-            covered={iid: Spread.over(held) for iid, held in shares.items()},
-            taken={
-                iid: Spread.over(held) for iid, held in taken[feature_class].items()
-            },
-            days=Spread.over(days[feature_class]),
+            selected=selected[feature_class],
+            taken={iid: Spread.over(held) for iid, held in counts.items()},
         )
-        for feature_class, shares in covered.items()
+        for feature_class, counts in taken.items()
     }
-
-
-def _plausible(tile: TileStats) -> bool:
-    """Say whether a tile reports no more ground than it holds.
-
-    Args:
-        tile: One tile the search ran over.
-
-    Returns:
-        Whether every share it reports sits inside the ceiling.
-    """
-    if not tile.area_km2:
-        return True
-    shares = [reach.km2 / tile.area_km2 for reach in tile.reached.values()]
-    shares.append(sum(tile.overlaps.values()) / tile.area_km2)
-    shares.append(tile.geo_mean)
-    return max(shares) <= configs.SHARE_CEILING

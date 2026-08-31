@@ -9,21 +9,6 @@ from sampling.models.spread import Spread
 
 
 @dataclass(frozen=True, slots=True)
-class FeatureReach:
-    """What one instrument reached of one feature.
-
-    Attributes:
-        area_km2: The ground the feature's bounding box holds.
-        covered_frac: The share of that ground the instrument reached.
-        pixels_per_observation: The pixels one of its observations landed there.
-    """
-
-    area_km2: float
-    covered_frac: float
-    pixels_per_observation: float
-
-
-@dataclass(frozen=True, slots=True)
 class InstrumentStats:
     """What one instrument holds of the whole measured dataset.
 
@@ -38,7 +23,6 @@ class InstrumentStats:
             where the observations it was read from are not on disk.
         first: When the earliest of its observations was taken.
         last: When the latest of them was taken.
-        reach: What it reached of each feature it reached, one entry each.
     """
 
     iid: str
@@ -49,7 +33,6 @@ class InstrumentStats:
     union_km2: float
     first: datetime
     last: datetime
-    reach: list[FeatureReach]
 
 
 @dataclass(frozen=True, slots=True)
