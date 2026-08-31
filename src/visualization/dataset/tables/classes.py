@@ -9,7 +9,6 @@ import ipywidgets as widgets
 from sampling.models.catalogue import CatalogueStats
 from sampling.models.dataset import ClassStats, DatasetStats
 from sampling.models.spread import Spread
-from utils.maths import quantities
 from visualization.common import tables, wording
 
 Read = Mapping[str, DatasetStats]
@@ -30,43 +29,6 @@ def selected(stats: CatalogueStats, read: Read) -> widgets.Widget:
         stats,
         read,
         lambda made: f"{made.selected:,}",
-    )
-
-
-def lasting(stats: CatalogueStats, read: Read) -> widgets.Widget:
-    """Tabulate how long a window runs on a feature of each class.
-
-    Args:
-        stats: What the catalogue index holds.
-        read: What each strategy made of the features swept, by strategy name.
-
-    Returns:
-        The table as a widget.
-    """
-    return _per_class(
-        "How long a window runs on a selected feature, by class",
-        stats,
-        read,
-        lambda made: wording.spread(made.days, quantities.duration),
-    )
-
-
-def covered(stats: CatalogueStats, read: Read) -> widgets.Widget:
-    """Tabulate how much of a feature of each class each instrument would reach.
-
-    Args:
-        stats: What the catalogue index holds.
-        read: What each strategy made of the features swept, by strategy name.
-
-    Returns:
-        The table as a widget.
-    """
-    return _per_instrument(
-        "How much of a selected feature each instrument would reach, by class",
-        stats,
-        read,
-        lambda made, iid: made.covered.get(iid),
-        lambda share: f"{share:.1%}",
     )
 
 

@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from coverage import overlaps, summary
 from coverage.results import Summary
 from metadata.catalog import read_features
-from sampling.models.catalogue import CatalogueStats, FeatureReach, InstrumentStats
+from sampling.models.catalogue import CatalogueStats, InstrumentStats
 from sampling.models.spread import Spread
 
 
@@ -70,12 +70,4 @@ def _instrument(iid: str, rows: Sequence[Summary], union_km2: float) -> Instrume
         union_km2=union_km2,
         first=min(row.t_first for row in rows),
         last=max(row.t_last for row in rows),
-        reach=[
-            FeatureReach(
-                area_km2=row.feature_area_km2,
-                covered_frac=row.covered_frac,
-                pixels_per_observation=row.pixels / row.n_obs if row.n_obs else 0.0,
-            )
-            for row in rows
-        ],
     )

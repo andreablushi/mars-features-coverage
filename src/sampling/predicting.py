@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import math
-import statistics
 from collections.abc import Sequence
 
 from sampling import aggregating, configs, measuring
@@ -59,7 +58,7 @@ def _per_class(
 ) -> dict[str, ClassStats]:
     """Read what a strategy made of the features of each class.
 
-    Only the features it selected are averaged, since a feature it refused
+    Only the features it selected are counted, since a feature it refused
     outright would otherwise drag the class down to nothing.
 
     Args:
@@ -69,28 +68,20 @@ def _per_class(
     Returns:
         What it made of each class, by feature class, in the order swept.
     """
-    covered: dict[str, dict[str, list[float]]] = {}
     taken: dict[str, dict[str, list[float]]] = {}
-    days: dict[str, list[float]] = {}
+    selected: dict[str, int] = {}
     for feature in features:
-        grounded = [
-            tile for tile in feature.tiles if _plausible(tile) and tile.area_km2
+        kept = [
+            tile
+            for tile in feature.tiles
+            if _plausible(tile) and tile.area_km2 and tile.kept
         ]
-        kept = [tile for tile in grounded if tile.kept]
         if not kept:
             continue
         feature_class = feature.feature_class
-        shares = covered.setdefault(feature_class, {iid: [] for iid in iids})
         counts = taken.setdefault(feature_class, {iid: [] for iid in iids})
+        selected[feature_class] = selected.get(feature_class, 0) + 1
         for iid in iids:
-            shares[iid].append(
-                statistics.fmean(
-                    tile.reached[iid].km2 / tile.area_km2
-                    if tile.kept and iid in tile.reached
-                    else 0.0
-                    for tile in grounded
-                )
-            )
             counts[iid].append(
                 sum(
                     tile.reached[iid].observations_taken
@@ -98,19 +89,12 @@ def _per_class(
                     if iid in tile.reached
                 )
             )
-        days.setdefault(feature_class, []).append(
-            statistics.fmean(tile.days for tile in kept)
-        )
     return {
         feature_class: ClassStats(
-            selected=len(days[feature_class]),
-            covered={iid: Spread.over(held) for iid, held in shares.items()},
-            taken={
-                iid: Spread.over(held) for iid, held in taken[feature_class].items()
-            },
-            days=Spread.over(days[feature_class]),
+            selected=selected[feature_class],
+            taken={iid: Spread.over(held) for iid, held in counts.items()},
         )
-        for feature_class, shares in covered.items()
+        for feature_class, counts in taken.items()
     }
 
 

@@ -12,4 +12,4 @@ DEFAULT_WORKERS = 8
 INSTRUMENTS_JOINED = "|"
 
 # The layout of a published file, raised whenever what is written changes.
-PREDICTION_SHAPE = 3
+PREDICTION_SHAPE = 4

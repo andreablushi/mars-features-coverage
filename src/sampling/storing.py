@@ -100,12 +100,7 @@ def _as_json(stats: DatasetStats, digest: str) -> dict[str, Any]:
         "digest": digest,
         "features": stats.features,
         "classes": {
-            name: [
-                held.selected,
-                _spreads(held.covered),
-                _spreads(held.taken),
-                _spread(held.days),
-            ]
+            name: [held.selected, _spreads(held.taken)]
             for name, held in stats.classes.items()
         },
         "iids": stats.iids,
@@ -150,10 +145,8 @@ def _from_json(saved: Mapping[str, Any]) -> DatasetStats:
         strategy=saved["strategy"],
         features=saved["features"],
         classes={
-            name: ClassStats(
-                int(selected), _spreads_back(covered), _spreads_back(taken), _read(days)
-            )
-            for name, (selected, covered, taken, days) in saved["classes"].items()
+            name: ClassStats(int(selected), _spreads_back(taken))
+            for name, (selected, taken) in saved["classes"].items()
         },
         tiles=Aggregate(
             searched=tiles["searched"],
