@@ -11,7 +11,8 @@ import httpx
 
 from metadata.api.client import ODEClient
 from preprocessing.crism import configs
-from preprocessing.crism.fetching import format
+from preprocessing.crism.fetching import naming
+from preprocessing.crism.storage import locations
 from utils.disk.files import atomic_path
 
 # The metadata file each feature keeps its multispectral survey products in.
@@ -28,10 +29,6 @@ GEOMETRY_TYPE = "DDR"
 def available() -> list[str]:
     """Read the ids of every observation both detectors were published for.
 
-    The observations are the ones the metadata download stage brought down. One
-    that ODE lists under a single detector is left out, since neither half is
-    of use without the other.
-
     Returns:
         The observation ids, sorted and without repeats.
     """
@@ -42,19 +39,17 @@ def available() -> list[str]:
             if not line.strip():
                 continue
             # The product id is in the `pdsid` field
-            named = format.parse(json.loads(line)["pdsid"].lower())
+            named = naming.parse(json.loads(line)["pdsid"].lower())
             # Keep only wanted observations
             if named:
                 found[named[0]].add(named[1])
     return sorted(
-        name for name, seen in found.items() if seen.issuperset(format.DETECTORS)
+        name for name, seen in found.items() if seen.issuperset(naming.DETECTORS)
     )
 
 
 def sample(seed: int = 42, client: ODEClient | None = None) -> dict[str, Path]:
     """Bring down the one observation a number picks out.
-
-    The same seed always picks the same observation, so a run can be repeated.
 
     Args:
         seed: The number to draw with.
@@ -87,21 +82,21 @@ def fetch(observation_id: str, client: ODEClient | None = None) -> dict[str, Pat
         FileNotFoundError: When ODE offers no download for a product.
     """
     wanted = {
-        format.product(observation_id, detector): (
+        naming.product(observation_id, detector): (
             OBSERVATION_TYPE,
-            format.files(observation_id, detector),
+            locations.files(observation_id, detector),
         )
-        for detector in format.DETECTORS
+        for detector in naming.DETECTORS
     } | {
-        format.product(observation_id, detector, geometry=True): (
+        naming.product(observation_id, detector, naming.GEOMETRY): (
             GEOMETRY_TYPE,
-            format.files(observation_id, detector, geometry=True),
+            locations.files(observation_id, detector, naming.GEOMETRY),
         )
-        for detector in format.DETECTORS
+        for detector in naming.DETECTORS
     }
     # If all the files are already here, return their labels
     if all(path.exists() for _, half in wanted.values() for path in half.values()):
-        return format.labels(observation_id)
+        return locations.labels(observation_id)
 
     # Ask ODE the requested observation's products
     owned = client or ODEClient()
@@ -110,7 +105,7 @@ def fetch(observation_id: str, client: ODEClient | None = None) -> dict[str, Pat
             if all(path.exists() for path in half.values()):
                 continue
             offered = _build_urls(product_id, owned, product_type)
-            missing = [s for s in format.SUFFIXES if not offered.get(s)]
+            missing = [s for s in locations.SUFFIXES if not offered.get(s)]
             if missing:
                 raise FileNotFoundError(
                     f"ODE offers no {', '.join(missing)} for {product_id}."
@@ -121,7 +116,7 @@ def fetch(observation_id: str, client: ODEClient | None = None) -> dict[str, Pat
     finally:
         if client is None:
             owned.close()
-    return format.labels(observation_id)
+    return locations.labels(observation_id)
 
 
 def _build_urls(
@@ -153,7 +148,7 @@ def _build_urls(
     offers = entry.get("Product_files", {}).get("Product_file", [])
     for offer in offers if isinstance(offers, list) else [offers]:
         suffix = Path(str(offer.get("FileName", "")).lower()).suffix
-        if offer.get("Type") == "Product" and suffix in format.SUFFIXES:
+        if offer.get("Type") == "Product" and suffix in locations.SUFFIXES:
             found[suffix] = str(offer.get("URL", ""))
     return found
 
