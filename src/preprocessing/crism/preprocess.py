@@ -21,7 +21,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from preprocessing.crism import banding, configs, despiking, masking, reading
+from preprocessing.crism import configs
+from preprocessing.crism.fetching import banding, reading
+from preprocessing.crism.filtering import despiking, masking
 from preprocessing.crism.models.stage import Stage
 from preprocessing.crism.models.strip import Strip
 

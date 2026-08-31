@@ -34,7 +34,7 @@ import warnings
 
 import numpy as np
 
-from preprocessing.crism import banding
+from preprocessing.crism.fetching import banding
 
 
 def _moving_median(array: np.ndarray, size: int) -> np.ndarray:
