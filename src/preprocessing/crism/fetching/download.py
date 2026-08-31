@@ -1,80 +1,138 @@
-"""Picking observations the pipeline already selected, and bringing them down.
-
-The ids come from the metadata already on disk, so the sanity check runs over
-the same products the coverage stage chose rather than over the archive at
-large. The metadata keeps no download URL, so ODE is asked for one per id.
-"""
+"""Given a number, fetch the observation it picks out from ODE into the cache."""
 
 from __future__ import annotations
 
 import json
 import random
+from collections import defaultdict
 from pathlib import Path
 
 import httpx
 
 from metadata.api.client import ODEClient
-from utils.disk import paths
+from preprocessing.crism import configs
+from preprocessing.crism.fetching import format
 from utils.disk.files import atomic_path
 
 # The metadata file each feature keeps its multispectral survey products in.
 MSP_METADATA_NAME = "mro_crism_trdr_msp.jsonl"
 
-# What an id must carry to be an infrared I/F observation rather than its
-# radiance twin or the visible detector beside it.
-WANTED = ("_if", "l_trr")
-
-# The two halves of a product, and how long to wait for the larger one.
-SUFFIXES = (".lbl", ".img")
+# How long to wait for the larger half of a product.
 TIMEOUT = 300.0
 
+# The ODE product types an observation and its geometry are published under.
+OBSERVATION_TYPE = "TRDR"
+GEOMETRY_TYPE = "DDR"
 
-def available(root: Path = paths.METADATA_ROOT) -> list[str]:
-    """Read every multispectral survey observation the pipeline has selected.
 
-    Args:
-        root: The metadata root the coverage stage writes under.
+def available() -> list[str]:
+    """Read the ids of every observation both detectors were published for.
+
+    The observations are the ones the metadata download stage brought down. One
+    that ODE lists under a single detector is left out, since neither half is
+    of use without the other.
 
     Returns:
-        The product ids, in no particular order and without repeats.
+        The observation ids, sorted and without repeats.
     """
-    found: set[str] = set()
-    for source in root.rglob(MSP_METADATA_NAME):
-        for line in source.read_text(errors="replace").splitlines():
+    found: dict[str, set[str]] = defaultdict(set)
+    for source in configs.METADATA_ROOT.rglob(MSP_METADATA_NAME):
+        # Read the metadata file line by line, which is a JSON object per line.
+        for line in source.read_text().splitlines():
             if not line.strip():
                 continue
-            product = str(json.loads(line).get("pdsid", "")).lower()
-            if all(part in product for part in WANTED):
-                found.add(product)
-    return sorted(found)
+            # The product id is in the `pdsid` field
+            named = format.parse(json.loads(line)["pdsid"].lower())
+            # Keep only wanted observations
+            if named:
+                found[named[0]].add(named[1])
+    return sorted(
+        name for name, seen in found.items() if seen.issuperset(format.DETECTORS)
+    )
 
 
-def sample(count: int = 1, seed: int | None = None, **kwargs: Path) -> list[str]:
-    """Pick observations at random from the ones already selected.
+def sample(seed: int = 42, client: ODEClient | None = None) -> dict[str, Path]:
+    """Bring down the one observation a number picks out.
+
+    The same seed always picks the same observation, so a run can be repeated.
 
     Args:
-        count: How many to pick.
-        seed: Fixes the draw so a run can be repeated, or None to vary it.
-        **kwargs: Passed to `available`, which takes the metadata root.
+        seed: The number to draw with.
+        client: An ODE client to reuse, or None to open one for this call.
 
     Returns:
-        The chosen product ids.
+        The path to each detector's label, keyed by detector.
 
     Raises:
         ValueError: When the metadata holds no multispectral survey products.
     """
-    pool = available(**kwargs)
+    pool = available()
     if not pool:
         raise ValueError("No multispectral survey products found in the metadata.")
-    return random.Random(seed).sample(pool, min(count, len(pool)))
+    return fetch(random.Random(seed).choice(pool), client)
 
 
-def urls(product_id: str, client: ODEClient) -> dict[str, str]:
-    """Ask ODE where the halves of one observation can be downloaded.
+def fetch(observation_id: str, client: ODEClient | None = None) -> dict[str, Path]:
+    """Bring both detectors of one observation down, or return what is here.
 
     Args:
-        product_id: The observation, such as msp000396ba_01_if214l_trr3.
+        observation_id: The observation to fetch.
+        client: An ODE client to reuse, or None to open one for this call.
+
+    Returns:
+        The path to each detector's label, whose image sits beside it and whose
+        geometry sits in the `ddr` subdirectory.
+
+    Raises:
+        FileNotFoundError: When ODE offers no download for a product.
+    """
+    wanted = {
+        format.product(observation_id, detector): (
+            OBSERVATION_TYPE,
+            format.files(observation_id, detector),
+        )
+        for detector in format.DETECTORS
+    } | {
+        format.product(observation_id, detector, geometry=True): (
+            GEOMETRY_TYPE,
+            format.files(observation_id, detector, geometry=True),
+        )
+        for detector in format.DETECTORS
+    }
+    # If all the files are already here, return their labels
+    if all(path.exists() for _, half in wanted.values() for path in half.values()):
+        return format.labels(observation_id)
+
+    # Ask ODE the requested observation's products
+    owned = client or ODEClient()
+    try:
+        for product_id, (product_type, half) in wanted.items():
+            if all(path.exists() for path in half.values()):
+                continue
+            offered = _build_urls(product_id, owned, product_type)
+            missing = [s for s in format.SUFFIXES if not offered.get(s)]
+            if missing:
+                raise FileNotFoundError(
+                    f"ODE offers no {', '.join(missing)} for {product_id}."
+                )
+            for suffix, path in half.items():
+                if not path.exists():
+                    _download(offered[suffix], path)
+    finally:
+        if client is None:
+            owned.close()
+    return format.labels(observation_id)
+
+
+def _build_urls(
+    product_id: str, client: ODEClient, product_type: str
+) -> dict[str, str]:
+    """Ask ODE where the halves of one product can be downloaded.
+
+    Args:
+        product_id: The product, such as msp000396ba_01_if214l_trr3.
         client: The ODE client to ask through.
+        product_type: The ODE product type it is published under.
 
     Returns:
         The download URL for each suffix the product offers, keyed by suffix.
@@ -86,96 +144,18 @@ def urls(product_id: str, client: ODEClient) -> dict[str, str]:
             "target": "mars",
             "ihid": "MRO",
             "iid": "CRISM",
-            "pt": "TRDR",
+            "pt": product_type,
             "productid": product_id,
         }
     )
-    product = results.get("Products", {}).get("Product", {})
-    files = product.get("Product_files", {}).get("Product_file", [])
     found = {}
-    for entry in files if isinstance(files, list) else [files]:
-        name = str(entry.get("FileName", "")).lower()
-        suffix = Path(name).suffix
-        if entry.get("Type") == "Product" and suffix in SUFFIXES:
-            found[suffix] = str(entry.get("URL", ""))
+    entry = results.get("Products", {}).get("Product", {})
+    offers = entry.get("Product_files", {}).get("Product_file", [])
+    for offer in offers if isinstance(offers, list) else [offers]:
+        suffix = Path(str(offer.get("FileName", "")).lower()).suffix
+        if offer.get("Type") == "Product" and suffix in format.SUFFIXES:
+            found[suffix] = str(offer.get("URL", ""))
     return found
-
-
-def fetch(
-    product_id: str,
-    cache: Path = paths.CRISM_ROOT,
-    client: ODEClient | None = None,
-) -> Path:
-    """Bring one observation down, or return it if it is already here.
-
-    Args:
-        product_id: The observation to fetch.
-        cache: Where downloaded observations are kept.
-        client: An ODE client to reuse, or None to open one for this call.
-
-    Returns:
-        The path to the label, whose image sits beside it.
-
-    Raises:
-        FileNotFoundError: When ODE offers no download for the observation.
-    """
-    wanted = {suffix: cache / f"{product_id}{suffix}" for suffix in SUFFIXES}
-    if all(path.exists() for path in wanted.values()):
-        return wanted[".lbl"]
-
-    owned = client or ODEClient()
-    try:
-        offered = urls(product_id, owned)
-    finally:
-        if client is None:
-            owned.close()
-
-    missing = [suffix for suffix in SUFFIXES if not offered.get(suffix)]
-    if missing:
-        raise FileNotFoundError(f"ODE offers no {', '.join(missing)} for {product_id}.")
-
-    for suffix, path in wanted.items():
-        if not path.exists():
-            _download(offered[suffix], path)
-    return wanted[".lbl"]
-
-
-def fetch_label(
-    product_id: str,
-    cache: Path = paths.CRISM_ROOT,
-    client: ODEClient | None = None,
-) -> Path:
-    """Bring down only the label of one observation, which is a few kilobytes.
-
-    This is how the geometry of many observations can be compared without
-    downloading any of their images.
-
-    Args:
-        product_id: The observation to fetch the label of.
-        cache: Where downloaded observations are kept.
-        client: An ODE client to reuse, or None to open one for this call.
-
-    Returns:
-        The path to the label.
-
-    Raises:
-        FileNotFoundError: When ODE offers no label for the observation.
-    """
-    path = cache / f"{product_id}.lbl"
-    if path.exists():
-        return path
-
-    owned = client or ODEClient()
-    try:
-        offered = urls(product_id, owned)
-    finally:
-        if client is None:
-            owned.close()
-
-    if not offered.get(".lbl"):
-        raise FileNotFoundError(f"ODE offers no label for {product_id}.")
-    _download(offered[".lbl"], path)
-    return path
 
 
 def _download(url: str, path: Path) -> None:
@@ -188,6 +168,7 @@ def _download(url: str, path: Path) -> None:
     Returns:
         None.
     """
+    path.parent.mkdir(parents=True, exist_ok=True)
     with atomic_path(path) as tmp, httpx.stream("GET", url, timeout=TIMEOUT) as reply:
         reply.raise_for_status()
         with tmp.open("wb") as handle:
