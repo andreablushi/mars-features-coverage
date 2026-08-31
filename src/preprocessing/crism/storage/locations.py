@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from preprocessing.crism import configs
-from preprocessing.crism.fetching import naming
+from preprocessing.crism.storage import naming
 
 # The two halves a product is downloaded as.
 SUFFIXES = (".lbl", ".img")

@@ -13,9 +13,13 @@ class Detector:
 
     Attributes:
         name: Which detector, `l` for infrared or `s` for visible.
-        cube: The I/F values as lines by samples by bands, in the band order
-            the file stores them in, which is long wavelength first.
+        cube: The I/F values as lines by samples by bands, its bands ascending
+            in wavelength and its uncalibrated columns and bands NaN.
         label: The parsed label of that half.
+        wavelengths: The centre wavelength in nm of every column and band, as
+            columns by bands, in the same order as the cube. Columns and bands
+            the detector was never calibrated for hold NaN. One centre per band
+            is `bands_calibration.centres` of this, not stored beside it.
         geometry: The DDR backplanes as lines by samples by 14, on the same
             grid as the cube.
         geometry_label: The parsed label of the geometry, whose BAND_NAME says
@@ -25,6 +29,7 @@ class Detector:
     name: str
     cube: np.ndarray
     label: dict[str, str]
+    wavelengths: np.ndarray
     geometry: np.ndarray
     geometry_label: dict[str, str]
 

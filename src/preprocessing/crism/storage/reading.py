@@ -6,9 +6,9 @@ from pathlib import Path
 
 import numpy as np
 
-from preprocessing.crism.fetching import naming
+from preprocessing.crism.calibration import bands_calibration
 from preprocessing.crism.models.observation import CrismObservation, Detector
-from preprocessing.crism.storage import locations
+from preprocessing.crism.storage import locations, naming
 
 # What a PDS sample type and width mean as a numpy dtype.
 _DTYPES = {("PC_REAL", 32): "<f4", ("PC_REAL", 64): "<f8"}
@@ -52,18 +52,16 @@ def read(identifier: str) -> CrismObservation:
             # Hold it until this detector's other half has been read as well.
             products[name, kind] = (cube, label)
 
-    # Pair each detector's own cube with its geometry, in that order.
-    return CrismObservation(
-        identifier,
-        {
-            name: Detector(
-                name,
-                *products[name, naming.OBSERVATION],
-                *products[name, naming.GEOMETRY],
-            )
-            for name in naming.DETECTORS
-        },
-    )
+    detectors = {}
+    for name in naming.DETECTORS:
+        cube, label = products[name, naming.OBSERVATION]
+        # Order the bands by wavelength and mark what was never calibrated.
+        cube, waves = bands_calibration.calibrate(cube, name)
+        # Pair each detector's own cube with the geometry beside it.
+        detectors[name] = Detector(
+            name, cube, label, waves, *products[name, naming.GEOMETRY]
+        )
+    return CrismObservation(identifier, detectors)
 
 
 def build_cube(image: Path, label: dict[str, str]) -> np.ndarray:

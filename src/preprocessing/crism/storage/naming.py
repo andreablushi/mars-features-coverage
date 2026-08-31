@@ -1,9 +1,4 @@
-"""Naming the products ODE publishes one CRISM observation as.
-
-A product id carries a detector letter, `msp000396ba_01_if214l_trr3`. An
-observation is the scan both detectors made, so its id is that one without the
-letter, and the geometry of a detector is the same id written `de` for `if`.
-"""
+"""Naming the products ODE publishes one CRISM observation as."""
 
 from __future__ import annotations
 
