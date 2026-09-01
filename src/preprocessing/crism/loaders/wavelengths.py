@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
-from preprocessing.crism.loaders.utils import pds
+from preprocessing.pds import images, labels
 
 # What a wavelength file writes where the detector was never calibrated.
 UNCALIBRATED = 65535.0
@@ -29,8 +29,8 @@ def load(image: Path) -> np.ndarray:
         ValueError: When the label names a band order this cannot read.
         KeyError: When it names a sample type this cannot read.
     """
-    label = pds.load_label(image.with_suffix(".lbl"))
+    label = labels.load(image.with_suffix(".lbl"))
     # A wavelength file holds one line, so its cube is one grid deep.
-    table = pds.build_cube(image, label)[0]
+    table = images.build_cube(image, label)[0]
     # Say what was never calibrated with NaN rather than a number.
     return np.where(table >= UNCALIBRATED, np.nan, table.astype("f8"))

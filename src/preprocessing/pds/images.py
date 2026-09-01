@@ -1,4 +1,4 @@
-"""Reading a PDS label and the image it describes, whatever the product is."""
+"""Reading the image a PDS label describes, whatever the product is."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import numpy as np
 # What a PDS sample type and width mean as a numpy dtype.
 _DTYPES = {("PC_REAL", 32): "<f4", ("PC_REAL", 64): "<f8"}
 
-# The two orders a CRISM image is written in.
+# The two orders an image is written in.
 _BIL = "LINE_INTERLEAVED"
 _BSQ = "BAND_SEQUENTIAL"
 
@@ -33,7 +33,7 @@ def build_cube(image: Path, label: dict[str, str]) -> np.ndarray:
     lines, samples, bands, stored, dtype = load_layout(label)
     # How many values the cube holds, the trailing record excluded.
     wanted = lines * samples * bands
-    # Read exactly those, so the table of detector rows is left alone.
+    # Read exactly those, so any table written after them is left alone.
     flat = np.fromfile(image, dtype=dtype, count=wanted)
     # BIL writes one line's bands together, so bands sit in the middle.
     if stored == _BIL:
@@ -56,12 +56,12 @@ def load_layout(label: dict[str, str]) -> tuple[int, int, int, str, str]:
         ValueError: When the label names a band order this cannot read.
         KeyError: When it names a sample type this cannot read.
     """
-    # How many rows the scan holds, down track.
+    # How many rows the image holds.
     lines = int(label["LINES"])
-    # How many detector columns each row holds, across track.
+    # How many columns each row holds.
     samples = int(label["LINE_SAMPLES"])
-    # How many channels each pixel holds.
-    bands = int(label["BANDS"])
+    # How many channels each pixel holds, which a single band image omits.
+    bands = int(label.get("BANDS", 1))
     # The order bands are written in, BIL for a TRDR and BSQ for a DDR.
     stored = label.get("BAND_STORAGE_TYPE", _BIL)
     if stored not in (_BIL, _BSQ):
@@ -69,31 +69,3 @@ def load_layout(label: dict[str, str]) -> tuple[int, int, int, str, str]:
     # The sample type and its width, which together name a numpy dtype.
     dtype = _DTYPES[label["SAMPLE_TYPE"], int(label["SAMPLE_BITS"])]
     return lines, samples, bands, stored, dtype
-
-
-def load_label(path: Path) -> dict[str, str]:
-    """Read a PDS label into its keys and values.
-
-    Args:
-        path: The `.lbl` file to read.
-
-    Returns:
-        The label, keyed as written, with quotes and unit suffixes stripped.
-    """
-    label: dict[str, str] = {}
-    skipping = False
-    for line in path.read_text(errors="replace").splitlines():
-        if skipping:
-            skipping = "}" not in line
-            continue
-        if "=" not in line:
-            continue
-        key, _, value = line.partition("=")
-        value = value.strip()
-        if value.startswith("{") and "}" not in value:
-            skipping = True
-            continue
-        key = key.strip()
-        if key and key not in label:
-            label[key] = value.strip('"').split("<")[0].strip()
-    return label

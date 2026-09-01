@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from preprocessing.crism.loaders.utils import locations, naming, pds
+from preprocessing.crism.loaders.utils import locations, naming
+from preprocessing.pds import images, labels
 
 
 def load(observation_id: str, detector: str) -> tuple[np.ndarray, dict[str, str]]:
@@ -24,5 +25,5 @@ def load(observation_id: str, detector: str) -> tuple[np.ndarray, dict[str, str]
         ValueError: When the label names a band order this cannot read.
     """
     image = locations.files(observation_id, detector, naming.OBSERVATION)[".img"]
-    label = pds.load_label(image.with_suffix(".lbl"))
-    return pds.build_cube(image, label), label
+    label = labels.load(image.with_suffix(".lbl"))
+    return images.build_cube(image, label), label
