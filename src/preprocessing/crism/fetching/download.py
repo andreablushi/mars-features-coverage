@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import json
-import random
 from collections import defaultdict
 from pathlib import Path
 
 from metadata.api.client import ODEClient
 from preprocessing.crism import configs
 from preprocessing.crism.loaders.utils import locations, naming
+from preprocessing.fetching import catalogue
 from preprocessing.fetching.products import bring
 from preprocessing.pds import labels
 
@@ -35,16 +34,11 @@ def available() -> list[str]:
         The observation ids, sorted and without repeats.
     """
     found: dict[str, set[str]] = defaultdict(set)
-    for source in configs.METADATA_ROOT.rglob(MSP_METADATA_NAME):
-        # Read the metadata file line by line, which is a JSON object per line.
-        for line in source.read_text().splitlines():
-            if not line.strip():
-                continue
-            # The product id is in the `pdsid` field
-            named = naming.parse(json.loads(line)["pdsid"].lower())
-            # Keep only wanted observations
-            if named:
-                found[named[0]].add(named[1])
+    for product_id in catalogue.product_ids(configs.METADATA_ROOT, MSP_METADATA_NAME):
+        named = naming.parse(product_id.lower())
+        # Keep only wanted observations
+        if named:
+            found[named[0]].add(named[1])
     return sorted(
         name for name, seen in found.items() if seen.issuperset(naming.DETECTORS)
     )
@@ -63,10 +57,10 @@ def sample(seed: int = 42, client: ODEClient | None = None) -> dict[str, Path]:
     Raises:
         ValueError: When the metadata holds no multispectral survey products.
     """
-    pool = available()
-    if not pool:
-        raise ValueError("No multispectral survey products found in the metadata.")
-    return fetch(random.Random(seed).choice(pool), client)
+    drawn = catalogue.pick(
+        available(), seed, "multispectral survey product in the metadata"
+    )
+    return fetch(drawn, client)
 
 
 def fetch(observation_id: str, client: ODEClient | None = None) -> dict[str, Path]:

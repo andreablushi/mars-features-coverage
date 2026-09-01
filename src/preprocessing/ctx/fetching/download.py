@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import json
-import random
 from pathlib import Path
 from urllib.parse import quote
 
 from metadata.api.client import ODEClient
 from preprocessing.ctx import configs
 from preprocessing.ctx.loaders.utils import locations, naming
-from preprocessing.fetching import ode
+from preprocessing.fetching import catalogue, ode
 from preprocessing.fetching.download import stream
 
 # The metadata file each feature keeps its CTX products in.
@@ -38,16 +36,11 @@ def available() -> list[str]:
         The observation ids, sorted and without repeats.
     """
     found = set()
-    for source in configs.METADATA_ROOT.rglob(EDR_METADATA_NAME):
-        # Read the metadata file line by line, which is a JSON object per line.
-        for line in source.read_text().splitlines():
-            if not line.strip():
-                continue
-            # The product id is in the `pdsid` field
-            named = naming.parse(json.loads(line)["pdsid"])
-            # Keep only wanted observations
-            if named:
-                found.add(named)
+    for product_id in catalogue.product_ids(configs.METADATA_ROOT, EDR_METADATA_NAME):
+        named = naming.parse(product_id)
+        # Keep only wanted observations
+        if named:
+            found.add(named)
     return sorted(found)
 
 
@@ -64,10 +57,8 @@ def sample(seed: int = 42, client: ODEClient | None = None) -> Path:
     Raises:
         ValueError: When the metadata holds no CTX products.
     """
-    pool = available()
-    if not pool:
-        raise ValueError("No CTX products found in the metadata.")
-    return fetch(random.Random(seed).choice(pool), client)
+    drawn = catalogue.pick(available(), seed, "CTX product in the metadata")
+    return fetch(drawn, client)
 
 
 def fetch(observation_id: str, client: ODEClient | None = None) -> Path:
@@ -89,10 +80,11 @@ def fetch(observation_id: str, client: ODEClient | None = None) -> Path:
         return locations.label(observation_id)
 
     volume_id = _volume(observation_id, client)
-    for kind, path in half.items():
+    for kind, suffix in naming.SUFFIXES.items():
+        path = half[suffix]
         if not path.exists():
             remote = naming.remote(observation_id, volume_id, kind)
-            name = f"{observation_id}{naming.SUFFIXES[kind]}"
+            name = f"{observation_id}{suffix}"
             url = ASU_URL.format(name=name, path=quote(remote))
             stream(url, path, configs.TIMEOUT)
     return locations.label(observation_id)

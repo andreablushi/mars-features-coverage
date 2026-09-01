@@ -6,6 +6,7 @@ from pathlib import Path
 
 from preprocessing.crism import configs
 from preprocessing.crism.loaders.utils import naming
+from preprocessing.locations import product_files
 
 # The two halves a product is downloaded as.
 SUFFIXES = (".lbl", ".img")
@@ -30,11 +31,13 @@ def files(
     Returns:
         The path for each suffix, keyed by suffix.
     """
-    stem = naming.product(observation_id, detector, kind)
-    place = configs.CACHE_ROOT / observation_id
-    if kind == naming.GEOMETRY:
-        place = place / GEOMETRY_DIR
-    return {suffix: place / f"{stem}{suffix}" for suffix in SUFFIXES}
+    return product_files(
+        configs.CACHE_ROOT,
+        observation_id,
+        naming.product(observation_id, detector, kind),
+        SUFFIXES,
+        GEOMETRY_DIR if kind == naming.GEOMETRY else None,
+    )
 
 
 def labels(observation_id: str) -> dict[str, Path]:
@@ -61,5 +64,4 @@ def wavelength_file(name: str) -> dict[str, Path]:
     Returns:
         The path for each suffix, keyed by suffix.
     """
-    place = configs.CACHE_ROOT / WAVELENGTH_DIR
-    return {suffix: place / f"{name.lower()}{suffix}" for suffix in SUFFIXES}
+    return product_files(configs.CACHE_ROOT, WAVELENGTH_DIR, name.lower(), SUFFIXES)

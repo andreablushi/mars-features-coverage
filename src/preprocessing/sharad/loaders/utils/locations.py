@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from preprocessing.locations import product_files
 from preprocessing.sharad import configs
 from preprocessing.sharad.loaders.utils import naming
 
@@ -30,11 +31,13 @@ def files(observation_id: str, kind: str = naming.OBSERVATION) -> dict[str, Path
     Raises:
         KeyError: When the kind is neither of the two.
     """
-    stem = naming.product(observation_id, kind)
-    place = configs.CACHE_ROOT / observation_id
-    if kind == naming.GEOMETRY:
-        place = place / GEOMETRY_DIR
-    return {suffix: place / f"{stem}{suffix}" for suffix in SUFFIXES[kind]}
+    return product_files(
+        configs.CACHE_ROOT,
+        observation_id,
+        naming.product(observation_id, kind),
+        SUFFIXES[kind],
+        GEOMETRY_DIR if kind == naming.GEOMETRY else None,
+    )
 
 
 def label(observation_id: str, kind: str = naming.OBSERVATION) -> Path:

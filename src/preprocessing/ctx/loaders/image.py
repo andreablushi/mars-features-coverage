@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import tifffile
 
-from preprocessing.ctx.loaders.utils import locations, naming
+from preprocessing.ctx.loaders.utils import locations
 
 
 def load(observation_id: str) -> np.ndarray:
@@ -23,7 +23,7 @@ def load(observation_id: str) -> np.ndarray:
         FileNotFoundError: When the image is missing.
         ValueError: When the file holds more than one plane.
     """
-    image = locations.files(observation_id)[naming.IMAGE]
+    image = locations.image(observation_id)
     values = tifffile.imread(image)
     if values.ndim != 2:
         raise ValueError(f"{image.name} holds a {values.ndim} dimensional image.")

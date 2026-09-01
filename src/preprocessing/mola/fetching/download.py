@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import random
 from collections import defaultdict
 from pathlib import Path
 
 from metadata.api.client import ODEClient
+from preprocessing.fetching import catalogue
 from preprocessing.fetching.products import bring
 from preprocessing.mola import configs
 from preprocessing.mola.loaders.utils import locations, naming
@@ -101,10 +101,12 @@ def sample(
     Raises:
         ValueError: When no tile is published at that resolution.
     """
-    pool = available(resolution, client)
-    if not pool:
-        raise ValueError(f"No MEGDR tile is published at {resolution} per degree.")
-    return fetch(random.Random(seed).choice(pool), client)
+    drawn = catalogue.pick(
+        available(resolution, client),
+        seed,
+        f"MEGDR tile published at {resolution} pixels per degree",
+    )
+    return fetch(drawn, client)
 
 
 def fetch(tile: str, client: ODEClient | None = None) -> Path:

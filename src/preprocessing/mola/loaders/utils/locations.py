@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from preprocessing.locations import product_files
 from preprocessing.mola import configs
 from preprocessing.mola.loaders.utils import naming
 
@@ -24,9 +25,7 @@ def files(tile: str, kind: str = naming.TOPOGRAPHY) -> dict[str, Path]:
     Raises:
         KeyError: When the kind is neither of the two.
     """
-    stem = naming.product(tile, kind)
-    place = configs.CACHE_ROOT / tile
-    return {suffix: place / f"{stem}{suffix}" for suffix in SUFFIXES}
+    return product_files(configs.CACHE_ROOT, tile, naming.product(tile, kind), SUFFIXES)
 
 
 def label(tile: str, kind: str = naming.TOPOGRAPHY) -> Path:
