@@ -7,7 +7,12 @@ from pathlib import Path
 import numpy as np
 
 # What a PDS sample type and width mean as a numpy dtype.
-_DTYPES = {("PC_REAL", 32): "<f4", ("PC_REAL", 64): "<f8"}
+_DTYPES = {
+    ("PC_REAL", 32): "<f4",
+    ("PC_REAL", 64): "<f8",
+    ("MSB_INTEGER", 16): ">i2",
+    ("UNSIGNED_INTEGER", 8): "u1",
+}
 
 # The two orders an image is written in.
 _BIL = "LINE_INTERLEAVED"
