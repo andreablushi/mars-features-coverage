@@ -40,7 +40,10 @@ def product_files(
         }
     )
     found = {}
-    entry = results.get("Products", {}).get("Product", {})
+    # ODE answers a query that matched nothing with a sentence, not a product.
+    entry = results.get("Products", {})
+    entry = entry.get("Product", {}) if isinstance(entry, dict) else {}
+    entry = entry[0] if isinstance(entry, list) else entry
     offers = entry.get("Product_files", {}).get("Product_file", [])
     for offer in offers if isinstance(offers, list) else [offers]:
         suffix = Path(str(offer.get("FileName", "")).lower()).suffix
