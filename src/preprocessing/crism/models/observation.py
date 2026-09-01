@@ -6,6 +6,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from preprocessing.crism.models.mask import Mask
+
 
 @dataclass(frozen=True)
 class Detector:
@@ -24,6 +26,8 @@ class Detector:
             grid as the cube.
         geometry_label: The parsed label of the geometry, whose BAND_NAME says
             what each backplane holds.
+        mask: Where the cube was filled rather than measured, once it has been
+            cleaned, and None while it is still as it was read.
     """
 
     name: str
@@ -32,6 +36,7 @@ class Detector:
     wavelengths: np.ndarray
     geometry: np.ndarray
     geometry_label: dict[str, str]
+    mask: Mask | None = None
 
 
 @dataclass(frozen=True)

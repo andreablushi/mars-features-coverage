@@ -11,8 +11,7 @@ import httpx
 
 from metadata.api.client import ODEClient
 from preprocessing.crism import configs
-from preprocessing.crism.fetching import pds
-from preprocessing.crism.storage import locations, naming
+from preprocessing.crism.loaders.utils import locations, naming, pds
 from utils.disk.files import atomic_path
 
 # The metadata file each feature keeps its multispectral survey products in.

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
-from preprocessing.crism.fetching import pds
+from preprocessing.crism.loaders.utils import pds
 
 # What a wavelength file writes where the detector was never calibrated.
 UNCALIBRATED = 65535.0
