@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 from preprocessing.crism import reading
-from preprocessing.crism.cleaning import atmospheric, destriping, masking
+from preprocessing.crism.cleaning import atmospheric, destriping, masking, ratioing
 from preprocessing.crism.models.observation import CrismObservation
 
 
@@ -36,5 +36,6 @@ def clean(identifier: str) -> CrismObservation:
         cube, mask = destriping.remove_spike_columns(
             cube, mask, detector.wavelengths, detector.name
         )
+        cube = ratioing.ratio_colmed(cube, mask.pixels)
         detectors[name] = replace(detector, cube=cube, mask=mask)
     return CrismObservation(identifier, detectors)
