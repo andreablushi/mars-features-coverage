@@ -26,6 +26,9 @@ class Mask:
         pixels: Lines by samples, True where the pixel carries no usable
             spectrum, being in a dead column or holding a scattered value.
         fill: The value every flagged cell was replaced with.
+        atmospheric: One flag per band, True where the band was dropped for
+            falling in a window the atmosphere absorbs, and None while that has
+            not been done.
         stripes: Samples by bands, True where one detector cell read the same
             way off in every line and was levelled onto its neighbours, and
             None while the cube has not been destriped.
@@ -37,6 +40,7 @@ class Mask:
     scattered: np.ndarray
     pixels: np.ndarray
     fill: float
+    atmospheric: np.ndarray | None = None
     stripes: np.ndarray | None = None
 
     @property

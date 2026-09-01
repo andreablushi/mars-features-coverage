@@ -20,9 +20,13 @@ WINDOWS = {"l": (1020.0, 2650.0), "s": (400.0, 1060.0)}
 BRIGHTNESS = (-0.05, 1.0)
 
 
-# How many bands wide the moving median that smooths a column's spectrum is.
-# Three is crism_ml's value and the smallest a median can be.
-STRIPE_SIZE = 3
+# How wide in nm the moving median that smooths a column's spectrum reaches.
+# crism_ml counts this in channels, which means a different width on every
+# downlink configuration: its three channels are 20 nm hyperspectral but 112 nm
+# on a coarse survey scan and 89 nm on a fine one. Fixing the width instead
+# keeps one physical meaning, and at every configuration flown it still works
+# out to the three bands crism_ml uses.
+STRIPE_WIDTH = 80.0
 
 # How many standard deviations above its own column's mean a band has to sit to
 # be read as a spike, one threshold per detector. crism_ml uses 5 over 248
@@ -31,3 +35,11 @@ STRIPE_SIZE = 3
 # S at 18 and 4.69 at 24. Each is set above the highest a real absorption was
 # measured to reach on that detector, 7.07 on L and 4.59 on S.
 STRIPE_SIGMA = {"l": 7.5, "s": 4.7}
+
+# Where the Martian atmosphere absorbs inside each detector's window, in nm.
+# Only the 2.0 um CO2 band is strong enough to be worth the loss: it is the one
+# the volcano scan correction exists for. The weak CO2 band near 1435 nm and the
+# CO band near 2350 nm are left in place, because they sit on top of the OH and
+# carbonate features that the surface is being modelled for. The visible
+# detector's window carries no absorption worth dropping.
+ATMOSPHERIC = {"l": ((1940.0, 2090.0),), "s": ()}
