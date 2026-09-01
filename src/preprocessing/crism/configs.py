@@ -19,9 +19,15 @@ WINDOWS = {"l": (1020.0, 2650.0), "s": (400.0, 1060.0)}
 # below it, so the floor allows for that and refuses only the impossible.
 BRIGHTNESS = (-0.05, 1.0)
 
-# How far a column has to sit from the line through the two beside it, counted
-# in multiples of the curvature its own band carries anyway, before it is read
-# as one detector cell rather than as ground. Set above the 5.3 that a real
-# 1430 nm absorption reaches, and below the 7 and more that a displaced column
-# does.
-STRIPE_SIGMA = 6.0
+
+# How many bands wide the moving median that smooths a column's spectrum is.
+# Three is crism_ml's value and the smallest a median can be.
+STRIPE_SIZE = 3
+
+# How many standard deviations above its own column's mean a band has to sit to
+# be read as a spike, one threshold per detector. crism_ml uses 5 over 248
+# hyperspectral bands. A survey scan carries far fewer, and over n bands no
+# score can exceed (n-1)/sqrt(n): 6.48 for L at 44 bands, 7.28 at 55, 4.01 for
+# S at 18 and 4.69 at 24. Each is set above the highest a real absorption was
+# measured to reach on that detector, 7.07 on L and 4.59 on S.
+STRIPE_SIGMA = {"l": 7.5, "s": 4.7}

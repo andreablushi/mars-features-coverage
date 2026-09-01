@@ -30,6 +30,6 @@ def clean(identifier: str) -> CrismObservation:
         cube, mask = masking.bad_pixels(
             detector.cube, detector.wavelengths, detector.name
         )
-        cube, mask = destriping.stripes(cube, mask)
+        cube, mask = destriping.remove_spike_columns(cube, mask, detector.name)
         detectors[name] = replace(detector, cube=cube, mask=mask)
     return CrismObservation(identifier, detectors)
