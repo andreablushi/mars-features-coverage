@@ -25,6 +25,7 @@ module-name = [
     "coverage",
     "metadata",
     "models",
+    "preprocessing",
     "sampling",
     "selector",
     "utils",

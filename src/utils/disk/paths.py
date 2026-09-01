@@ -18,6 +18,8 @@ CATALOG_ROOT = DATA_ROOT / "_catalog"
 PREDICTIONS_ROOT = DATA_ROOT / "predictions"
 ARTIFACTS_ROOT = DATA_ROOT / "artifacts"
 COVERAGE_ROOT = ARTIFACTS_ROOT / "coverage"
+PREPROCESSING_ROOT = DATA_ROOT / "preprocessing"
+CRISM_ROOT = PREPROCESSING_ROOT / "crism"
 
 FEATURES_CACHE_NAME = "features.jsonl"
 INSTRUMENT_SETS_CACHE_NAME = "instrument_sets.jsonl"
