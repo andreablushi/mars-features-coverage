@@ -7,10 +7,10 @@ import numpy as np
 from preprocessing.crism.assembling.merge_geometry import merge_geometry
 from preprocessing.crism.fetching import bands_calibration
 from preprocessing.crism.models.observation import CrismObservation
-from preprocessing.crism.models.sample import Sample
+from preprocessing.crism.models.sample import CrismSample
 
 
-def merge_detectors(observation: CrismObservation) -> Sample:
+def merge_detectors(observation: CrismObservation) -> CrismSample:
     """Join both detectors of a cleaned observation into one cube.
 
     Args:
@@ -46,7 +46,7 @@ def merge_detectors(observation: CrismObservation) -> Sample:
     table = np.concatenate(tables, axis=1)
     # The two overlap around a micron, so ordering is a sort and not a join.
     order = np.argsort(bands_calibration.centres(table))
-    return Sample(
+    return CrismSample(
         observation.identifier,
         cube[:, :, order],
         table[:, order],

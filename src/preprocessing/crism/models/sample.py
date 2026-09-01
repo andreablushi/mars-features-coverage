@@ -8,7 +8,7 @@ import numpy as np
 
 
 @dataclass(frozen=True)
-class Sample:
+class CrismSample:
     """One observation with its two detectors joined.
 
     Attributes:

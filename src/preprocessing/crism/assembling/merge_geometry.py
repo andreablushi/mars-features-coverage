@@ -10,12 +10,6 @@ from preprocessing.crism.models.observation import CrismObservation
 def merge_geometry(observation: CrismObservation, columns: np.ndarray) -> np.ndarray:
     """Return the backplanes for the columns both detectors kept.
 
-    The two detectors are published with a geometry each, and they disagree by
-    less than a pixel: latitude by under a thousandth of a degree and elevation
-    by a few metres on average. The infrared one is taken, since it carries most
-    of the bands, rather than averaged, because band 8 is an azimuth and a plain
-    mean of angles either side of north is wrong.
-
     Args:
         observation: The observation to read, cleaned or not.
         columns: True for each sample both detectors kept.
