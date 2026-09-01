@@ -45,7 +45,14 @@ STRIPE_SIGMA = {"l": 7.5, "s": 4.7}
 ATMOSPHERIC = {"l": ((1940.0, 2090.0),), "s": ()}
 
 # The windows crism_ml despikes the ratioed spectra with, its 11, 7 and 3
-# channels written as the nm they cover at hyperspectral sampling, with the
-# deviation each pass allows. Survey bands are wide enough that all three come
-# out as three bands, so the three passes narrow nothing and simply repeat.
-SPIKE_PASSES = ((72.0, 5.0), (46.0, 5.0), (20.0, 5.0))
+# channels written as the nm they cover at hyperspectral sampling. Survey bands
+# are wide enough that all three come out as three bands, so the passes narrow
+# nothing and simply repeat.
+#
+# The deviation is 20 rather than crism_ml's 5. At 5 a one band absorption is
+# indistinguishable from a spike to a three band median: it flags 35 per cent of
+# pixels at 1430 nm against 0.03 per cent at the bands either side, and keeps
+# only 16 per cent of the pixel to pixel variation in that absorption. At 20 the
+# same scan keeps 99.7 per cent of it and the step still reaches the extremes,
+# which run past 100 deviations.
+SPIKE_PASSES = ((72.0, 20.0), (46.0, 20.0), (20.0, 20.0))
