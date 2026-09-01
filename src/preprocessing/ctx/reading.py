@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from preprocessing.ctx.loaders import geometry, image
-from preprocessing.ctx.loaders.utils import locations
+import tifffile
+
+from preprocessing.common.pds import labels
+from preprocessing.ctx import geometry, locations
 from preprocessing.ctx.models.observation import CtxObservation
-from preprocessing.pds import labels
 
 
 def read(identifier: str) -> CtxObservation:
@@ -25,6 +26,8 @@ def read(identifier: str) -> CtxObservation:
             image holds more than one plane.
     """
     label = labels.load(locations.label(identifier))
-    return CtxObservation(
-        identifier, image.load(identifier), label, *geometry.load(label)
-    )
+    # ASU publishes the pixels as a TIFF rather than beside a label of their own.
+    image = tifffile.imread(locations.image(identifier))
+    if image.ndim != 2:
+        raise ValueError(f"{identifier} holds a {image.ndim} dimensional image.")
+    return CtxObservation(identifier, image, label, *geometry.load(label))

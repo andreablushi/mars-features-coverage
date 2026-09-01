@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from preprocessing.sharad.loaders import geometry, radargram
+from preprocessing.common.pds import images, tables
+from preprocessing.sharad import locations, naming
 from preprocessing.sharad.models.observation import SharadObservation
 
 
@@ -21,6 +22,9 @@ def read(identifier: str) -> SharadObservation:
         KeyError: When a label names a sample type this cannot read.
         ValueError: When the geometry holds fewer rows than its label promises.
     """
-    power, label = radargram.load(identifier)
-    table, geometry_label = geometry.load(identifier)
+    # The echoes themselves, then the places they were sounded at.
+    power, label = images.load_plane(locations.files(identifier)[".img"])
+    table, geometry_label = tables.load_table(
+        locations.files(identifier, naming.GEOMETRY)[".tab"]
+    )
     return SharadObservation(identifier, power, label, table, geometry_label)

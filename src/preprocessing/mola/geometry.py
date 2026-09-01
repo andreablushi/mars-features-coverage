@@ -1,0 +1,50 @@
+"""Placing one MOLA tile on the grid its label projects it onto."""
+
+from __future__ import annotations
+
+import numpy as np
+
+from preprocessing.common import grids
+
+# The only projection the gridded record is written in.
+PROJECTION = "SIMPLE CYLINDRICAL"
+
+
+def load(label: dict[str, str]) -> tuple[np.ndarray, np.ndarray]:
+    """Return the centre latitude of every line and longitude of every sample.
+
+    Args:
+        label: The parsed label of one plane.
+
+    Returns:
+        The latitude of every line and the longitude of every sample, both in
+        degrees, so a pixel sits where the two cross.
+
+    Raises:
+        ValueError: When the label names a projection this cannot read.
+    """
+    if label["MAP_PROJECTION_TYPE"] != PROJECTION:
+        raise ValueError(f"Cannot place a {label['MAP_PROJECTION_TYPE']} grid.")
+    step = pixel(label)
+    # The projection counts pixels from one, from the offset it puts its origin at.
+    first_line = 1.0 - float(label["LINE_PROJECTION_OFFSET"])
+    first_sample = 1.0 - float(label["SAMPLE_PROJECTION_OFFSET"])
+    return grids.axes(
+        int(label["LINES"]),
+        int(label["LINE_SAMPLES"]),
+        float(label["CENTER_LATITUDE"]) - first_line * step,
+        float(label["CENTER_LONGITUDE"]) + first_sample * step,
+        step,
+    )
+
+
+def pixel(label: dict[str, str]) -> float:
+    """Return how many degrees one pixel of a tile spans.
+
+    Args:
+        label: The parsed label of one plane.
+
+    Returns:
+        The width of a pixel in degrees, the same in both directions.
+    """
+    return 1.0 / float(label["MAP_RESOLUTION"])

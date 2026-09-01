@@ -5,8 +5,8 @@ from __future__ import annotations
 import numpy as np
 
 from preprocessing.crism import configs
+from preprocessing.crism.cleaning import bands_calibration
 from preprocessing.crism.cleaning.destriping import medfilt1
-from preprocessing.crism.fetching import bands_calibration
 
 
 def remove_spikes(pixspec: np.ndarray, centre: np.ndarray) -> np.ndarray:

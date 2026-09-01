@@ -9,12 +9,12 @@ import numpy as np
 from preprocessing.crism import reading
 from preprocessing.crism.cleaning import (
     atmospheric,
+    bands_calibration,
     despiking,
     destriping,
     masking,
     ratioing,
 )
-from preprocessing.crism.fetching import bands_calibration
 from preprocessing.crism.models.observation import CrismObservation
 
 

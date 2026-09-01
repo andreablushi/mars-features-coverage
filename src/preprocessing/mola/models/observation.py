@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from preprocessing.mola.loaders.utils import naming
+from preprocessing.mola import naming
 
 
 @dataclass(frozen=True)

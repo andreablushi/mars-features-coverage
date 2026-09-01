@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from preprocessing.crism.fetching import bands_calibration
-from preprocessing.crism.loaders import geometry, observation, wavelengths
-from preprocessing.crism.loaders.utils import locations, naming
+from preprocessing.common.pds import images
+from preprocessing.crism import locations, naming, wavelengths
+from preprocessing.crism.cleaning import bands_calibration
 from preprocessing.crism.models.observation import CrismObservation, Detector
 
 
@@ -29,13 +29,14 @@ def read(identifier: str) -> CrismObservation:
     detectors = {}
     for name in naming.DETECTORS:
         # The scan itself, then the geometry published beside it.
-        cube, label = observation.load(identifier, name)
+        cube, label = images.load_cube(locations.files(identifier, name)[".img"])
+        planes, geometry_label = images.load_cube(
+            locations.files(identifier, name, naming.GEOMETRY)[".img"]
+        )
         # The wavelength file this half was calibrated against, and no other.
         record = locations.wavelength_file(naming.wavelength(label))[".img"]
         # Order the bands by wavelength and mark what was never calibrated.
         cube, table = bands_calibration.calibrate(cube, wavelengths.load(record))
         # Pair each detector's own cube with the geometry beside it.
-        detectors[name] = Detector(
-            name, cube, label, table, *geometry.load(identifier, name)
-        )
+        detectors[name] = Detector(name, cube, label, table, planes, geometry_label)
     return CrismObservation(identifier, detectors)
