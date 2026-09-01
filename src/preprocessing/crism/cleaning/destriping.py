@@ -31,7 +31,9 @@ def remove_spike_columns(
     # Average each column down the scan, so the ground averages away.
     averaged = block.mean(axis=0)
     # How far each band sits from the median of its wavelength neighbours.
-    size = window(bands_calibration.centres(table)[bands])
+    size = bands_calibration.window(
+        bands_calibration.centres(table)[bands], configs.STRIPE_WIDTH
+    )
     apart = np.abs(averaged - medfilt1(averaged, size))
     # crism_ml judges each column against the spread of its own bands.
     sigma = configs.STRIPE_SIGMA[detector]
@@ -71,20 +73,3 @@ def medfilt1(array: np.ndarray, size: int) -> np.ndarray:
         ],
         axis=-1,
     )
-
-
-def window(centre: np.ndarray) -> int:
-    """Return how many bands the smoothing window covers at this sampling.
-
-    Args:
-        centre: The centre wavelength of every kept band, in order.
-
-    Returns:
-        An odd band count whose span stays inside `configs.STRIPE_WIDTH`, or
-        three when even three bands reach further than that, since a median
-        cannot be taken over fewer.
-    """
-    step = np.abs(np.diff(centre)).mean()
-    # A window of n bands reaches across n - 1 gaps.
-    size = int(configs.STRIPE_WIDTH // step) + 1
-    return max(size - 1 + size % 2, 3)

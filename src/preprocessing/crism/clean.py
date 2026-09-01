@@ -4,8 +4,17 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+import numpy as np
+
 from preprocessing.crism import reading
-from preprocessing.crism.cleaning import atmospheric, destriping, masking, ratioing
+from preprocessing.crism.cleaning import (
+    atmospheric,
+    despiking,
+    destriping,
+    masking,
+    ratioing,
+)
+from preprocessing.crism.fetching import bands_calibration
 from preprocessing.crism.models.observation import CrismObservation
 
 
@@ -37,5 +46,13 @@ def clean(identifier: str) -> CrismObservation:
             cube, mask, detector.wavelengths, detector.name
         )
         cube = ratioing.ratio_colmed(cube, mask.pixels)
+        # Despike only the bands still in play, so the filled ones cannot pull
+        # the moving median around at their edges.
+        kept = ~mask.bands
+        block = np.ascontiguousarray(cube[:, :, kept])
+        despiking.remove_spikes(
+            block, bands_calibration.centres(detector.wavelengths)[kept]
+        )
+        cube[:, :, kept] = block
         detectors[name] = replace(detector, cube=cube, mask=mask)
     return CrismObservation(identifier, detectors)

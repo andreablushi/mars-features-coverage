@@ -15,8 +15,10 @@ class Detector:
 
     Attributes:
         name: Which detector, `l` for infrared or `s` for visible.
-        cube: The I/F values as lines by samples by bands, its bands ascending
-            in wavelength and its uncalibrated columns and bands NaN.
+        cube: The values as lines by samples by bands, its bands ascending in
+            wavelength. I/F with its uncalibrated columns and bands NaN as
+            `reading.read` returns it, and a ratio against each column's own
+            median, those cells zero, once `clean.clean` has been through it.
         label: The parsed label of that half.
         wavelengths: The centre wavelength in nm of every column and band, as
             columns by bands, in the same order as the cube. Columns and bands

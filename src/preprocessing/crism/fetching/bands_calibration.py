@@ -58,3 +58,18 @@ def centres(table: np.ndarray) -> np.ndarray:
     out = np.full(table.shape[1], np.nan)
     out[named] = np.nanmean(table[:, named], axis=0)
     return out
+
+
+def window(centre: np.ndarray, width: float) -> int:
+    """Return how many bands a window of a given width covers.
+
+    Args:
+        centre: The centre wavelength of every kept band, in order.
+        width: How far the window should reach, in nm.
+
+    Returns:
+        An odd band count whose span fits inside the width, never below three.
+    """
+    step = np.abs(np.diff(centre)).mean()
+    size = int(width // step) + 1
+    return max(size - 1 + size % 2, 3)

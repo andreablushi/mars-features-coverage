@@ -43,3 +43,9 @@ STRIPE_SIGMA = {"l": 7.5, "s": 4.7}
 # carbonate features that the surface is being modelled for. The visible
 # detector's window carries no absorption worth dropping.
 ATMOSPHERIC = {"l": ((1940.0, 2090.0),), "s": ()}
+
+# The windows crism_ml despikes the ratioed spectra with, its 11, 7 and 3
+# channels written as the nm they cover at hyperspectral sampling, with the
+# deviation each pass allows. Survey bands are wide enough that all three come
+# out as three bands, so the three passes narrow nothing and simply repeat.
+SPIKE_PASSES = ((72.0, 5.0), (46.0, 5.0), (20.0, 5.0))
