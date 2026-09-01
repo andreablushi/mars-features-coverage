@@ -21,17 +21,11 @@ def merge_detectors(observation: CrismObservation) -> CrismSample:
         The joined sample, its bands ascending in wavelength.
 
     Raises:
-        ValueError: When the observation has not been cleaned, or the two
-            detectors do not share a grid.
+        ValueError: When the observation has not been cleaned.
     """
     visible, infrared = observation.visible, observation.infrared
     if visible.mask is None or infrared.mask is None:
         raise ValueError(f"{observation.identifier} has not been cleaned.")
-    if visible.cube.shape[0] != infrared.cube.shape[0]:
-        raise ValueError(
-            f"{observation.identifier} has {visible.cube.shape[0]} visible lines "
-            f"and {infrared.cube.shape[0]} infrared ones."
-        )
 
     # Only the samples neither detector refused, which is one unbroken run.
     columns = ~(visible.mask.columns | infrared.mask.columns)
