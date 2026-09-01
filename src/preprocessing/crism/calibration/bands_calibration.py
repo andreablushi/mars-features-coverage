@@ -4,16 +4,15 @@ from __future__ import annotations
 
 import numpy as np
 
-from preprocessing.crism.calibration import wavelengths
 
-
-def calibrate(cube: np.ndarray, detector: str) -> tuple[np.ndarray, np.ndarray]:
+def calibrate(cube: np.ndarray, table: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Order one cube by wavelength and fill what was never calibrated.
 
     Args:
         cube: The values as lines by samples by bands, in the band order the
             file stored them in.
-        detector: Which detector, `l` for infrared or `s` for visible.
+        table: The centre wavelength of every column and band, in that same
+            order, as `wavelengths.load` returns it.
 
     Returns:
         The cube with its bands ascending in wavelength and its uncalibrated
@@ -21,14 +20,18 @@ def calibrate(cube: np.ndarray, detector: str) -> tuple[np.ndarray, np.ndarray]:
         band in that same order.
 
     Raises:
-        KeyError: When no calibration record covers that detector at that many
-            bands.
+        ValueError: When the table does not describe the cube it is given.
     """
+    if cube.shape[1:] != table.shape:
+        raise ValueError(
+            f"A cube of {cube.shape[1]} columns by {cube.shape[2]} bands cannot "
+            f"be read with a table of {table.shape[0]} by {table.shape[1]}."
+        )
     # What every column and band of this detector is centred on.
-    table = wavelengths.load(detector, cube.shape[2])
-    # Read the direction off the record instead of assuming one.
-    named = np.flatnonzero(~np.isnan(centres(table)))
-    if centres(table)[named[0]] > centres(table)[named[-1]]:
+    centre = centres(table)
+    # Read the direction off the file instead of assuming one.
+    named = np.flatnonzero(~np.isnan(centre))
+    if centre[named[0]] > centre[named[-1]]:
         cube, table = cube[:, :, ::-1], table[:, ::-1]
 
     # A writable copy in the new order, since the reversal above is a view.

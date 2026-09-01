@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 # The two detectors of one scan, infrared and visible.
 DETECTORS = ("l", "s")
@@ -17,6 +18,9 @@ _MARKERS = {OBSERVATION: "if", GEOMETRY: "de"}
 
 # The level a geometry carries, which has only ever been one.
 GEOMETRY_LEVEL = "ddr1"
+
+# What a label calls the wavelength file it was calibrated against.
+WAVELENGTH_KEY = "MRO:WAVELENGTH_FILE_NAME"
 
 _ID = re.compile(
     r"^(?P<stem>\w+)_if(?P<code>\d+)(?P<detector>[ls]?)_(?P<level>trr\d+)$"
@@ -60,3 +64,18 @@ def product(observation_id: str, detector: str, kind: str = OBSERVATION) -> str:
     marker = _MARKERS[kind]
     level = GEOMETRY_LEVEL if kind == GEOMETRY else match["level"]
     return f"{match['stem']}_{marker}{match['code']}{detector}_{level}"
+
+
+def wavelength(label: dict[str, str]) -> str:
+    """Read which wavelength file one label was calibrated against.
+
+    Args:
+        label: The parsed label of one detector's observation.
+
+    Returns:
+        The product id ODE knows that wavelength file by.
+
+    Raises:
+        KeyError: When the label names no wavelength file.
+    """
+    return Path(label[WAVELENGTH_KEY]).stem

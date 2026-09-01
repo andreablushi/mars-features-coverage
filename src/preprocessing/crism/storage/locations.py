@@ -1,9 +1,4 @@
-"""Where the files of one CRISM observation are kept on disk.
-
-An observation owns a directory named after it, holding both detectors of the
-scan, with the geometry the two were published with in a subdirectory of its
-own since it is a product apart.
-"""
+"""Where the files of one CRISM observation are kept on disk."""
 
 from __future__ import annotations
 
@@ -17,6 +12,9 @@ SUFFIXES = (".lbl", ".img")
 
 # The subdirectory an observation keeps its geometry in.
 GEOMETRY_DIR = "ddr"
+
+# The directory every wavelength file is kept in, shared by every observation.
+WAVELENGTH_DIR = "cdr"
 
 
 def files(
@@ -52,3 +50,16 @@ def labels(observation_id: str) -> dict[str, Path]:
         detector: files(observation_id, detector)[".lbl"]
         for detector in naming.DETECTORS
     }
+
+
+def wavelength_file(name: str) -> dict[str, Path]:
+    """Return where each half of one wavelength file belongs.
+
+    Args:
+        name: The product id ODE knows the wavelength file by.
+
+    Returns:
+        The path for each suffix, keyed by suffix.
+    """
+    place = configs.CACHE_ROOT / WAVELENGTH_DIR
+    return {suffix: place / f"{name.lower()}{suffix}" for suffix in SUFFIXES}

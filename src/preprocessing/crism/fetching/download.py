@@ -11,6 +11,7 @@ import httpx
 
 from metadata.api.client import ODEClient
 from preprocessing.crism import configs
+from preprocessing.crism.fetching import pds
 from preprocessing.crism.storage import locations, naming
 from utils.disk.files import atomic_path
 
@@ -23,6 +24,9 @@ TIMEOUT = 300.0
 # The ODE product types an observation and its geometry are published under.
 OBSERVATION_TYPE = "TRDR"
 GEOMETRY_TYPE = "DDR"
+
+# The ODE product type a wavelength file is published under.
+WAVELENGTH_TYPE = "CDR"
 
 
 def available() -> list[str]:
@@ -79,6 +83,7 @@ def fetch(observation_id: str, client: ODEClient | None = None) -> dict[str, Pat
 
     Raises:
         FileNotFoundError: When ODE offers no download for a product.
+        KeyError: When a label names no wavelength file.
     """
     wanted = {
         naming.product(observation_id, detector): (
@@ -93,29 +98,74 @@ def fetch(observation_id: str, client: ODEClient | None = None) -> dict[str, Pat
         )
         for detector in naming.DETECTORS
     }
-    # If all the files are already here, return their labels
-    if all(path.exists() for _, half in wanted.values() for path in half.values()):
-        return locations.labels(observation_id)
 
-    # Ask ODE the requested observation's products
-    owned = client or ODEClient()
+    owned = client
     try:
         for product_id, (product_type, half) in wanted.items():
-            if all(path.exists() for path in half.values()):
-                continue
-            offered = _build_urls(product_id, owned, product_type)
-            missing = [s for s in locations.SUFFIXES if not offered.get(s)]
-            if missing:
-                raise FileNotFoundError(
-                    f"ODE offers no {', '.join(missing)} for {product_id}."
-                )
-            for suffix, path in half.items():
-                if not path.exists():
-                    _download(offered[suffix], path)
+            owned = _bring(product_id, product_type, half, owned)
+        # Only now do the labels exist to be asked which file calibrated them.
+        for label in locations.labels(observation_id).values():
+            name = naming.wavelength(pds.load_label(label))
+            owned = _bring(
+                name, WAVELENGTH_TYPE, locations.wavelength_file(name), owned
+            )
     finally:
-        if client is None:
+        if owned is not None and client is None:
             owned.close()
     return locations.labels(observation_id)
+
+
+def wavelength_file(name: str, client: ODEClient | None = None) -> Path:
+    """Bring down the wavelength file one label names, or return what is here.
+
+    Args:
+        name: The product id ODE knows the wavelength file by.
+        client: An ODE client to reuse, or None to open one for this call.
+
+    Returns:
+        The path to the file's image, whose label sits beside it.
+
+    Raises:
+        FileNotFoundError: When ODE offers no download for it.
+    """
+    half = locations.wavelength_file(name)
+    owned = _bring(name, WAVELENGTH_TYPE, half, client)
+    if owned is not None and client is None:
+        owned.close()
+    return half[".img"]
+
+
+def _bring(
+    product_id: str,
+    product_type: str,
+    half: dict[str, Path],
+    client: ODEClient | None,
+) -> ODEClient | None:
+    """Download whichever halves of one product are not here yet.
+
+    Args:
+        product_id: The product to fetch.
+        product_type: The ODE product type it is published under.
+        half: Where each of its halves belongs, keyed by suffix.
+        client: An ODE client to use, or None to open one if anything is needed.
+
+    Returns:
+        The client used, which is the one given when nothing had to be fetched.
+
+    Raises:
+        FileNotFoundError: When ODE offers no download for a half.
+    """
+    if all(path.exists() for path in half.values()):
+        return client
+    owned = client or ODEClient()
+    offered = _build_urls(product_id, owned, product_type)
+    missing = [s for s in locations.SUFFIXES if not offered.get(s)]
+    if missing:
+        raise FileNotFoundError(f"ODE offers no {', '.join(missing)} for {product_id}.")
+    for suffix, path in half.items():
+        if not path.exists():
+            _download(offered[suffix], path)
+    return owned
 
 
 def _build_urls(
