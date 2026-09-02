@@ -11,9 +11,9 @@ from analysis.coverage import configs
 from analysis.sampling.models.dataset import DatasetStats
 from analysis.sampling.models.spread import Spread
 from analysis.selector import strategies
+from analysis.utils.maths import quantities
 from analysis.visualization.common import tables, wording
 from analysis.visualization.common.tables import Row
-from utils.maths import quantities
 
 # The track one of the sounder's traces covers, in kilometres.
 _TRACE_KM = configs.SHARAD_ALONG_TRACK_M / 1000.0

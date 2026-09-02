@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from analysis.models.feature import Feature
-from analysis.models.instrument import InstrumentSet
 from utils.disk.slugify import slugify
+
+if TYPE_CHECKING:
+    from analysis.models.feature import Feature
+    from analysis.models.instrument import InstrumentSet
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 

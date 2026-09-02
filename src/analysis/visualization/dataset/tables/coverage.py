@@ -8,9 +8,9 @@ import ipywidgets as widgets
 
 from analysis.sampling.models.dataset import DatasetStats
 from analysis.sampling.models.spread import Spread
+from analysis.utils.maths import quantities
 from analysis.visualization.common import tables, wording
 from analysis.visualization.common.tables import Row
-from utils.maths import quantities
 
 _REACHED = ("Strategy", "Instrument", "Mean coverage inside a tile", "Least")
 _WINDOWS = ("Strategy", "Mean window", "Longest", "Time Window Score")

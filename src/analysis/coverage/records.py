@@ -6,7 +6,7 @@ from itertools import chain
 from pathlib import Path
 from typing import Any
 
-import utils.disk.provenance as provenance
+import analysis.utils.provenance as provenance
 from analysis.coverage.models.observation import LoadedSet, Observation
 from utils.disk.files import read_jsonl
 

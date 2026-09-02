@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from analysis.coverage.results import Event, Summary
 from analysis.coverage.schemas import EVENTS, SUMMARY
 from analysis.models.job import Job
-from utils.disk import parquet
+from analysis.utils import parquet
 
 
 def write_coverage(job: Job, events: Sequence[Event], summary: Summary) -> None:

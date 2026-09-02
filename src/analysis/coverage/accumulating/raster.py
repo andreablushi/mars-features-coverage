@@ -8,10 +8,10 @@ import numpy as np
 from shapely import contains_xy, prepare
 from shapely.geometry.base import BaseGeometry
 
-import utils.disk.settings as settings
+import analysis.utils.settings as settings
 from analysis.coverage import configs
 from analysis.coverage.geometry.region import FeatureRegion
-from utils.maths import mask as packing
+from analysis.utils.maths import mask as packing
 
 _NONE = np.empty(0, dtype=np.int64)
 

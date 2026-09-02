@@ -8,7 +8,7 @@ from pathlib import Path
 
 import httpx
 
-from metadata.api.client import ODEClient
+from ode.client import ODEClient
 from utils.disk.files import atomic_path
 
 # How long to wait for the larger half of a product.

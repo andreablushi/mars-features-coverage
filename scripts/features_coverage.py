@@ -7,12 +7,12 @@ import time
 
 from rich.console import Console
 
-import utils.disk.settings as settings
+import analysis.utils.settings as settings
 from analysis import planner, runner
 from analysis.console import print_interrupted, print_summary
 from analysis.coverage import summary
+from analysis.metadata import tree
 from analysis.models.progress import CoverageSummary, DownloadSummary
-from metadata import tree
 
 
 def main() -> int:

@@ -7,7 +7,7 @@ from collections.abc import Sequence
 
 from analysis.selector import configs
 from analysis.selector.models.track import Track
-from utils.maths import ground
+from analysis.utils.maths import ground
 
 _PRICE_PER_DAY = 0.01 / configs.DAYS_PER_PERCENT
 

@@ -6,10 +6,10 @@ from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
 
 import utils.disk.paths as paths
+from analysis.metadata.selection.features import select_features
 from analysis.models.feature import Feature
 from analysis.models.instrument import InstrumentSet
 from analysis.models.job import Job, Plan
-from metadata.selection.features import select_features
 from utils.disk.paths import events_path, metadata_file, set_summary_path
 
 

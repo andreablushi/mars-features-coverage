@@ -7,9 +7,9 @@ from collections.abc import Mapping
 import ipywidgets as widgets
 
 from analysis.sampling.models.dataset import DatasetStats
+from analysis.utils import settings
 from analysis.visualization.common import tables, wording
 from analysis.visualization.common.tables import Row
-from utils.disk import settings
 
 
 def final(read: Mapping[str, DatasetStats]) -> widgets.Widget:

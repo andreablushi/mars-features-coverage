@@ -26,10 +26,10 @@ from analysis.coverage import summary as index
 from analysis.coverage.geometry.region import FeatureRegion
 from analysis.coverage.results import Summary
 from analysis.coverage.utils import geodesy
+from analysis.metadata.catalog import read_features
 from analysis.models.feature import Feature
-from metadata.catalog import read_features
+from analysis.utils.maths.mask import cells_of
 from utils.disk.files import atomic_path
-from utils.maths.mask import cells_of
 
 OVERLAPS_NAME = "overlaps.json"
 

@@ -6,10 +6,10 @@ from dataclasses import asdict
 from pathlib import Path
 
 import utils.disk.paths as paths
+from analysis.metadata.api import catalog as ode
 from analysis.models.feature import Feature
 from analysis.models.instrument import InstrumentSetInfo
-from metadata.api import catalog as ode
-from metadata.api.client import ODEClient
+from ode.client import ODEClient
 from utils.disk.files import read_jsonl, write_jsonl
 from utils.disk.paths import features_path, instrument_sets_path
 

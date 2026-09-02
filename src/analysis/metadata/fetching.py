@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from analysis.metadata.api import query
 from analysis.models.job import Job, Outcome
-from metadata.api import query
-from metadata.api.client import ODEClient
+from ode.client import ODEClient
 from utils.disk.files import write_jsonl
 
 

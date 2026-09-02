@@ -13,11 +13,11 @@ from matplotlib.patches import Patch
 
 from analysis.sampling import measuring
 from analysis.sampling.models.study import Study
+from analysis.utils.maths import quantities
 from analysis.visualization.common import panels, surveys
 from analysis.visualization.common.picker import View
 from analysis.visualization.feature.plots import mosaic, placing
 from analysis.visualization.feature.plots.placing import Box, Placed
-from utils.maths import quantities
 
 MAP_FIGURE_SIZE = (7.0, 6.0)
 

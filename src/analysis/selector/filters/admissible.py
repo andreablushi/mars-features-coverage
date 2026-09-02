@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from analysis.coverage.results import Event, SetCoverage
 from analysis.selector.models.strategy import Strategy
 from analysis.selector.models.tiles import Grid
-from utils.maths import mask as packing
+from analysis.utils.maths import mask as packing
 
 # One tile's admitted observations, the set each belongs to, and the cells it fills
 Held = list[tuple[Event, int, list[int]]]

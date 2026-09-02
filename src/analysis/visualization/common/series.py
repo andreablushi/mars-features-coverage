@@ -8,7 +8,7 @@ from datetime import datetime
 
 from analysis.coverage.results import SetCoverage
 from analysis.selector.models.track import Track
-from utils.maths import ground
+from analysis.utils.maths import ground
 
 
 @dataclass(frozen=True, slots=True)

@@ -7,7 +7,7 @@ import math
 import numpy as np
 
 from analysis.selector.models.tiles import Grid, Tile
-from utils.maths import mask as packing
+from analysis.utils.maths import mask as packing
 
 
 def split(side: int, tile_km: float, cell_km2: float, grid_mask: bytes) -> Grid:

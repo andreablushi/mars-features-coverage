@@ -12,8 +12,8 @@ import pyarrow.parquet as pq
 import utils.disk.paths as paths
 from analysis.coverage.results import Event, SetCoverage, Summary
 from analysis.coverage.schemas import EVENTS, SUMMARY
+from analysis.metadata import tree
 from analysis.models.instrument import InstrumentSet
-from metadata import tree
 from utils.disk.files import atomic_path
 from utils.disk.paths import catalog_summary_path, feature_artifacts_dir
 

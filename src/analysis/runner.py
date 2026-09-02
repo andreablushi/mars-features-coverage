@@ -17,13 +17,13 @@ from rich.console import Console
 from analysis import planner
 from analysis.console import describe_coverage, describe_download, render
 from analysis.coverage.measuring import run_job as compute_coverage
+from analysis.metadata import catalog, tree
+from analysis.metadata.fetching import run_job as download_set
+from analysis.metadata.selection.instruments import verify_sets
 from analysis.models.job import Job, Outcome
 from analysis.models.progress import ProgressEvent
 from analysis.models.settings import Settings
-from metadata import catalog, tree
-from metadata.api.client import ODEClient
-from metadata.fetching import run_job as download_set
-from metadata.selection.instruments import verify_sets
+from ode.client import ODEClient
 
 
 def run_jobs(

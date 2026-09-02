@@ -9,8 +9,8 @@ import numpy as np
 
 from analysis.coverage.geometry.region import FeatureRegion
 from analysis.coverage.utils import geodesy
+from analysis.metadata import catalog
 from analysis.models.feature import Feature
-from metadata import catalog
 from utils.disk.slugify import slugify
 
 # The least ground a side of a box covers, however thin the block inside it is.

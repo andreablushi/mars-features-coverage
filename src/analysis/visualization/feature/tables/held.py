@@ -6,11 +6,11 @@ import ipywidgets as widgets
 
 from analysis.sampling import measuring
 from analysis.sampling.models.tiles import TileStats
+from analysis.utils.maths import quantities
 from analysis.visualization.common import panels, tables, wording
 from analysis.visualization.common.tables import Row
 from analysis.visualization.feature import picker
 from analysis.visualization.feature.picker import TileView
-from utils.maths import quantities
 
 _HEADINGS = ("On this tile", "What it holds")
 _NONE = "-"

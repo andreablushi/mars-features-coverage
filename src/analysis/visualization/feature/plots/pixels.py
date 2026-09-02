@@ -8,11 +8,11 @@ import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.ticker import FuncFormatter, MaxNLocator
 
+from analysis.utils.maths import quantities
 from analysis.visualization.common import panels, wording
 from analysis.visualization.feature.picker import NO_TILE, TileView
 from analysis.visualization.feature.stats import landed
 from analysis.visualization.feature.stats.landed import Landed
-from utils.maths import quantities
 
 # One panel per instrument set, each on a scale of its own, so height is per panel
 PANEL_HEIGHT = 1.4

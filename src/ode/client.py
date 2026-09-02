@@ -8,8 +8,8 @@ from typing import Any
 
 import httpx
 
-from metadata import configs
-from metadata.models.errors import ODEError
+from ode import configs
+from ode.errors import ODEError
 
 
 class ODEClient:

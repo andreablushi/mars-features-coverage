@@ -122,20 +122,21 @@ config.yaml           # Configures the run, local and DigitalHub
 scripts/              # Entrypoints for the pipeline, local and DigitalHub
 notebooks/            # The two notebooks that read the results
 src/
-  metadata/           # ODE catalogue and record fetching, asked by both halves
-  utils/
-    maths/            # Scaling, formatting, and cell packing
-    disk/             # Project paths, config.yaml, slugs, record provenance
+  ode/                # The ODE client, its settings, its errors
+  utils/disk/         # Project paths, atomic writes, slugs
   analysis/           # What the coverage survey measures and the notebooks read
     console.py        # Progress bar for console prints
     planner.py        # What each half has left to do
     runner.py         # Orchestrates the pipeline stages
     models/           # The data model: features, instruments, settings
+    metadata/         # ODE catalogue and record fetching
     coverage/         # Coverage measurement, geometry, and what it leaves on disk
     selector/         # The best time window search
       strategies/     # One YAML per strategy the search can run under
     sampling/         # The sweep over every tile, and the aggregates over it
     visualization/    # What the notebooks draw
+    utils/            # config.yaml, parquet, record provenance
+      maths/          # Scaling, formatting, and cell packing
   building/           # What a downloaded observation is turned into
     preprocessing/    # One package per instrument, and what they share
 data/

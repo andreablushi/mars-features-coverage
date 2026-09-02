@@ -9,7 +9,7 @@ from collections.abc import Sequence
 from analysis.coverage.results import SetCoverage
 from analysis.selector.models.strategy import Constraints, Strategy
 from analysis.selector.models.tiles import Grid
-from utils.maths import ground
+from analysis.utils.maths import ground
 
 
 def read(strategy: Strategy, coverage: Sequence[SetCoverage], grid: Grid) -> Strategy:

@@ -8,14 +8,14 @@ from dataclasses import dataclass
 import ipywidgets as widgets
 from IPython.display import display
 
-import utils.disk.settings as settings
+import analysis.utils.settings as settings
 from analysis.coverage import summary
 from analysis.coverage.results import SetCoverage
+from analysis.metadata import catalog
 from analysis.selector import strategies
 from analysis.selector.models.strategy import Strategy
 from analysis.visualization.common import panels, surveys
 from analysis.visualization.common.areas import Areas
-from metadata import catalog
 from utils.disk.slugify import slugify
 
 # The feature class the picker opens on.
