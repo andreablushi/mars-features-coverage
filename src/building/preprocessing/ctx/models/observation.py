@@ -25,12 +25,3 @@ class CtxObservation:
     label: dict[str, str]
     latitude: np.ndarray
     longitude: np.ndarray
-
-    @property
-    def shape(self) -> tuple[int, int]:
-        """Return the lines and samples the label promises.
-
-        Returns:
-            The line count and the sample count.
-        """
-        return int(self.label["Lines"]), int(self.label["Samples"])

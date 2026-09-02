@@ -1,4 +1,4 @@
-"""Checking a scan fills the grid its label projects, and marking what it left."""
+"""Placing a scan on the grid its label projects, and marking what it left."""
 
 from __future__ import annotations
 
@@ -18,15 +18,7 @@ def merge_geometry(observation: CtxObservation) -> CtxSample:
 
     Returns:
         The sample, its image on the grid its label projects it onto.
-
-    Raises:
-        ValueError: When the image is not the shape its label promises.
     """
-    if observation.image.shape != observation.shape:
-        raise ValueError(
-            f"{observation.identifier} holds a {observation.image.shape} image "
-            f"where its label promises {observation.shape}."
-        )
     return CtxSample(
         observation.identifier,
         observation.image,
