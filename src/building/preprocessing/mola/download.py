@@ -7,7 +7,7 @@ from pathlib import Path
 
 from building.preprocessing.common import download
 from building.preprocessing.common.disk import catalogue
-from building.preprocessing.mola import configs, naming
+from building.preprocessing.mola import configs
 
 # What ODE publishes MOLA under.
 ODE = {"ihid": "MGS", "iid": "MOLA"}
@@ -41,7 +41,7 @@ def available(
     Raises:
         ValueError: When the resolution is not one MEGDR is published at.
     """
-    if resolution not in naming.RESOLUTIONS.values():
+    if resolution not in configs.RESOLUTIONS.values():
         raise ValueError(f"MEGDR is not published at {resolution} pixels per degree.")
     with download.opened(client) as ode:
         entries = ode.query(pt=PRODUCT_TYPE, limit=str(PAGE), **ODE)
@@ -54,13 +54,13 @@ def available(
     found: dict[str, set[str]] = defaultdict(set)
     for name in names:
         # Keep only wanted tiles, which drops the polar stereographic ones.
-        tile = naming.parse(name)
-        if tile and naming.resolution(tile) == resolution:
+        tile = configs.NAMING.parse(name)
+        if tile and configs.resolution(tile) == resolution:
             found[tile].add(name)
     return sorted(
         tile
         for tile, seen in found.items()
-        if seen.issuperset(naming.product(tile, kind) for kind in naming.KINDS)
+        if seen.issuperset(configs.NAMING.product(tile, kind) for kind in configs.KINDS)
     )
 
 
@@ -101,12 +101,14 @@ def fetch(tile: str, client: download.Client | None = None) -> Path:
         FileNotFoundError: When ODE offers no download for a plane.
     """
     with download.opened(client) as ode:
-        for kind in naming.KINDS:
-            product = naming.product(tile, kind)
+        for kind in configs.KINDS:
+            product = configs.NAMING.product(tile, kind)
             ode.collect(
                 f"{product}{ODE_SUFFIX}",
                 configs.CACHE.files(tile, product, kind),
                 pt=PRODUCT_TYPE,
                 **ODE,
             )
-    return configs.CACHE.files(tile, naming.product(tile))[".lbl"]
+    return configs.CACHE.files(tile, configs.NAMING.product(tile, configs.TOPOGRAPHY))[
+        ".lbl"
+    ]

@@ -2,18 +2,43 @@
 
 from __future__ import annotations
 
+import re
+
+from building.preprocessing.common.disk.naming import Naming
 from building.preprocessing.common.disk.product_cache import ProductCache
-from building.preprocessing.crism import naming
 from utils.disk import paths
+
+# The two detectors of one scan, infrared and visible.
+DETECTORS = ("l", "s")
+
+# The two products one detector of a scan is published as.
+OBSERVATION = "observation"
+GEOMETRY = "geometry"
+KINDS = (OBSERVATION, GEOMETRY)
+
+# How ODE spells one detector of an observation. A product writes its detector
+# where the observation writes nothing, its kind where the other kind writes the
+# other, and a geometry carries the one level it has ever been published at.
+NAMING = Naming(
+    re.compile(r"^(?P<stem>\w+)_if(?P<code>\d+)(?P<detector>[ls]?)_(?P<level>trr\d+)$"),
+    identity="{stem}_if{code}_{level}",
+    marks=("detector",),
+    template="{stem}_{marker}{code}{detector}_{level}",
+    fields={
+        OBSERVATION: {"marker": "if"},
+        GEOMETRY: {"marker": "de", "level": "ddr1"},
+    },
+)
+
+# What a label calls the wavelength file it was calibrated against.
+WAVELENGTH_KEY = "MRO:WAVELENGTH_FILE_NAME"
 
 # Where the metadata download stage writes what it fetched from ODE.
 METADATA_ROOT = paths.METADATA_ROOT
 
 # Where each product of an observation is kept, and what it is called there.
 # The geometry sits in a subdirectory of its own, beside the scan it belongs to.
-CACHE = ProductCache(
-    paths.CRISM_ROOT, {None: (".lbl", ".img")}, {naming.GEOMETRY: "ddr"}
-)
+CACHE = ProductCache(paths.CRISM_ROOT, {None: (".lbl", ".img")}, {GEOMETRY: "ddr"})
 
 # The directory every wavelength file is kept in, shared by every observation.
 WAVELENGTH_DIR = "cdr"

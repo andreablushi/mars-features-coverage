@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from building.preprocessing.common.pds import images, tables
-from building.preprocessing.sharad import configs, naming
+from building.preprocessing.sharad import configs
 from building.preprocessing.sharad.models.observation import SharadObservation
 
 
@@ -24,10 +24,12 @@ def read(identifier: str) -> SharadObservation:
     """
     # The echoes themselves, then the places they were sounded at.
     power, label = images.load_plane(
-        configs.CACHE.files(identifier, naming.product(identifier))[".img"]
+        configs.CACHE.files(
+            identifier, configs.NAMING.product(identifier, configs.OBSERVATION)
+        )[".img"]
     )
-    geometry = naming.product(identifier, naming.GEOMETRY)
+    geometry = configs.NAMING.product(identifier, configs.GEOMETRY)
     table, geometry_label = tables.load_table(
-        configs.CACHE.files(identifier, geometry, naming.GEOMETRY)[".tab"]
+        configs.CACHE.files(identifier, geometry, configs.GEOMETRY)[".tab"]
     )
     return SharadObservation(identifier, power, label, table, geometry_label)

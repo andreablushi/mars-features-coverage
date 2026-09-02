@@ -8,7 +8,7 @@ from pathlib import Path
 from building.preprocessing.common import download
 from building.preprocessing.common.disk import catalogue
 from building.preprocessing.common.pds import labels
-from building.preprocessing.crism import configs, naming
+from building.preprocessing.crism import configs
 
 # The metadata file each feature keeps its multispectral survey products in.
 MSP_METADATA_NAME = "mro_crism_trdr_msp.jsonl"
@@ -17,7 +17,7 @@ MSP_METADATA_NAME = "mro_crism_trdr_msp.jsonl"
 ODE = {"ihid": "MRO", "iid": "CRISM"}
 
 # The ODE product types an observation and its geometry are published under.
-TYPES = {naming.OBSERVATION: "TRDR", naming.GEOMETRY: "DDR"}
+TYPES = {configs.OBSERVATION: "TRDR", configs.GEOMETRY: "DDR"}
 
 # The ODE product type a wavelength file is published under.
 WAVELENGTH_TYPE = "CDR"
@@ -32,10 +32,11 @@ def available() -> list[str]:
     found: dict[str, set[str]] = defaultdict(set)
     for product_id in catalogue.product_ids(configs.METADATA_ROOT, MSP_METADATA_NAME):
         # Keep only wanted observations, which name a detector of their own.
-        if named := naming.parse(product_id.lower()):
-            found[named[0]].add(named[1])
+        parts = configs.NAMING.parts(product_id.lower())
+        if parts and parts["detector"]:
+            found[configs.NAMING.parse(product_id.lower())].add(parts["detector"])
     return sorted(
-        name for name, seen in found.items() if seen.issuperset(naming.DETECTORS)
+        name for name, seen in found.items() if seen.issuperset(configs.DETECTORS)
     )
 
 
@@ -74,9 +75,11 @@ def fetch(
         KeyError: When a label names no wavelength file.
     """
     with download.opened(client) as ode:
-        for detector in naming.DETECTORS:
+        for detector in configs.DETECTORS:
             for kind, product_type in TYPES.items():
-                product_id = naming.product(observation_id, detector, kind)
+                product_id = configs.NAMING.product(
+                    observation_id, kind, detector=detector
+                )
                 ode.collect(
                     product_id,
                     configs.CACHE.files(observation_id, product_id, kind),
@@ -85,13 +88,16 @@ def fetch(
                 )
         found = {
             detector: configs.CACHE.files(
-                observation_id, naming.product(observation_id, detector)
+                observation_id,
+                configs.NAMING.product(
+                    observation_id, configs.OBSERVATION, detector=detector
+                ),
             )[".lbl"]
-            for detector in naming.DETECTORS
+            for detector in configs.DETECTORS
         }
         # Only now do the labels exist to be asked which file calibrated them.
         for label in found.values():
-            name = naming.wavelength(labels.load(label))
+            name = Path(labels.load(label)[configs.WAVELENGTH_KEY]).stem
             ode.collect(
                 name,
                 configs.CACHE.files(configs.WAVELENGTH_DIR, name.lower()),

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from building.preprocessing.common import download
 from building.preprocessing.common.disk import catalogue
-from building.preprocessing.sharad import configs, naming
+from building.preprocessing.sharad import configs
 
 # The metadata file each feature keeps its radargram products in.
 RDR_METADATA_NAME = "mro_sharad_usrdrv2.jsonl"
@@ -15,7 +15,7 @@ RDR_METADATA_NAME = "mro_sharad_usrdrv2.jsonl"
 ODE = {"ihid": "MRO", "iid": "SHARAD"}
 
 # The ODE product types a radargram and its geometry are published under.
-TYPES = {naming.OBSERVATION: "USRDRV2", naming.GEOMETRY: "USGEOMV2"}
+TYPES = {configs.OBSERVATION: "USRDRV2", configs.GEOMETRY: "USGEOMV2"}
 
 
 def available() -> list[str]:
@@ -25,7 +25,9 @@ def available() -> list[str]:
         The observation ids, sorted and without repeats.
     """
     return catalogue.observations(
-        configs.METADATA_ROOT, RDR_METADATA_NAME, lambda p: naming.parse(p.lower())
+        configs.METADATA_ROOT,
+        RDR_METADATA_NAME,
+        lambda p: configs.NAMING.parse(p.lower()),
     )
 
 
@@ -62,11 +64,13 @@ def fetch(observation_id: str, client: download.Client | None = None) -> Path:
     """
     with download.opened(client) as ode:
         for kind, product_type in TYPES.items():
-            product_id = naming.product(observation_id, kind)
+            product_id = configs.NAMING.product(observation_id, kind)
             ode.collect(
                 product_id,
                 configs.CACHE.files(observation_id, product_id, kind),
                 pt=product_type,
                 **ODE,
             )
-    return configs.CACHE.files(observation_id, naming.product(observation_id))[".lbl"]
+    return configs.CACHE.files(
+        observation_id, configs.NAMING.product(observation_id, configs.OBSERVATION)
+    )[".lbl"]

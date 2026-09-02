@@ -7,7 +7,7 @@ from urllib.parse import quote
 
 from building.preprocessing.common import download
 from building.preprocessing.common.disk import catalogue
-from building.preprocessing.ctx import configs, naming
+from building.preprocessing.ctx import configs
 
 # The metadata file each feature keeps its CTX products in.
 EDR_METADATA_NAME = "mro_ctx_edr.jsonl"
@@ -25,6 +25,9 @@ ODE_SUFFIX = ".img"
 # Where ASU serves what it built, given the path the file sits at.
 ASU_URL = "https://image.mars.asu.edu/stream/{name}?image={path}"
 
+# Where ASU keeps one product of a scan, under the volume it was archived on.
+ASU_PATH = "/mars/images/ctx/{volume}/{place}/{name}"
+
 
 def available() -> list[str]:
     """Read the ids of every scan the metadata names.
@@ -32,9 +35,7 @@ def available() -> list[str]:
     Returns:
         The observation ids, sorted and without repeats.
     """
-    return catalogue.observations(
-        configs.METADATA_ROOT, EDR_METADATA_NAME, naming.parse
-    )
+    return catalogue.observations(configs.METADATA_ROOT, EDR_METADATA_NAME, _scan)
 
 
 def sample(seed: int = 42, client: download.Client | None = None) -> Path:
@@ -77,9 +78,9 @@ def fetch(observation_id: str, client: download.Client | None = None) -> Path:
             offered = ode.offers(observation_id, pt=PRODUCT_TYPE, **ODE)
         if ODE_SUFFIX not in offered:
             raise FileNotFoundError(f"ODE carries no raw scan for {observation_id}.")
-        volume_id = naming.volume(offered[ODE_SUFFIX])
+        volume_id = _volume(offered[ODE_SUFFIX])
         download.bring(destination, _asu(observation_id, volume_id), configs.TIMEOUT)
-    return destination[naming.SUFFIXES[naming.LABEL]]
+    return destination[configs.SUFFIXES[configs.LABEL]]
 
 
 def _asu(observation_id: str, volume_id: str) -> dict[str, str]:
@@ -94,9 +95,47 @@ def _asu(observation_id: str, volume_id: str) -> dict[str, str]:
         The URL each product is streamed from, keyed by its suffix on disk.
     """
     return {
-        naming.SUFFIXES[kind]: ASU_URL.format(
-            name=f"{observation_id}{naming.SUFFIXES[kind]}",
-            path=quote(naming.remote(observation_id, volume_id, kind)),
+        configs.SUFFIXES[kind]: ASU_URL.format(
+            name=f"{observation_id}{configs.SUFFIXES[kind]}",
+            path=quote(
+                ASU_PATH.format(
+                    volume=volume_id,
+                    place=configs.DIRECTORIES[kind],
+                    name=f"{observation_id}{configs.REMOTE_SUFFIXES[kind]}",
+                )
+            ),
         )
-        for kind in naming.KINDS
+        for kind in configs.KINDS
     }
+
+
+def _scan(product_id: str) -> str | None:
+    """Read which scan a product id names, as ASU spells it.
+
+    Args:
+        product_id: The id to read, as the metadata spells it.
+
+    Returns:
+        The observation id in the upper case ASU serves it under, or None when
+        the id is not a CTX scan.
+    """
+    found = configs.NAMING.parse(product_id.lower())
+    return found.upper() if found else None
+
+
+def _volume(url: str) -> str:
+    """Read which PDS volume a scan was archived on from where ODE offers it.
+
+    Args:
+        url: The download URL ODE gives the raw scan.
+
+    Returns:
+        The volume, such as mrox_0009.
+
+    Raises:
+        ValueError: When the URL runs through no volume this can read.
+    """
+    match = configs.VOLUME.search(url)
+    if not match:
+        raise ValueError(f"{url} names no CTX volume.")
+    return match["volume"]

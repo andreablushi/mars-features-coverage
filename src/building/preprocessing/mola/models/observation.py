@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from building.preprocessing.mola import naming
+from building.preprocessing.mola import configs
 
 
 @dataclass(frozen=True)
@@ -14,7 +14,7 @@ class Plane:
     """One plane of a tile, with the grid it is placed on beside it.
 
     Attributes:
-        kind: Which plane, `naming.TOPOGRAPHY` or `naming.COUNTS`.
+        kind: Which plane, `configs.TOPOGRAPHY` or `configs.COUNTS`.
         values: The values as lines by samples, in the type the archive stores
             them in, metres for topography and shots per bin for counts.
         label: The parsed label of that plane.
@@ -48,7 +48,7 @@ class MolaObservation:
         Returns:
             The topography plane.
         """
-        return self.planes[naming.TOPOGRAPHY]
+        return self.planes[configs.TOPOGRAPHY]
 
     @property
     def counts(self) -> Plane:
@@ -57,7 +57,7 @@ class MolaObservation:
         Returns:
             The counts plane.
         """
-        return self.planes[naming.COUNTS]
+        return self.planes[configs.COUNTS]
 
     @property
     def resolution(self) -> int:
@@ -66,4 +66,4 @@ class MolaObservation:
         Returns:
             The pixels per degree.
         """
-        return naming.resolution(self.identifier)
+        return configs.resolution(self.identifier)

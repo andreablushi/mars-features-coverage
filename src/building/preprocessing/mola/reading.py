@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from building.preprocessing.common.pds import images
-from building.preprocessing.mola import configs, geometry, naming
+from building.preprocessing.mola import configs, geometry
 from building.preprocessing.mola.models.observation import MolaObservation, Plane
 
 
@@ -24,8 +24,8 @@ def read(identifier: str) -> MolaObservation:
         ValueError: When a label names a projection this cannot read.
     """
     planes = {}
-    for kind in naming.KINDS:
-        product = naming.product(identifier, kind)
+    for kind in configs.KINDS:
+        product = configs.NAMING.product(identifier, kind)
         values, label = images.load_plane(
             configs.CACHE.files(identifier, product, kind)[".img"]
         )
