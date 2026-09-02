@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from analysis.metadata.api import query
 from analysis.models.job import Job, Outcome
-from ode.client import ODEClient
 from utils.disk.files import write_jsonl
+from utils.ode.client import ODEClient
 
 
 def run_job(job: Job, client: ODEClient, loc: str) -> Outcome:

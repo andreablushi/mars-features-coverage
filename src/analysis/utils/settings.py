@@ -11,7 +11,7 @@ import yaml
 import utils.disk.paths as paths
 from analysis.models.instrument import InstrumentSet
 from analysis.models.settings import Settings
-from ode import configs as download_configs
+from utils.ode import configs as download_configs
 
 
 def _setting(

@@ -6,8 +6,8 @@ from analysis.metadata.api.response import as_items
 from analysis.metadata.selection.dedupe import dedupe
 from analysis.models.feature import Feature
 from analysis.models.instrument import InstrumentSetInfo
-from ode import configs
-from ode.client import ODEClient
+from utils.ode import configs
+from utils.ode.client import ODEClient
 
 
 def fetch_features(client: ODEClient) -> list[Feature]:

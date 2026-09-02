@@ -23,7 +23,7 @@ from analysis.metadata.selection.instruments import verify_sets
 from analysis.models.job import Job, Outcome
 from analysis.models.progress import ProgressEvent
 from analysis.models.settings import Settings
-from ode.client import ODEClient
+from utils.ode.client import ODEClient
 
 
 def run_jobs(

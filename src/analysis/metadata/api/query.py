@@ -9,9 +9,9 @@ import analysis.utils.provenance as provenance
 from analysis.metadata.api.response import as_items
 from analysis.models.feature import Feature
 from analysis.models.instrument import InstrumentSet
-from ode import configs
-from ode.client import ODEClient
-from ode.errors import ODEError
+from utils.ode import configs
+from utils.ode.client import ODEClient
+from utils.ode.errors import ODEError
 
 Box = tuple[float, float, float, float]
 ProductRecord: TypeAlias = dict[str, Any]

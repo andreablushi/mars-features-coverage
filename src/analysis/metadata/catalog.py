@@ -9,9 +9,9 @@ import utils.disk.paths as paths
 from analysis.metadata.api import catalog as ode
 from analysis.models.feature import Feature
 from analysis.models.instrument import InstrumentSetInfo
-from ode.client import ODEClient
 from utils.disk.files import read_jsonl, write_jsonl
 from utils.disk.paths import features_path, instrument_sets_path
+from utils.ode.client import ODEClient
 
 
 def read_features(cache_dir: Path = paths.CATALOG_ROOT) -> list[Feature]:

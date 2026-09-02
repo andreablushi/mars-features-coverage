@@ -8,8 +8,8 @@ from typing import Any
 
 import httpx
 
-from ode import configs
-from ode.errors import ODEError
+from utils.ode import configs
+from utils.ode.errors import ODEError
 
 
 class ODEClient:
