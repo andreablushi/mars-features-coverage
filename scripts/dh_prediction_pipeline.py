@@ -17,8 +17,7 @@ import utils.disk.paths as paths
 from analysis import console
 from analysis.coverage import summary
 from analysis.sampling import predicting, storing, sweeping
-from analysis.sampling.models.dataset import DatasetStats
-from analysis.selector import strategies
+from analysis.selector import configs as filtering
 
 FUNCTION_NAME = "features-prediction"
 HANDLER = "scripts.dh_prediction_pipeline:save_predictions"
@@ -28,7 +27,7 @@ PREDICTIONS_NAME = "coverage-predictions"
 
 @handler(outputs=[PREDICTIONS_NAME])
 def save_predictions(project):
-    """Sweep the strategies not already published and publish what they predict.
+    """Sweep the features under the filter and publish what it predicts.
 
     Args:
         project: The DigitalHub project the prediction is logged into.
@@ -49,40 +48,36 @@ def save_predictions(project):
     named = summary.catalogued_features()
     if not named:
         raise RuntimeError("the published measurements hold no feature to search")
-    # A strategy published as it is written now need not be searched again
-    held: dict[str, DatasetStats] = {}
+    # A sweep published under the filter as it is written now need not run again
+    held = None
     if project.list_artifacts(name=PREDICTIONS_NAME):
         print("fetching the prediction published before", flush=True)
         _unpack(
             project.get_artifact(PREDICTIONS_NAME).download(overwrite=True),
             paths.PREDICTIONS_ROOT,
         )
-        held = sweeping.still_current(storing.read_predictions())
-        print(f"kept from it: {', '.join(held) or 'nothing'}", flush=True)
+        held = sweeping.still_current(storing.read_prediction())
+        print(f"kept from it: {'the sweep' if held else 'nothing'}", flush=True)
     else:
-        print("nothing was published before, sweeping every strategy", flush=True)
+        print("nothing was published before, sweeping the whole catalogue", flush=True)
 
-    missing = [name for name in strategies.STRATEGIES if name not in held]
-    if missing:
+    if held is None:
         workers = settings.load().workers
         print(
-            f"sweeping {len(named):,} features under {len(missing)} of "
-            f"{len(strategies.STRATEGIES)} strategies on {workers} workers: "
-            f"{', '.join(missing)}",
+            f"sweeping {len(named):,} features under the filter on {workers} workers",
             flush=True,
         )
-        swept = sweeping.sweep(missing, named, workers, console.logged("sweep"))
-        held.update(predicting.predictions(swept))
-    else:
-        print(
-            "every strategy is published as it is written, nothing to sweep", flush=True
+        held = predicting.prediction(
+            sweeping.sweep(named, workers, console.logged("sweep"))
         )
+    else:
+        print("the filter is published as it is written, nothing to sweep", flush=True)
 
-    storing.write_predictions(held, {name: strategies.digest(name) for name in held})
-    # A strategy deleted since it was published leaves its file behind to clear
+    written = storing.write_prediction(held, filtering.digest())
+    # A file left by an older layout names no sweep, so it is cleared
     for path in sorted(paths.PREDICTIONS_ROOT.glob("*.json")):
-        if path.stem not in held:
-            print(f"dropping {path.name}, no strategy goes by that name", flush=True)
+        if path != written:
+            print(f"dropping {path.name}, nothing reads it back", flush=True)
             path.unlink()
 
     print("uploading the prediction", flush=True)
@@ -91,7 +86,7 @@ def save_predictions(project):
         name=PREDICTIONS_NAME,
         kind="artifact",
         source=str(packed),
-        description="What each strategy would make of the dataset; unpack under data/.",
+        description="What the filter would make of the dataset; unpack under data/.",
     )
     print("done", flush=True)
     return prediction

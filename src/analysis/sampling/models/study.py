@@ -1,11 +1,11 @@
-"""One feature, searched under one strategy."""
+"""One feature, searched under the filter."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+from analysis.selector.models.filter import Filter
 from analysis.selector.models.grid import Grid
-from analysis.selector.models.strategy import Strategy
 from analysis.selector.models.survey import Survey
 from analysis.selector.models.track import Track
 
@@ -15,14 +15,14 @@ class Study:
     """What the search found over one feature.
 
     Attributes:
-        strategy: What the feature was asked for.
+        criteria: What the feature was asked for.
         grid: The grid it was searched over.
         track: Its admissible observations on one time axis, or None where it
             holds nothing measurable.
         survey: The window it earned, or None where it earned none.
     """
 
-    strategy: Strategy
+    criteria: Filter
     grid: Grid
     track: Track | None
     survey: Survey | None

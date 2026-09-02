@@ -1,7 +1,7 @@
 """What a sweep made of the dataset, written out so it need not be swept again.
 
 The keys below are the published format, not the field names the stats carry,
-so a field may be renamed without every published file having to be swept again.
+so a field may be renamed without the published file having to be swept again.
 Only a change to what is written raises `configs.PREDICTION_SHAPE`.
 """
 
@@ -17,77 +17,77 @@ from analysis.sampling import configs
 from analysis.sampling.models.dataset import ClassStats, DatasetStats
 from analysis.sampling.models.feature import Aggregate
 from analysis.sampling.models.spread import Spread
-from analysis.selector import strategies
 from utils.disk.files import atomic_path
 
 
-def write_predictions(
-    predicted: Mapping[str, DatasetStats],
-    digests: Mapping[str, str],
-    root: Path = paths.PREDICTIONS_ROOT,
-) -> list[Path]:
-    """Write out what every strategy made of the dataset, one file each.
+def prediction_path(root: Path = paths.PREDICTIONS_ROOT) -> Path:
+    """Return the file a sweep is published as.
 
     Args:
-        predicted: The stats each strategy left, by strategy name.
-        digests: The fingerprint to file each of them under, by strategy name.
-        root: The directory to write them in, made when it is missing.
+        root: The directory it is written in.
 
     Returns:
-        The files written, in the order the strategies came in.
+        The file, which need not exist.
     """
-    written: list[Path] = []
-    for name, stats in predicted.items():
-        path = root / f"{name}.json"
-        with atomic_path(path) as tmp:
-            tmp.write_text(
-                json.dumps(_as_json(stats, digests[name]), indent=1) + "\n",
-                encoding="utf-8",
-            )
-        written.append(path)
-    return written
+    return root / paths.PREDICTION_NAME
 
 
-def read_predictions(
+def write_prediction(
+    predicted: DatasetStats, digest: str, root: Path = paths.PREDICTIONS_ROOT
+) -> Path:
+    """Write out what the filter made of the dataset.
+
+    Args:
+        predicted: The stats the sweep left.
+        digest: The fingerprint of the filter it was swept under.
+        root: The directory to write it in, made when it is missing.
+
+    Returns:
+        The file written.
+    """
+    path = prediction_path(root)
+    with atomic_path(path) as tmp:
+        tmp.write_text(
+            json.dumps(_as_json(predicted, digest), indent=1) + "\n", encoding="utf-8"
+        )
+    return path
+
+
+def read_prediction(
     root: Path = paths.PREDICTIONS_ROOT,
-) -> dict[str, tuple[str, DatasetStats]]:
+) -> tuple[str, DatasetStats] | None:
     """Read back what a previous run made of the dataset.
 
-    Only the strategies written now are looked for. A file left behind by one
-    since renamed or deleted names no strategy, so it is never opened. A file
-    written under an older shape, or one nothing can be read from at all, is
-    passed over, named on the way past, and the strategy is swept again.
+    A file written under an older shape, or one nothing can be read from at all,
+    is passed over and named on the way past, so the sweep runs again.
 
     Args:
-        root: The directory the files were written in.
+        root: The directory the file was written in.
 
     Returns:
-        The stats each strategy left and the digest it was filed under, by name.
+        The digest it was filed under and the stats it holds, or None where
+        there is nothing to read back.
     """
-    published: dict[str, tuple[str, DatasetStats]] = {}
-    for name in strategies.STRATEGIES:
-        path = root / f"{name}.json"
-        if not path.is_file():
-            continue
-        try:
-            saved = json.loads(path.read_text(encoding="utf-8"))
-            shape = saved.get("shape")
-            if shape != configs.PREDICTION_SHAPE:
-                raise ValueError(f"shape {shape!r}, not {configs.PREDICTION_SHAPE}")
-            published[name] = (saved["digest"], _from_json(saved))
-        except Exception as why:
-            # A file that cannot be read leaves no answer but to sweep again
-            print(
-                f"{path.name} cannot be read back ({why}), so `{name}` is swept again"
-            )
-    return published
+    path = prediction_path(root)
+    if not path.is_file():
+        return None
+    try:
+        saved = json.loads(path.read_text(encoding="utf-8"))
+        shape = saved.get("shape")
+        if shape != configs.PREDICTION_SHAPE:
+            raise ValueError(f"shape {shape!r}, not {configs.PREDICTION_SHAPE}")
+        return (saved["digest"], _from_json(saved))
+    except Exception as why:
+        # A file that cannot be read leaves no answer but to sweep again
+        print(f"{path.name} cannot be read back ({why}), so the sweep runs again")
+        return None
 
 
 def _as_json(stats: DatasetStats, digest: str) -> dict[str, Any]:
-    """Lay one strategy's stats out as the file holds them.
+    """Lay the stats out as the file holds them.
 
     Args:
-        stats: What that strategy made of the dataset.
+        stats: What the filter made of the dataset.
         digest: The fingerprint it is filed under.
 
     Returns:
@@ -95,7 +95,6 @@ def _as_json(stats: DatasetStats, digest: str) -> dict[str, Any]:
     """
     held = stats.held
     return {
-        "strategy": stats.strategy,
         "shape": configs.PREDICTION_SHAPE,
         "digest": digest,
         "features": stats.features,
@@ -127,13 +126,13 @@ def _as_json(stats: DatasetStats, digest: str) -> dict[str, Any]:
 
 
 def _from_json(saved: Mapping[str, Any]) -> DatasetStats:
-    """Read one strategy's stats back off what its file holds.
+    """Read the stats back off what the file holds.
 
     Args:
         saved: What the file was written with.
 
     Returns:
-        The stats that strategy left.
+        The stats the sweep left.
 
     Raises:
         Exception: When anything it holds is not what the stats are read from.
@@ -142,7 +141,6 @@ def _from_json(saved: Mapping[str, Any]) -> DatasetStats:
     """
     held = saved["held"]
     return DatasetStats(
-        strategy=saved["strategy"],
         features=saved["features"],
         classes={
             name: ClassStats(int(selected), _spreads_back(taken))

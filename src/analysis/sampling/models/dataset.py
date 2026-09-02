@@ -1,4 +1,4 @@
-"""What one strategy would make of every feature searched."""
+"""What the filter would make of every feature searched."""
 
 from __future__ import annotations
 
@@ -10,16 +10,14 @@ from analysis.sampling.models.spread import Spread
 
 @dataclass(frozen=True, slots=True)
 class SearchedFeature:
-    """What searching one feature under one strategy left.
+    """What searching one feature under the filter left.
 
     Attributes:
-        strategy: The strategy it was searched under.
         feature_class: The class the catalogue files the feature under.
         iids: The instruments it holds, in the order they are drawn.
         stats: What the search left on it, or None where it held nothing to search.
     """
 
-    strategy: str
     feature_class: str
     iids: list[str]
     stats: FeatureStats | None
@@ -27,7 +25,7 @@ class SearchedFeature:
 
 @dataclass(frozen=True, slots=True)
 class ClassStats:
-    """What one strategy would make of the features of one class.
+    """What the filter would make of the features of one class.
 
     Attributes:
         selected: How many features of the class earned a window.
@@ -42,10 +40,9 @@ class ClassStats:
 
 @dataclass(frozen=True, slots=True)
 class DatasetStats:
-    """What one strategy would make of every feature searched.
+    """What the filter would make of every feature searched.
 
     Attributes:
-        strategy: The strategy the features were searched under.
         features: How many features were searched.
         classes: What it made of each feature class, by class.
         held: Every feature searched, read as one.
@@ -56,7 +53,6 @@ class DatasetStats:
         iids: The instruments reported on, in the order they are drawn.
     """
 
-    strategy: str
     features: int
     classes: dict[str, ClassStats]
     held: Aggregate

@@ -1,4 +1,4 @@
-"""Every feature of the dataset read as one, under one strategy."""
+"""Every feature of the dataset read as one, under the filter."""
 
 from __future__ import annotations
 
@@ -11,53 +11,44 @@ from analysis.sampling.models.feature import FeatureStats
 from analysis.sampling.models.spread import Spread
 
 
-def predictions(searched: Sequence[SearchedFeature]) -> dict[str, DatasetStats]:
-    """Read every strategy off one sweep of the features.
+def prediction(searched: Sequence[SearchedFeature]) -> DatasetStats:
+    """Read the dataset off one sweep of the features.
 
     Args:
-        searched: What the sweep left, one entry per feature and strategy.
+        searched: What the sweep left, one entry per feature.
 
     Returns:
-        What each strategy would make of them, by name, in the order swept.
+        What the filter would make of them.
     """
-    by_strategy: dict[str, list[SearchedFeature]] = {}
-    for feature in searched:
-        by_strategy.setdefault(feature.strategy, []).append(feature)
-    predicted: dict[str, DatasetStats] = {}
-    for strategy, features in by_strategy.items():
-        iids = list(dict.fromkeys(iid for one in features for iid in one.iids))
-        measured = _measured(features)
-        grounded = [one for one in measured if one.kept and one.area_km2]
-        predicted[strategy] = DatasetStats(
-            strategy=strategy,
-            features=len(features),
-            classes=_per_class(features, iids),
-            held=aggregating.aggregate_features(measured, iids),
-            widths=Spread.over([math.sqrt(one.area_km2) for one in measured]),
-            offered={
-                iid: Spread.over([one.offered.get(iid, 0) for one in measured])
-                for iid in iids
-            },
-            # The share of a feature every instrument at once reaches, one by one
-            overlap=Spread.over(
-                [
-                    measuring.ground_by_instrument_count(one.overlaps).get(
-                        len(iids), 0.0
-                    )
-                    / one.area_km2
-                    for one in grounded
-                ]
-            ),
-            iids=iids,
-        )
-    return predicted
+    iids = list(dict.fromkeys(iid for one in searched for iid in one.iids))
+    measured = _measured(searched)
+    grounded = [one for one in measured if one.kept and one.area_km2]
+    return DatasetStats(
+        features=len(searched),
+        classes=_per_class(searched, iids),
+        held=aggregating.aggregate_features(measured, iids),
+        widths=Spread.over([math.sqrt(one.area_km2) for one in measured]),
+        offered={
+            iid: Spread.over([one.offered.get(iid, 0) for one in measured])
+            for iid in iids
+        },
+        # The share of a feature every instrument at once reaches, one by one
+        overlap=Spread.over(
+            [
+                measuring.ground_by_instrument_count(one.overlaps).get(len(iids), 0.0)
+                / one.area_km2
+                for one in grounded
+            ]
+        ),
+        iids=iids,
+    )
 
 
 def _measured(features: Sequence[SearchedFeature]) -> list[FeatureStats]:
     """Keep every feature the search really left something readable on.
 
     Args:
-        features: What the sweep left of every feature searched under one strategy.
+        features: What the sweep left of every feature searched.
 
     Returns:
         What the search left on each of them, in the order they were swept.
@@ -72,13 +63,13 @@ def _measured(features: Sequence[SearchedFeature]) -> list[FeatureStats]:
 def _per_class(
     features: Sequence[SearchedFeature], iids: Sequence[str]
 ) -> dict[str, ClassStats]:
-    """Read what a strategy made of the features of each class.
+    """Read what the filter made of the features of each class.
 
     Only the features it selected are counted, since a feature it refused
     outright would otherwise drag the class down to nothing.
 
     Args:
-        features: What the sweep left of every feature searched under it.
+        features: What the sweep left of every feature searched.
         iids: The instruments to report on, in the order to report them.
 
     Returns:

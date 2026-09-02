@@ -1,4 +1,4 @@
-"""What the measured dataset holds, before any strategy is asked of it."""
+"""What the measured dataset holds, before the filter is asked of it."""
 
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ class InstrumentStats:
 
 @dataclass(frozen=True, slots=True)
 class CatalogueStats:
-    """What the measured dataset holds, whatever a strategy would make of it.
+    """What the measured dataset holds, whatever the filter would make of it.
 
     Attributes:
         catalogued: How many features the ODE catalogue holds altogether.

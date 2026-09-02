@@ -1,1 +1,1 @@
-"""Sampling the dataset a strategy would leave, from the coverage measured."""
+"""Sampling the dataset the filter would leave, from the coverage measured."""

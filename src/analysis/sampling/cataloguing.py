@@ -1,4 +1,4 @@
-"""Reading the measured dataset as one, before any strategy is asked of it."""
+"""Reading the measured dataset as one, before the filter is asked of it."""
 
 from __future__ import annotations
 
