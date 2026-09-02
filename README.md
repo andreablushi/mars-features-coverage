@@ -22,8 +22,8 @@ uv run python scripts/features_coverage.py
 ```
 
 One entry point runs both halves, and takes no arguments: every choice comes
-from `config.yaml`, so the same file describes what was run and what to run
-again. Every details about each option is in `config.yaml`'s comments.
+from `configs/runner.yaml`, so the same file describes what was run and what to
+run again. Every details about each option is in `configs/runner.yaml`'s comments.
 
 ## Running the pipeline on DigitalHub
 
@@ -60,7 +60,7 @@ that image, and then starts the job. It prints the run key and returns.
 | --- | --- | --- |
 | `--project` | `mars-features-coverage` | which project to run in |
 | `--ref` | `main` | branch, tag, or commit to run |
-| `--cpu` | `workers` from `config.yaml` | cores to request |
+| `--cpu` | `workers` from `configs/runner.yaml` | cores to request |
 | `--mem` | `16Gi` | memory to request |
 | `--disk` | `64Gi` | disk to request, sized for a whole catalogue |
 
@@ -118,7 +118,7 @@ published, and sweeps on the spot only a strategy nothing was published for.
 ## Structure
 
 ```
-config.yaml           # Configures the run, local and DigitalHub
+configs/              # Configures the run and what the dataset keeps
 scripts/              # Entrypoints for the pipeline, local and DigitalHub
 notebooks/            # The two notebooks that read the results
 src/
@@ -135,7 +135,7 @@ src/
       strategies/     # One YAML per strategy the search can run under
     sampling/         # The sweep over every tile, and the aggregates over it
     visualization/    # What the notebooks draw
-    utils/            # config.yaml, parquet, record provenance
+    utils/            # Reading the run config, parquet, record provenance
       maths/          # Scaling, formatting, and cell packing
   building/           # What a downloaded observation is turned into
     preprocessing/    # One package per instrument, and what they share

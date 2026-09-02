@@ -13,7 +13,9 @@ if TYPE_CHECKING:
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
-CONFIG_PATH = REPO_ROOT / "config.yaml"
+CONFIGS_ROOT = REPO_ROOT / "configs"
+RUNNER_CONFIG_PATH = CONFIGS_ROOT / "runner.yaml"
+FILTER_CONFIG_PATH = CONFIGS_ROOT / "filter.yaml"
 
 DATA_ROOT = REPO_ROOT / "data"
 METADATA_ROOT = DATA_ROOT / "metadata"
@@ -27,6 +29,7 @@ SHARAD_ROOT = PREPROCESSING_ROOT / "sharad"
 MOLA_ROOT = PREPROCESSING_ROOT / "mola"
 CTX_ROOT = PREPROCESSING_ROOT / "ctx"
 
+PREDICTION_NAME = "prediction.json"
 FEATURES_CACHE_NAME = "features.jsonl"
 INSTRUMENT_SETS_CACHE_NAME = "instrument_sets.jsonl"
 SUMMARY_NAME = "summary.parquet"
