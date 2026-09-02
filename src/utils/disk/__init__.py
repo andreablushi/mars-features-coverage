@@ -1,1 +1,1 @@
-"""Disk: where the files live, what configures a run, and what a record carries."""
+"""Disk: where the files live, how bytes reach them, and what they are called."""

@@ -12,13 +12,13 @@ import dh_pipeline
 import digitalhub as dh
 from digitalhub_runtime_python import handler
 
-import console
+import analysis.utils.settings as settings
 import utils.disk.paths as paths
-import utils.disk.settings as settings
-from coverage import summary
-from sampling import predicting, storing, sweeping
-from sampling.models.dataset import DatasetStats
-from selector import strategies
+from analysis import console
+from analysis.coverage import summary
+from analysis.sampling import predicting, storing, sweeping
+from analysis.sampling.models.dataset import DatasetStats
+from analysis.selector import strategies
 
 FUNCTION_NAME = "features-prediction"
 HANDLER = "scripts.dh_prediction_pipeline:save_predictions"

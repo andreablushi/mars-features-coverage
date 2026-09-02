@@ -7,13 +7,12 @@ import time
 
 from rich.console import Console
 
-import planner
-import runner
-import utils.disk.settings as settings
-from console import print_interrupted, print_summary
-from coverage import summary
-from metadata import tree
-from models.progress import CoverageSummary, DownloadSummary
+import analysis.utils.settings as settings
+from analysis import planner, runner
+from analysis.console import print_interrupted, print_summary
+from analysis.coverage import summary
+from analysis.metadata import tree
+from analysis.models.progress import CoverageSummary, DownloadSummary
 
 
 def main() -> int:

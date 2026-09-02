@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from models.feature import Feature
-from models.instrument import InstrumentSet
 from utils.disk.slugify import slugify
+
+if TYPE_CHECKING:
+    from analysis.models.feature import Feature
+    from analysis.models.instrument import InstrumentSet
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
@@ -20,6 +23,9 @@ ARTIFACTS_ROOT = DATA_ROOT / "artifacts"
 COVERAGE_ROOT = ARTIFACTS_ROOT / "coverage"
 PREPROCESSING_ROOT = DATA_ROOT / "preprocessing"
 CRISM_ROOT = PREPROCESSING_ROOT / "crism"
+SHARAD_ROOT = PREPROCESSING_ROOT / "sharad"
+MOLA_ROOT = PREPROCESSING_ROOT / "mola"
+CTX_ROOT = PREPROCESSING_ROOT / "ctx"
 
 FEATURES_CACHE_NAME = "features.jsonl"
 INSTRUMENT_SETS_CACHE_NAME = "instrument_sets.jsonl"

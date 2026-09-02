@@ -14,6 +14,7 @@ dependencies = [
     "pyyaml>=6.0.3",
     "rich>=14.0.0",
     "shapely>=2.1.2",
+    "tifffile>=2026.8.23",
 ]
 
 [build-system]
@@ -22,14 +23,10 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-name = [
-    "coverage",
-    "metadata",
-    "models",
-    "preprocessing",
-    "sampling",
-    "selector",
+    "analysis",
+    "building",
+    "ode",
     "utils",
-    "visualization",
 ]
 
 [dependency-groups]

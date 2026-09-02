@@ -1,1 +1,1 @@
-"""Project paths, settings, and small helpers shared across the pipeline."""
+"""What both halves keep on disk: where the files live and what names them."""

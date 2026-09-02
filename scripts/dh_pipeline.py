@@ -13,9 +13,9 @@ import digitalhub as dh
 import features_coverage
 from digitalhub_runtime_python import handler
 
-import console
+import analysis.utils.settings as settings
 import utils.disk.paths as paths
-import utils.disk.settings as settings
+from analysis import console
 
 PROJECT_NAME = "mars-features-coverage"
 FUNCTION_NAME = "features-coverage"
