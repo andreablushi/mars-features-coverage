@@ -15,7 +15,7 @@ class Series:
 
     Attributes:
         label: The set's short readable name.
-        iid: The instrument it belongs to, which is what a strategy names.
+        iid: The instrument it belongs to, which is what the filter names.
         times: When each of its observations started, oldest first.
         shares: How much of the ground each of them covered on its own.
         running: How much of the ground it had reached by then, revisits counted once.

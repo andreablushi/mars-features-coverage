@@ -14,10 +14,10 @@ class Landed:
 
     Attributes:
         label: The set's short readable name.
-        iid: The instrument it belongs to, which is what a strategy names.
+        iid: The instrument it belongs to, which is what the filter names.
         counts: The pixels each of its observations landed on the feature, smallest
             first, the ones it turned away counted alongside the ones it kept.
-        bar: The pixels the strategy asks of it before a look counts as one.
+        bar: The pixels the filter asks of it before a look counts as one.
     """
 
     label: str
@@ -30,7 +30,7 @@ def read(study: Study) -> list[Landed]:
     """Read what every observation offered to one feature landed on it.
 
     Args:
-        study: What the search found over it, carrying the strategy it was read under.
+        study: What the search found over it, carrying the filter it was read under.
 
     Returns:
         One entry per instrument set, in the order the track indexes them.
@@ -38,7 +38,7 @@ def read(study: Study) -> list[Landed]:
     track = study.track
     if track is None:
         return []
-    least = study.strategy.least
+    least = study.criteria.least
     counted: list[list[float]] = [[] for _ in track.labels]
     for index, owner in enumerate(track.owners):
         counted[owner].append(

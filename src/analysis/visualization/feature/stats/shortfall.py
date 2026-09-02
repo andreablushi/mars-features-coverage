@@ -6,12 +6,13 @@ from dataclasses import dataclass
 
 from analysis.sampling import measuring
 from analysis.sampling.models.feature import FeatureStats
+from analysis.selector import configs as filtering
 from analysis.selector import relaxing
 from analysis.selector.models.counter import Counter
 from analysis.selector.models.track import Track
 from analysis.utils.maths import ground
 from analysis.visualization.common import surveys
-from analysis.visualization.common.picker import View
+from analysis.visualization.common.picker import Coverage
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,21 +34,21 @@ class Shortfall:
     timeless: bool
 
 
-def best(view: View) -> list[Shortfall]:
+def best(coverage: Coverage) -> list[Shortfall]:
     """Search a feature again with no ground asked, and read what it came back with.
 
     Args:
-        view: The feature on show and the strategy it was really searched under.
+        coverage: The feature on show, as the instrument sets it holds.
 
     Returns:
         What each instrument is asked and the most it brings, in the order the
-        strategy names its constraints.
+        filter names its constraints.
     """
-    strategy = view.strategy
-    track = surveys.studied(view.coverage, strategy).track
+    criteria = filtering.FILTER
+    track = surveys.studied(coverage, criteria).track
     if track is None:
         return []
-    relaxed = surveys.studied(view.coverage, relaxing.unfloored(strategy))
+    relaxed = surveys.studied(coverage, relaxing.unfloored(criteria))
     stats = measuring.measured_feature(relaxed)
     whole = _whole(track)
     return [
@@ -56,9 +57,9 @@ def best(view: View) -> list[Shortfall]:
             asked=share,
             windowed=_reached(stats, iid),
             whole=whole.get(iid, 0.0),
-            timeless=iid in strategy.timeless,
+            timeless=iid in criteria.timeless,
         )
-        for constraint in strategy.constraints
+        for constraint in criteria.constraints
         for iid, share in constraint.items()
     ]
 

@@ -8,7 +8,7 @@ import ipywidgets as widgets
 import matplotlib.pyplot as plt
 
 from analysis.visualization.common import panels, series
-from analysis.visualization.common.picker import View
+from analysis.visualization.common.picker import Coverage
 from analysis.visualization.common.series import Series
 
 # How an instrument set with nothing to draw is drawn anyway.
@@ -21,18 +21,18 @@ CUMULATIVE_WIDTH_RATIOS = [3, 1]
 _GROUND = "Share of the feature covered so far"
 
 
-def plot(view: View) -> widgets.Widget:
+def plot(coverage: Coverage) -> widgets.Widget:
     """Draw the running coverage of the whole feature, beside its total.
 
     Args:
-        view: The feature on show and the strategy it is judged under.
+        coverage: The feature on show, as the instrument sets it holds.
 
     Returns:
         The figure as a widget, or the grey panel when nothing is loaded.
     """
-    if not view.coverage:
+    if not coverage:
         return panels.unavailable()
-    drawn = series.over_feature(view.coverage)
+    drawn = series.over_feature(coverage)
     colours = panels.colours([one.label for one in drawn])
     figure, (running, bars) = plt.subplots(
         1,
@@ -55,7 +55,7 @@ def plot(view: View) -> widgets.Widget:
                 else f"{one.label}  ({one.reason})"
             ),
         )
-    title = f"{panels.title(view.coverage)}  -  cumulative coverage"
+    title = f"{panels.title(coverage)}  -  cumulative coverage"
     running.set_title(title, fontsize=12, loc="left")
     running.set_xlabel("Observation start time")
     running.set_ylabel(_GROUND)

@@ -5,7 +5,7 @@ from __future__ import annotations
 import ipywidgets as widgets
 
 from analysis.visualization.common import panels, tables
-from analysis.visualization.common.picker import View
+from analysis.visualization.common.picker import Coverage
 from analysis.visualization.common.tables import Row
 from analysis.visualization.feature.stats import shortfall
 from analysis.visualization.feature.stats.shortfall import Shortfall
@@ -19,21 +19,21 @@ _HEADINGS = (
 _WHOLE_RECORD = "whole record"
 
 
-def plot(view: View) -> widgets.Widget:
+def plot(coverage: Coverage) -> widgets.Widget:
     """Report what the feature on show could hold when no ground is asked of it.
 
     Args:
-        view: The feature on show and the strategy it is judged under.
+        coverage: The feature on show, as the instrument sets it holds.
 
     Returns:
         The table as a widget, or the grey panel when nothing is loaded.
     """
-    if not view.coverage:
+    if not coverage:
         return panels.unavailable()
     return tables.written(
-        f"{panels.title(view.coverage)}  -  the most it could bring",
+        f"{panels.title(coverage)}  -  the most it could bring",
         _HEADINGS,
-        [_row(asked) for asked in shortfall.best(view)],
+        [_row(asked) for asked in shortfall.best(coverage)],
     )
 
 

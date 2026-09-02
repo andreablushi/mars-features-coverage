@@ -10,7 +10,7 @@ from matplotlib.ticker import FuncFormatter, MaxNLocator
 
 from analysis.utils.maths import quantities
 from analysis.visualization.common import panels, surveys, wording
-from analysis.visualization.common.picker import View
+from analysis.visualization.common.picker import Coverage
 from analysis.visualization.feature.stats import landed
 from analysis.visualization.feature.stats.landed import Landed
 
@@ -34,7 +34,7 @@ HEADROOM = 1.25
 # The room left past the furthest look, so the last stem stands clear of the edge.
 MARGIN = 1.05
 
-# How the pixels a strategy asks for are marked.
+# How the pixels the filter asks for are marked.
 BAR_COLOUR = "#1a1a1a"
 BAR_STYLE = (0, (4, 2))
 BAR_WIDTH = 1.0
@@ -45,18 +45,18 @@ _NOTHING = "nothing on this feature"
 _LANDED = "Pixels one observation lands on the feature"
 
 
-def plot(view: View) -> widgets.Widget:
+def plot(coverage: Coverage) -> widgets.Widget:
     """Draw what each instrument lands on the feature, one observation at a time.
 
     Args:
-        view: The feature on show and the strategy it is judged under.
+        coverage: The feature on show, as the instrument sets it holds.
 
     Returns:
         The figure as a widget, or the grey panel when nothing is loaded.
     """
-    if not view.coverage:
+    if not coverage:
         return panels.unavailable()
-    drawn = landed.read(surveys.studied(view.coverage, view.strategy))
+    drawn = landed.read(surveys.studied(coverage))
     if not drawn:
         return panels.unavailable(_NOTHING)
     colours = panels.colours([one.label for one in drawn])
@@ -73,7 +73,7 @@ def plot(view: View) -> widgets.Widget:
     figure.text(
         0.01,
         1.0 - above / 2.0,
-        f"{panels.title(view.coverage)}  -  pixels per observation",
+        f"{panels.title(coverage)}  -  pixels per observation",
         fontsize=12,
         va="center",
     )

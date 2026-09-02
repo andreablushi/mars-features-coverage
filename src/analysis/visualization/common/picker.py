@@ -1,9 +1,8 @@
-"""Picking what is drawn: which feature, and the strategy it is judged under."""
+"""Picking what is drawn, which is one whole feature and nothing else."""
 
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
 
 import ipywidgets as widgets
 from IPython.display import display
@@ -12,9 +11,7 @@ import analysis.utils.settings as settings
 from analysis.coverage import summary
 from analysis.coverage.results import SetCoverage
 from analysis.metadata import catalog
-from analysis.selector import strategies
-from analysis.selector.models.strategy import Strategy
-from analysis.visualization.common import panels, surveys
+from analysis.visualization.common import panels
 from analysis.visualization.common.areas import Areas
 from utils.disk.slugify import slugify
 
@@ -23,21 +20,11 @@ DEFAULT_CLASS = "Crater"
 NO_DATA_SUFFIX = "  (no data)"
 DROPDOWN_WIDTH = "300px"
 
-
-@dataclass(frozen=True, slots=True)
-class View:
-    """The feature on show and what it is judged against.
-
-    Attributes:
-        coverage: The feature's instrument sets, widest coverage first.
-        strategy: Which instruments a window over it has to hold.
-    """
-
-    coverage: list[SetCoverage]
-    strategy: Strategy
+# The feature every panel is drawn for: its instrument sets, widest coverage first.
+Coverage = list[SetCoverage]
 
 
-def drawn_sets(coverage: Sequence[SetCoverage]) -> list[SetCoverage]:
+def drawn_sets(coverage: Sequence[SetCoverage]) -> Coverage:
     """Keep the instrument sets the config draws, in the order it names them.
 
     Args:
@@ -63,8 +50,8 @@ def drawn_sets(coverage: Sequence[SetCoverage]) -> list[SetCoverage]:
     )
 
 
-class FeaturePicker(Areas[View]):
-    """A feature and strategy picker that fills the areas claimed below it.
+class FeaturePicker(Areas[Coverage]):
+    """A feature picker that fills the areas claimed below it.
 
     Attributes:
         selection: The confirmed feature class and name, or None until confirmed.
@@ -85,34 +72,28 @@ class FeaturePicker(Areas[View]):
             names.sort()
         self._computed = summary.computed_features()
         self.selection: tuple[str, str] | None = None
-        self.coverage: list[SetCoverage] = []
-        self._following: list[Callable[[View], None]] = []
+        self.coverage: Coverage = []
+        self._following: list[Callable[[Coverage], None]] = []
         self._class = _dropdown(
             "Type:", options=sorted(self._names), value=DEFAULT_CLASS
         )
         self._name = _dropdown("Name:")
-        self._strategy = _dropdown(
-            "Strategy:",
-            options=sorted(strategies.STRATEGIES),
-            value=surveys.opening().name,
-        )
         self._confirm = widgets.Button(
             description="Confirm", button_style="primary", icon="check"
         )
         self._status = widgets.VBox()
         self._class.observe(self._refresh_names, names="value")
-        self._strategy.observe(self._restrategised, names="value")
         self._confirm.on_click(self._confirmed)
         self._refresh_names()
 
     @property
-    def chosen(self) -> View:
-        """Return the feature on show and the strategy it is judged under.
+    def chosen(self) -> Coverage:
+        """Return the feature on show.
 
         Returns:
-            The view every claimed area is drawn for.
+            The feature every claimed area is drawn for.
         """
-        return View(self.coverage, strategies.named(self._strategy.value))
+        return self.coverage
 
     def choose(self) -> None:
         """Display the picker.
@@ -121,13 +102,14 @@ class FeaturePicker(Areas[View]):
             None.
         """
         controls = widgets.HBox([self._class, self._name, self._confirm])
-        display(widgets.VBox([controls, self._strategy, self._status]))
+        display(widgets.VBox([controls, self._status]))
 
-    def when_chosen(self, follow: Callable[[View], None]) -> None:
-        """Call something whenever the feature or the strategy changes.
+    def when_chosen(self, follow: Callable[[Coverage], None]) -> None:
+        """Call something whenever the feature changes.
 
         Args:
-            follow: What to call with the new view, so a picker can rebuild its areas.
+            follow: What to call with the new feature, so a picker can rebuild
+                its areas.
 
         Returns:
             None.
@@ -164,18 +146,6 @@ class FeaturePicker(Areas[View]):
             for name in self._names[feature_class]
         ]
 
-    def _restrategised(self, _change=None) -> None:
-        """Redraw the confirmed feature under the strategy just picked.
-
-        Args:
-            _change: The widget change event, ignored.
-
-        Returns:
-            None.
-        """
-        if self.selection is not None:
-            self._filled()
-
     def _confirmed(self, _button=None) -> None:
         """Load the confirmed feature and refill every claimed area.
 
@@ -199,18 +169,9 @@ class FeaturePicker(Areas[View]):
                 f"Nothing has been downloaded or computed for {feature_class} / {name}."
             )
         self._status.children = (note,)
-        self._filled()
-
-    def _filled(self) -> None:
-        """Refill everything drawn for the current feature and strategy.
-
-        Returns:
-            None.
-        """
-        view = self.chosen
         self.refill()
         for follow in self._following:
-            follow(view)
+            follow(self.coverage)
 
 
 def _dropdown(

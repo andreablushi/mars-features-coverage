@@ -10,7 +10,7 @@ import numpy as np
 from matplotlib.lines import Line2D
 
 from analysis.visualization.common import panels, series, surveys
-from analysis.visualization.common.picker import View
+from analysis.visualization.common.picker import Coverage
 from analysis.visualization.common.series import Series
 from analysis.visualization.common.surveys import Stretch
 
@@ -20,26 +20,26 @@ PANEL_HEIGHT = 2.5
 _GROUND = "Share of the feature covered by one observation"
 
 
-def plot(view: View) -> widgets.Widget:
+def plot(coverage: Coverage) -> widgets.Widget:
     """Draw one stacked panel per instrument set, over the whole feature.
 
     Every observation ODE published is drawn, including the ones the search
     turned away as too small, and the window it chose is shaded across them.
 
     Args:
-        view: The feature on show and the strategy it is judged under.
+        coverage: The feature on show, as the instrument sets it holds.
 
     Returns:
         The figure as a widget, or the grey panel when nothing is loaded.
     """
-    if not view.coverage:
+    if not coverage:
         return panels.unavailable()
-    study = surveys.studied(view.coverage, view.strategy)
+    study = surveys.studied(coverage)
     return _draw(
-        series.over_feature(view.coverage),
-        f"{panels.title(view.coverage)}  -  coverage per observation",
+        series.over_feature(coverage),
+        f"{panels.title(coverage)}  -  coverage per observation",
         surveys.open_for(study),
-        view.strategy.timeless,
+        study.criteria.timeless,
     )
 
 

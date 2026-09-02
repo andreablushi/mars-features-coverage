@@ -8,7 +8,7 @@ from analysis.sampling import measuring
 from analysis.sampling.models.feature import FeatureStats
 from analysis.utils.maths import quantities
 from analysis.visualization.common import panels, surveys, tables, wording
-from analysis.visualization.common.picker import View
+from analysis.visualization.common.picker import Coverage
 from analysis.visualization.common.tables import Row
 
 _HEADINGS = ("On this feature", "What it holds")
@@ -16,22 +16,22 @@ _NOTHING = "No instrument set filled a cell of this feature."
 _NONE = "-"
 
 
-def plot(view: View) -> widgets.Widget:
+def plot(coverage: Coverage) -> widgets.Widget:
     """Summarise what the search left on the feature on show.
 
     Args:
-        view: The feature on show and the strategy it is judged under.
+        coverage: The feature on show, as the instrument sets it holds.
 
     Returns:
         The table as a widget, or the grey panel when nothing is loaded.
     """
-    if not view.coverage:
+    if not coverage:
         return panels.unavailable()
-    stats = measuring.measured_feature(surveys.studied(view.coverage, view.strategy))
+    stats = measuring.measured_feature(surveys.studied(coverage))
     if stats is None:
         return panels.unavailable(_NOTHING)
     return tables.written(
-        f"{panels.title(view.coverage)}  -  what it holds", _HEADINGS, _rows(stats)
+        f"{panels.title(coverage)}  -  what it holds", _HEADINGS, _rows(stats)
     )
 
 

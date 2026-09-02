@@ -12,7 +12,7 @@ from matplotlib.patches import Patch
 
 from analysis.sampling.models.study import Study
 from analysis.visualization.common import panels, surveys
-from analysis.visualization.common.picker import View
+from analysis.visualization.common.picker import Coverage
 from analysis.visualization.feature.plots import mosaic, placing
 from analysis.visualization.feature.plots.placing import Box, Placed
 
@@ -30,29 +30,29 @@ FEATURE_COLOURS = (
 )
 
 
-def plot(view: View) -> widgets.Widget:
+def plot(coverage: Coverage) -> widgets.Widget:
     """Show the ground the feature covers, marked by what the search made of it.
 
     Args:
-        view: The feature on show and the strategy it is judged under.
+        coverage: The feature on show, as the instrument sets it holds.
 
     Returns:
         The report beside the mosaic, or the grey panel when nothing is loaded.
     """
-    if not view.coverage:
+    if not coverage:
         return panels.unavailable()
-    summary = view.coverage[0].summary
-    study = surveys.studied(view.coverage, view.strategy)
+    summary = coverage[0].summary
+    study = surveys.studied(coverage)
     grid = placing.placed(
         summary.feature_class, summary.feature_name, summary.grid_side
     )
     if grid is None:
         return panels.unavailable(mosaic.BASEMAP_FAILED.format(reason=mosaic.NO_BOX))
-    title = panels.title(view.coverage)
+    title = panels.title(coverage)
     box = grid.box()
     return widgets.HBox(
         [
-            _report(view, study, box),
+            _report(coverage, study, box),
             mosaic.fetched(box, lambda image: figure(grid, study, box, image, title)),
         ],
         layout=widgets.Layout(
@@ -93,31 +93,31 @@ def figure(
     return panels.rendered(drawn)
 
 
-def _report(view: View, study: Study, box: Box) -> widgets.HTML:
+def _report(coverage: Coverage, study: Study, box: Box) -> widgets.HTML:
     """Report the feature's extent, its window, and what each set holds of it.
 
     Args:
-        view: The feature on show and the strategy it is judged under.
+        coverage: The feature on show, as the instrument sets it holds.
         study: What the search found over it.
         box: The lon/lat box its grid falls in.
 
     Returns:
         The report.
     """
-    summary = view.coverage[0].summary
+    summary = coverage[0].summary
     body = escape(
         "\n".join(
             f"{instrument.label:16s} {instrument.summary.n_obs:6,d} observations"
             f"{f'  ({instrument.reason})' if instrument.reason else ''}"
-            for instrument in view.coverage
+            for instrument in coverage
         )
     )
     return widgets.HTML(
-        f"<b>{escape(panels.title(view.coverage))}</b><br>"
+        f"<b>{escape(panels.title(coverage))}</b><br>"
         f"{summary.feature_area_km2:,.1f} km2 bounding box, "
         f"{box.south:.3f} to {box.north:.3f} lat, "
         f"{box.west:.3f} to {box.east:.3f} lon<br>"
-        f"{escape(view.strategy.name)}: {_verdict(study)}"
+        f"{_verdict(study)}"
         f"<pre style='margin: 8px 0 0; line-height: 1.4'>{body}</pre>",
         layout=widgets.Layout(flex=f"0 0 {REPORT_WIDTH}"),
     )
