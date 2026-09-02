@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 
 import ipywidgets as widgets
 from IPython.display import display
@@ -73,7 +73,6 @@ class FeaturePicker(Areas[Coverage]):
         self._computed = summary.computed_features()
         self.selection: tuple[str, str] | None = None
         self.coverage: Coverage = []
-        self._following: list[Callable[[Coverage], None]] = []
         self._class = _dropdown(
             "Type:", options=sorted(self._names), value=DEFAULT_CLASS
         )
@@ -103,18 +102,6 @@ class FeaturePicker(Areas[Coverage]):
         """
         controls = widgets.HBox([self._class, self._name, self._confirm])
         display(widgets.VBox([controls, self._status]))
-
-    def when_chosen(self, follow: Callable[[Coverage], None]) -> None:
-        """Call something whenever the feature changes.
-
-        Args:
-            follow: What to call with the new feature, so a picker can rebuild
-                its areas.
-
-        Returns:
-            None.
-        """
-        self._following.append(follow)
 
     def _has_data(self, feature_class: str, name: str) -> bool:
         """Report whether a feature has computed coverage on disk.
@@ -170,8 +157,6 @@ class FeaturePicker(Areas[Coverage]):
             )
         self._status.children = (note,)
         self.refill()
-        for follow in self._following:
-            follow(self.coverage)
 
 
 def _dropdown(
