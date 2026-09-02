@@ -57,7 +57,7 @@ class Client:
         """
         entries = self.query(productid=product_id, **params)
         found: dict[str, str] = {}
-        for name, url in published(entries[0] if entries else {}).items():
+        for name, url in self.published(entries[0] if entries else {}).items():
             found.setdefault(Path(name).suffix, url)
         return found
 
@@ -84,7 +84,71 @@ class Client:
             FileNotFoundError: When ODE offers no download for a missing half.
         """
         if any(not path.exists() for path in destination.values()):
-            bring(destination, self.offers(product_id, **params), timeout)
+            self.bring(destination, self.offers(product_id, **params), timeout)
+
+    @staticmethod
+    def published(entry: dict) -> dict[str, str]:
+        """Read the name and URL of every file one ODE product entry offers.
+
+        Args:
+            entry: One product, as `query` returns it.
+
+        Returns:
+            The download URL of each file, keyed by its lowercase filename.
+        """
+        offered = entry.get("Product_files", {}).get("Product_file", [])
+        return {
+            str(offer.get("FileName", "")).lower(): str(offer.get("URL", ""))
+            for offer in (offered if isinstance(offered, list) else [offered])
+            if offer.get("Type") == "Product"
+        }
+
+    def bring(
+        self,
+        destination: dict[str, Path],
+        urls: dict[str, str],
+        timeout: float = TIMEOUT,
+    ) -> None:
+        """Stream whichever halves of one product are not on disk yet.
+
+        Args:
+            destination: Where each half belongs, keyed by suffix.
+            urls: Where each half is served from, keyed by the same suffix.
+            timeout: How long to wait on each transfer.
+
+        Returns:
+            None.
+
+        Raises:
+            FileNotFoundError: When a missing half is served from nowhere.
+        """
+        for suffix, path in destination.items():
+            if path.exists():
+                continue
+            if not urls.get(suffix):
+                raise FileNotFoundError(f"No {suffix} offered for {path.stem}.")
+            self.stream(urls[suffix], path, timeout)
+
+    @staticmethod
+    def stream(url: str, path: Path, timeout: float = TIMEOUT) -> None:
+        """Stream one file to disk, leaving nothing behind if it fails.
+
+        Args:
+            url: Where to read it from.
+            path: Where it belongs once it is whole.
+            timeout: How long to wait on the transfer.
+
+        Returns:
+            None.
+        """
+        with (
+            atomic_path(path) as tmp,
+            httpx.stream("GET", url, timeout=timeout) as reply,
+        ):
+            reply.raise_for_status()
+            with tmp.open("wb") as handle:
+                for chunk in reply.iter_bytes():
+                    handle.write(chunk)
 
     def close(self) -> None:
         """Close the client.
@@ -111,62 +175,3 @@ def opened(client: Client | None) -> Iterator[Client]:
     finally:
         if client is None:
             owned.close()
-
-
-def published(entry: dict) -> dict[str, str]:
-    """Read the name and URL of every file one ODE product entry offers.
-
-    Args:
-        entry: One product, as `Client.query` returns it.
-
-    Returns:
-        The download URL of each file, keyed by its lowercase filename.
-    """
-    offered = entry.get("Product_files", {}).get("Product_file", [])
-    return {
-        str(offer.get("FileName", "")).lower(): str(offer.get("URL", ""))
-        for offer in (offered if isinstance(offered, list) else [offered])
-        if offer.get("Type") == "Product"
-    }
-
-
-def bring(
-    destination: dict[str, Path], urls: dict[str, str], timeout: float = TIMEOUT
-) -> None:
-    """Stream whichever halves of one product are not on disk yet.
-
-    Args:
-        destination: Where each half belongs, keyed by suffix.
-        urls: Where each half is served from, keyed by the same suffix.
-        timeout: How long to wait on each transfer.
-
-    Returns:
-        None.
-
-    Raises:
-        FileNotFoundError: When a missing half is served from nowhere.
-    """
-    for suffix, path in destination.items():
-        if path.exists():
-            continue
-        if not urls.get(suffix):
-            raise FileNotFoundError(f"No {suffix} offered for {path.stem}.")
-        stream(urls[suffix], path, timeout)
-
-
-def stream(url: str, path: Path, timeout: float = TIMEOUT) -> None:
-    """Stream one file to disk, leaving nothing behind if it fails.
-
-    Args:
-        url: Where to read it from.
-        path: Where it belongs once it is whole.
-        timeout: How long to wait on the transfer.
-
-    Returns:
-        None.
-    """
-    with atomic_path(path) as tmp, httpx.stream("GET", url, timeout=timeout) as reply:
-        reply.raise_for_status()
-        with tmp.open("wb") as handle:
-            for chunk in reply.iter_bytes():
-                handle.write(chunk)

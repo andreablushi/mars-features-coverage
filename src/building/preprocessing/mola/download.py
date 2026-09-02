@@ -45,12 +45,12 @@ def available(
         raise ValueError(f"MEGDR is not published at {resolution} pixels per degree.")
     with download.opened(client) as ode:
         entries = ode.query(pt=PRODUCT_TYPE, limit=str(PAGE), **ODE)
-    names = {
-        Path(filename).stem
-        for entry in entries
-        for filename in download.published(entry)
-        if filename.endswith(ODE_SUFFIX)
-    }
+        names = {
+            Path(filename).stem
+            for entry in entries
+            for filename in ode.published(entry)
+            if filename.endswith(ODE_SUFFIX)
+        }
     found: dict[str, set[str]] = defaultdict(set)
     for name in names:
         # Keep only wanted tiles, which drops the polar stereographic ones.

@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-# The two orders an image is written in.
+# The order a TRDR writes its bands in, against a DDR's band sequential.
 BIL = "LINE_INTERLEAVED"
-BSQ = "BAND_SEQUENTIAL"
 
 # What a PDS sample type and width mean as a numpy dtype.
 _DTYPES = {

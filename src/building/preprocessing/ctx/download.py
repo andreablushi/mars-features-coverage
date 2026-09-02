@@ -83,13 +83,15 @@ def fetch(observation_id: str, client: download.Client | None = None) -> Path:
     if any(not path.exists() for path in destination.values()):
         with download.opened(client) as ode:
             offered = ode.offers(observation_id, pt=PRODUCT_TYPE, **ODE)
-        if ODE_SUFFIX not in offered:
-            raise FileNotFoundError(f"ODE carries no raw scan for {observation_id}.")
-        archived = configs.VOLUME.search(offered[ODE_SUFFIX])
-        if not archived:
-            raise ValueError(f"{offered[ODE_SUFFIX]} names no CTX volume.")
-        volume_id = archived["volume"]
-        download.bring(destination, _asu(observation_id, volume_id), configs.TIMEOUT)
+            if ODE_SUFFIX not in offered:
+                raise FileNotFoundError(
+                    f"ODE carries no raw scan for {observation_id}."
+                )
+            archived = configs.VOLUME.search(offered[ODE_SUFFIX])
+            if not archived:
+                raise ValueError(f"{offered[ODE_SUFFIX]} names no CTX volume.")
+            volume_id = archived["volume"]
+            ode.bring(destination, _asu(observation_id, volume_id), configs.TIMEOUT)
     return destination[configs.SUFFIXES[configs.LABEL]]
 
 
