@@ -15,8 +15,8 @@ from typing import Any
 import utils.disk.paths as paths
 from analysis.sampling import configs
 from analysis.sampling.models.dataset import ClassStats, DatasetStats
+from analysis.sampling.models.feature import Aggregate
 from analysis.sampling.models.spread import Spread
-from analysis.sampling.models.tiles import Aggregate
 from analysis.selector import strategies
 from utils.disk.files import atomic_path
 
@@ -93,7 +93,7 @@ def _as_json(stats: DatasetStats, digest: str) -> dict[str, Any]:
     Returns:
         What the file is written from.
     """
-    tiles = stats.tiles
+    held = stats.held
     return {
         "strategy": stats.strategy,
         "shape": configs.PREDICTION_SHAPE,
@@ -105,19 +105,19 @@ def _as_json(stats: DatasetStats, digest: str) -> dict[str, Any]:
         },
         "iids": stats.iids,
         "held": {
-            "searched": tiles.searched,
-            "kept": tiles.kept,
-            "area_km2": tiles.area_km2,
-            "kept_km2": tiles.kept_km2,
-            "days": _spread(tiles.days),
-            "geo_mean": _spread(tiles.geo_mean),
-            "reached": _spreads(tiles.reached),
-            "landed": _spreads(tiles.landed),
-            "per_look": _spreads(tiles.pixels_per_look),
-            "pixel_km2": _spreads(tiles.pixel_km2),
+            "searched": held.searched,
+            "kept": held.kept,
+            "area_km2": held.area_km2,
+            "kept_km2": held.kept_km2,
+            "days": _spread(held.days),
+            "geo_mean": _spread(held.geo_mean),
+            "reached": _spreads(held.reached),
+            "landed": _spreads(held.landed),
+            "per_look": _spreads(held.pixels_per_look),
+            "pixel_km2": _spreads(held.pixel_km2),
             "overlaps": {
                 configs.INSTRUMENTS_JOINED.join(names): km2
-                for names, km2 in tiles.overlaps.items()
+                for names, km2 in held.overlaps.items()
             },
         },
         "widths": _spread(stats.widths),
@@ -140,7 +140,7 @@ def _from_json(saved: Mapping[str, Any]) -> DatasetStats:
             The caller checks the shape first and treats any failure here as a
             file it cannot read.
     """
-    tiles = saved["held"]
+    held = saved["held"]
     return DatasetStats(
         strategy=saved["strategy"],
         features=saved["features"],
@@ -148,20 +148,20 @@ def _from_json(saved: Mapping[str, Any]) -> DatasetStats:
             name: ClassStats(int(selected), _spreads_back(taken))
             for name, (selected, taken) in saved["classes"].items()
         },
-        tiles=Aggregate(
-            searched=tiles["searched"],
-            kept=tiles["kept"],
-            area_km2=tiles["area_km2"],
-            kept_km2=tiles["kept_km2"],
-            days=_read(tiles["days"]),
-            geo_mean=_read(tiles["geo_mean"]),
-            reached=_spreads_back(tiles["reached"]),
-            landed=_spreads_back(tiles["landed"]),
-            pixels_per_look=_spreads_back(tiles["per_look"]),
-            pixel_km2=_spreads_back(tiles["pixel_km2"]),
+        held=Aggregate(
+            searched=held["searched"],
+            kept=held["kept"],
+            area_km2=held["area_km2"],
+            kept_km2=held["kept_km2"],
+            days=_read(held["days"]),
+            geo_mean=_read(held["geo_mean"]),
+            reached=_spreads_back(held["reached"]),
+            landed=_spreads_back(held["landed"]),
+            pixels_per_look=_spreads_back(held["per_look"]),
+            pixel_km2=_spreads_back(held["pixel_km2"]),
             overlaps={
                 tuple(names.split(configs.INSTRUMENTS_JOINED)): km2
-                for names, km2 in tiles["overlaps"].items()
+                for names, km2 in held["overlaps"].items()
             },
         ),
         widths=_read(saved["widths"]),
@@ -199,7 +199,7 @@ def _spread(measured: Spread) -> list[float]:
     """Write one measurement out as the numbers it holds.
 
     Args:
-        measured: The measurement read off many tiles.
+        measured: The measurement read off many features.
 
     Returns:
         Its numbers, in the order the spread names them.

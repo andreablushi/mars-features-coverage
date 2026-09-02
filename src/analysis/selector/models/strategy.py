@@ -17,21 +17,19 @@ class Strategy:
     Attributes:
         name: What the strategy is called, which is how a run picks it.
         constraints: What a window meets all of, any one instrument answering each.
-        admits: The pixels each instrument has to land on a whole tile to count, by iid.
-        tile_km: The widest a tile of a feature may be, in kilometres.
+        admits: The pixels each instrument has to land on a feature to count, by iid.
         span_days: How long a window may run, in days.
         timeless: The instruments the ground answers for whenever they came.
-        least: The pixels each set has to land on each tile, by tile then set.
-        windowed: What a window is scored on, by tile, tightest constraint first.
-        standing: What the whole record answers for, by tile, tightest first.
+        least: The pixels each set has to land on the feature, by set.
+        windowed: What a window is scored on, tightest constraint first.
+        standing: What the whole record answers for, tightest first.
     """
 
     name: str
     constraints: tuple[dict[str, float], ...]
     admits: dict[str, float]
-    tile_km: float
     span_days: float
     timeless: frozenset[str] = frozenset()
-    least: list[list[float]] = field(default_factory=list)
-    windowed: list[Constraints] = field(default_factory=list)
-    standing: list[Constraints] = field(default_factory=list)
+    least: list[float] = field(default_factory=list)
+    windowed: Constraints = field(default_factory=list)
+    standing: Constraints = field(default_factory=list)

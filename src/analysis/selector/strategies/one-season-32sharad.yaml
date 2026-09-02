@@ -5,8 +5,6 @@ constraints:
 
 admits: {CTX: 65536, CRISM: 4096, SHARAD: 32}
 
-tile_km: 21344.0
-
 span_days: 140.0
 
 timeless: [SHARAD]

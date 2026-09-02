@@ -21,7 +21,7 @@ def scored(track: Track, counts: Sequence[int], days: float = 0.0) -> float:
         days: How long the window runs, charged against the ground it reaches.
 
     Returns:
-        The constraints rooted together as a share of the tile, less their days.
+        The constraints rooted together as a share of the feature, less their days.
     """
     rooted = math.prod(counts) ** (1.0 / len(counts))
     geo_mean = ground.share(rooted, track.cell_km2, track.area_km2)

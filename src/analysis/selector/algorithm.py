@@ -19,13 +19,13 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
 
     Args:
         track: The admissible observations on one time axis.
-        strategy: The strategy read against the feature, holding what a tile is asked.
+        strategy: The strategy read against the feature, holding what it is asked.
 
     Returns:
         The chosen window, or None when no window is worth keeping.
     """
-    # What the strategy asks of this tile, worked out once when it was read
-    windowed, standing = strategy.windowed[track.tile], strategy.standing[track.tile]
+    # What the strategy asks of this feature, worked out once when it was read
+    windowed, standing = strategy.windowed, strategy.standing
     # What time cannot change is asked of the whole record rather than a window
     if standing:
         whole = Counter.over(track, 0, len(track.observations) - 1)
@@ -38,7 +38,6 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
     # Clean up the record to only what is worth keeping, and report reached
     kept, geo_mean = redundancy.trimmed(track, picked, windowed, configs.GAIN)
     return Survey(
-        tile=track.tile,
         area_km2=track.area_km2,
         start=track.observations[kept[0]].t_start,
         end=track.observations[kept[-1]].t_start,

@@ -11,12 +11,12 @@ UNFLOORED = " (unfloored)"
 
 
 def unfloored(strategy: Strategy) -> Strategy:
-    """Read a strategy as asking each instrument for a single cell of a tile.
+    """Read a strategy as asking each instrument for a single cell of a feature.
 
     Everything else it asks is left alone: the instruments each constraint names,
-    the pixels a look has to land before it counts, how wide a tile is cut and how
-    long a window may run. Only the ground each instrument is asked for is dropped,
-    so a tile the search refused still earns the window it came closest with.
+    the pixels a look has to land before it counts, and how long a window may run.
+    Only the ground each instrument is asked for is dropped, so a feature the
+    search refused still earns the window it came closest with.
 
     Args:
         strategy: What the instruments are really asked for.

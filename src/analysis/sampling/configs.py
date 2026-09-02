@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-# How far past the whole tile a share may read before the tile is thrown out.
+# How far past the whole feature a share may read before it is thrown out.
 SHARE_CEILING = 1.01
 
 # How many processes a sweep searches on when the caller names no number.
@@ -12,4 +12,4 @@ DEFAULT_WORKERS = 8
 INSTRUMENTS_JOINED = "|"
 
 # The layout of a published file, raised whenever what is written changes.
-PREDICTION_SHAPE = 4
+PREDICTION_SHAPE = 5

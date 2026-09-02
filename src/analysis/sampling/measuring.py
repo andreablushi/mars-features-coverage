@@ -1,33 +1,32 @@
-"""Reading every tile a search ran over, and what the instruments left on it."""
+"""Reading the feature a search ran over, and what the instruments left on it."""
 
 from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Mapping, Sequence
 
+from analysis.sampling.models.feature import FeatureStats, InstrumentReach
 from analysis.sampling.models.study import Study
-from analysis.sampling.models.tiles import InstrumentReach, TileStats
 from analysis.selector.models.survey import Survey
 from analysis.selector.models.track import Track
 
 
-def measured_tiles(study: Study) -> list[TileStats]:
-    """Read every tile the search ran over.
+def measured_feature(study: Study) -> FeatureStats | None:
+    """Read the feature the search ran over.
 
     Args:
         study: What the search found over one feature.
 
     Returns:
-        One entry per tile it ran over, in the order the grid lays them out.
+        What it holds, or None where it held nothing to search at all.
     """
-    return [
-        _tile(study, track, survey)
-        for track, survey in zip(study.tracks, study.surveys, strict=True)
-    ]
+    if study.track is None:
+        return None
+    return _feature(study.track, study.survey)
 
 
 def kept_observations(survey: Survey | None) -> tuple[int, ...]:
-    """Name every observation the tile keeps, in time order.
+    """Name every observation the feature keeps, in time order.
 
     Args:
         survey: The window it earned, or None when it earned none.
@@ -57,20 +56,8 @@ def ground_by_instrument_count(
     return dict(sorted(summed.items()))
 
 
-def tiles_holding_feature(study: Study) -> int:
-    """Count the tiles holding any of the feature.
-
-    Args:
-        study: What the search found over one feature.
-
-    Returns:
-        How many of them a window could have been found over.
-    """
-    return sum(1 for tile in study.grid.tiles if tile.area_km2)
-
-
 def instruments_searched(study: Study) -> list[str]:
-    """Name every instrument the searched tiles hold, in the order drawn.
+    """Name every instrument the searched feature holds, in the order drawn.
 
     Args:
         study: What the search found over one feature.
@@ -78,22 +65,21 @@ def instruments_searched(study: Study) -> list[str]:
     Returns:
         Each instrument once, in the order the coverage names its sets.
     """
-    every_iid = [iid for track in study.tracks for iid in track.iids]
-    return list(dict.fromkeys(every_iid))
+    if study.track is None:
+        return []
+    return list(dict.fromkeys(study.track.iids))
 
 
-def _tile(study: Study, track: Track, survey: Survey | None) -> TileStats:
-    """Read one tile.
+def _feature(track: Track, survey: Survey | None) -> FeatureStats:
+    """Read one feature.
 
     Args:
-        study: What the search found over the feature the tile belongs to.
-        track: The tile's admissible observations on one time axis.
+        track: Its admissible observations on one time axis.
         survey: The window it earned, or None when it earned none.
 
     Returns:
-        The tile.
+        The feature.
     """
-    row, column = divmod(track.tile, study.grid.across)
     kept = kept_observations(survey)
     # What each instrument left inside the window, and which of them each cell holds
     cells_by_iid: dict[str, set[int]] = {}
@@ -111,10 +97,7 @@ def _tile(study: Study, track: Track, survey: Survey | None) -> TileStats:
         overlaps[instrument_names] = (
             overlaps.get(instrument_names, 0.0) + track.cell_km2
         )
-    return TileStats(
-        tile=track.tile,
-        row=row,
-        column=column,
+    return FeatureStats(
         area_km2=track.area_km2,
         kept=survey is not None,
         start=survey.start if survey else None,
@@ -144,11 +127,11 @@ def _tile(study: Study, track: Track, survey: Survey | None) -> TileStats:
 
 
 def _pixels_landed(track: Track, kept: Sequence[int], iid: str) -> float | None:
-    """Add up the pixels one instrument landed on the tile inside its window.
+    """Add up the pixels one instrument landed on the feature inside its window.
 
     Args:
-        track: The tile's admissible observations on one time axis.
-        kept: Where the observations the tile keeps sit on that axis.
+        track: The feature's admissible observations on one time axis.
+        kept: Where the observations it keeps sit on that axis.
         iid: The instrument to count.
 
     Returns:
@@ -169,11 +152,11 @@ def _pixels_landed(track: Track, kept: Sequence[int], iid: str) -> float | None:
 def _ground_one_pixel_covers(track: Track) -> dict[str, float]:
     """Read the ground one pixel of each instrument covers, off its observations.
 
-    Every observation offered to the tile is read, not only the ones a window
+    Every observation offered to the feature is read, not only the ones a window
     kept, since a pixel is the same size whether or not its look was chosen.
 
     Args:
-        track: The tile's admissible observations on one time axis.
+        track: The feature's admissible observations on one time axis.
 
     Returns:
         The ground one pixel covers, by instrument, leaving out any instrument

@@ -71,7 +71,7 @@ def sweep(
     workers: int = configs.DEFAULT_WORKERS,
     progress: Progress | None = None,
 ) -> list[SearchedFeature]:
-    """Search every tile of every named feature under every strategy named.
+    """Search every named feature under every strategy named.
 
     A search costs far more than the observations a feature holds, and the busiest
     features are a handful, so they are searched first. One of them starting last
@@ -107,7 +107,7 @@ def sweep(
 def _search_feature(
     feature: FeatureName, strategy_names: Sequence[str]
 ) -> list[SearchedFeature]:
-    """Search every tile of one feature under every strategy named.
+    """Search one feature under every strategy named.
 
     Args:
         feature: The feature's class and name.
@@ -128,7 +128,7 @@ def _search_feature(
                 strategy=strategy_name,
                 feature_class=feature_class,
                 iids=measuring.instruments_searched(study),
-                tiles=measuring.measured_tiles(study),
+                stats=measuring.measured_feature(study),
             )
         )
     return searched
