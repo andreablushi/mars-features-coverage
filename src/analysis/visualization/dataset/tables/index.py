@@ -1,4 +1,4 @@
-"""What the measured dataset holds before any strategy is asked of it."""
+"""What the measured dataset holds before the filter is asked of it."""
 
 from __future__ import annotations
 

@@ -55,7 +55,7 @@ def _draw(
         drawn: What each set observed of the feature.
         title: The line above the top panel.
         open_for: The stretch of time the window is open over.
-        timeless: The instruments the strategy asks of the whole record.
+        timeless: The instruments the filter asks of the whole record.
 
     Returns:
         The figure as a widget.

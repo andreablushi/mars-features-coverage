@@ -82,14 +82,14 @@ class _Bar:
         return time.monotonic() - self.started
 
 
-def read(workers: int = 8) -> dict[str, DatasetStats]:
-    """Read what every strategy makes of the dataset, showing any sweep it runs.
+def read(workers: int = 8) -> DatasetStats:
+    """Read what the filter makes of the dataset, showing any sweep it runs.
 
     Args:
         workers: How many processes to search on at once.
 
     Returns:
-        The stats each strategy leaves, by name, in the order they are written.
+        The stats the filter leaves over every measured feature.
     """
     shown: _Bar | None = None
 
@@ -108,7 +108,7 @@ def read(workers: int = 8) -> dict[str, DatasetStats]:
             shown = _Bar.opened(total)
         shown.moved(done, total)
 
-    found = sweeping.read_predictions(workers, moved)
+    found = sweeping.read_prediction(workers, moved)
     if shown is not None:
         shown.closed()
     return found

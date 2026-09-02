@@ -10,7 +10,7 @@ With no name, every one of them comes down.
 
   artifacts    the coverage measurements       -> data/artifacts
   metadata     the ODE records behind them     -> data/metadata
-  predictions  what each strategy would keep   -> data/predictions
+  predictions  what the filter would keep     -> data/predictions
   summary      one row per feature and set     -> data/artifacts
 EOF
 }

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-
 import ipywidgets as widgets
 
 from analysis.sampling.models.dataset import DatasetStats
@@ -12,61 +10,58 @@ from analysis.utils.maths import quantities
 from analysis.visualization.common import tables, wording
 from analysis.visualization.common.tables import Row
 
-_REACHED = ("Strategy", "Instrument", "Mean coverage inside a feature", "Least")
-_WINDOWS = ("Strategy", "Mean window", "Longest", "Time Window Score")
+_REACHED = ("Reached by", "Mean coverage inside a feature", "Least")
+_WINDOWS = ("Statistic", "Value")
 
 # What the row holding the ground every instrument reaches at once is called.
-_OVERLAP = "Overlap"
+_OVERLAP = "Every instrument at once"
 
 
-def reached(read: Mapping[str, DatasetStats]) -> widgets.Widget:
+def reached(read: DatasetStats) -> widgets.Widget:
     """Tabulate how much of a feature each instrument reaches and how much they share.
 
     Args:
-        read: What each strategy made of the features swept, by strategy name.
+        read: What the filter made of the features swept.
 
     Returns:
         The table as a widget.
     """
-    rows: list[Row] = []
-    for stats in read.values():
-        rows.extend(
-            _share(stats.strategy, iid, stats.held.reached[iid]) for iid in stats.iids
-        )
-        rows.append(_share(stats.strategy, _OVERLAP, stats.overlap))
+    rows = [_share(iid, read.held.reached[iid]) for iid in read.iids]
+    rows.append(_share(_OVERLAP, read.overlap))
     return tables.written(
         "How much of a feature each instrument reaches", _REACHED, rows
     )
 
 
-def windows(read: Mapping[str, DatasetStats]) -> widgets.Widget:
-    """Tabulate how long each strategy's windows run and how far they reach.
+def windows(read: DatasetStats) -> widgets.Widget:
+    """Tabulate how long the windows run and how far they reach.
 
     Args:
-        read: What each strategy made of the features swept, by strategy name.
+        read: What the filter made of the features swept.
 
     Returns:
-        The table as a widget.
+        The table as a widget, read down rather than across since one filter
+        leaves one window to report.
     """
-    rows: list[Row] = []
-    for stats in read.values():
-        days = stats.held.days
-        rows.append(
+    days = read.held.days
+    return tables.written(
+        "How long a window runs",
+        _WINDOWS,
+        [
+            ("Mean window", wording.spread(days, quantities.duration)),
             (
-                stats.strategy,
-                wording.spread(days, quantities.duration),
+                "Longest window",
                 quantities.duration(days.high) if days.counted else wording.NOTHING,
-                wording.spread(stats.held.geo_mean, _percent),
-            )
-        )
-    return tables.written("How long a window runs", _WINDOWS, rows)
+            ),
+            ("Time Window Score", wording.spread(read.held.geo_mean, _percent)),
+        ],
+    )
 
 
-def _share(strategy: str, name: str, measured: Spread) -> Row:
+def _share(name: str, measured: Spread) -> Row:
     """Write one share read off every feature that earned a window.
 
     Args:
-        strategy: The strategy the features were searched under.
         name: What the share is of, such as an instrument or a count of them.
         measured: The share, feature by feature.
 
@@ -74,7 +69,6 @@ def _share(strategy: str, name: str, measured: Spread) -> Row:
         The row.
     """
     return (
-        strategy,
         name,
         wording.spread(measured, _percent),
         _percent(measured.low) if measured.counted else wording.NOTHING,
