@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
+
 from building.preprocessing.common.pds import images
 from building.preprocessing.crism import configs
 from building.preprocessing.crism.cleaning import bands_calibration
 from building.preprocessing.crism.models.observation import CrismObservation, Detector
-from building.preprocessing.crism.utils import wavelengths
 
 
 def read(identifier: str) -> CrismObservation:
@@ -41,8 +42,14 @@ def read(identifier: str) -> CrismObservation:
         # The wavelength file this half was calibrated against, and no other.
         wavelength = Path(label[configs.WAVELENGTH_KEY]).stem.lower()
         record = configs.CACHE.files(configs.WAVELENGTH_DIR, wavelength)[".img"]
+        # A wavelength file holds one line, so its cube is one grid deep.
+        written = images.load_cube(record)[0][0]
+        # Say what was never calibrated with NaN rather than a number.
+        wavelengths = np.where(
+            written >= configs.UNCALIBRATED, np.nan, written.astype("f8")
+        )
         # Order the bands by wavelength and mark what was never calibrated.
-        cube, table = bands_calibration.calibrate(cube, wavelengths.load(record))
+        cube, table = bands_calibration.calibrate(cube, wavelengths)
         # Pair each detector's own cube with the geometry beside it.
         detectors[name] = Detector(name, cube, label, table, planes, geometry_label)
     return CrismObservation(identifier, detectors)

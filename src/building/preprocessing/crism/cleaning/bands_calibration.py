@@ -12,7 +12,7 @@ def calibrate(cube: np.ndarray, table: np.ndarray) -> tuple[np.ndarray, np.ndarr
         cube: The values as lines by samples by bands, in the band order the
             file stored them in.
         table: The centre wavelength of every column and band, in that same
-            order, as `wavelengths.load` returns it.
+            order, with NaN where nothing was calibrated.
 
     Returns:
         The cube with its bands ascending in wavelength and its uncalibrated
