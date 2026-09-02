@@ -1,14 +1,22 @@
-"""Reading one CRISM observation off disk, whole."""
+"""Reading one CRISM observation off disk and cleaning it."""
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
 
 from building.preprocessing.common.pds import images
 from building.preprocessing.crism import configs
-from building.preprocessing.crism.cleaning import bands_calibration
+from building.preprocessing.crism.cleaning import (
+    atmospheric,
+    bands_calibration,
+    despike,
+    destripe,
+    masking,
+    ratio,
+)
 from building.preprocessing.crism.models.observation import CrismObservation, Detector
 
 
@@ -52,4 +60,44 @@ def read(identifier: str) -> CrismObservation:
         cube, table = bands_calibration.calibrate(cube, wavelengths)
         # Pair each detector's own cube with the geometry beside it.
         detectors[name] = Detector(name, cube, label, table, planes, geometry_label)
+    return CrismObservation(identifier, detectors)
+
+
+def clean(identifier: str) -> CrismObservation:
+    """Read one observation and refuse everything in it that is not measured.
+
+    Args:
+        identifier: The observation, whose files must already be in the cache
+            that `download.fetch` puts them in.
+
+    Returns:
+        The observation with each detector's cube filled where it was not
+        measured and its mask set beside it.
+
+    Raises:
+        FileNotFoundError: When any file the observation needs is missing.
+        ValueError: When a window keeps no band of a cube.
+    """
+    observation = read(identifier)
+    detectors = {}
+    for name, detector in observation.detectors.items():
+        cube, mask = masking.bad_pixels(
+            detector.cube, detector.wavelengths, detector.name
+        )
+        cube, mask = atmospheric.remove_atmospheric_bands(
+            cube, mask, detector.wavelengths, detector.name
+        )
+        cube, mask = destripe.remove_spike_columns(
+            cube, mask, detector.wavelengths, detector.name
+        )
+        cube = ratio.ratio_colmed(cube, mask.pixels)
+        # Despike only the bands still in play, so the filled ones cannot pull
+        # the moving median around at their edges.
+        kept = ~mask.bands
+        block = np.ascontiguousarray(cube[:, :, kept])
+        despike.remove_spikes(
+            block, bands_calibration.centres(detector.wavelengths)[kept]
+        )
+        cube[:, :, kept] = block
+        detectors[name] = replace(detector, cube=cube, mask=mask)
     return CrismObservation(identifier, detectors)
