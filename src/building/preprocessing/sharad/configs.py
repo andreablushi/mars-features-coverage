@@ -33,3 +33,6 @@ CACHE = ProductCache(
     {OBSERVATION: (".lbl", ".img"), GEOMETRY: (".lbl", ".tab")},
     {GEOMETRY: "geom"},
 )
+
+# The field the geometry names each radargram column in, counted from one.
+COLUMN_FIELD = "RADARGRAM COLUMN"

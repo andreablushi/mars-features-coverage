@@ -41,3 +41,6 @@ CACHE = ProductCache(paths.CTX_ROOT, {None: tuple(SUFFIXES.values())})
 
 # How long to wait for the scan, which ASU builds on the way out and which no
 TIMEOUT = 900.0
+
+# What the projection writes where the scan swept no ground.
+BLANK = 0

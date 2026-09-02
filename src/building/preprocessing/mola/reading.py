@@ -1,23 +1,24 @@
-"""Reading one MOLA tile off disk, whole."""
+"""Reading one MOLA tile off disk and joining its planes onto one grid."""
 
 from __future__ import annotations
 
 from building.preprocessing.common.pds import images
 from building.preprocessing.mola import configs
 from building.preprocessing.mola.models.observation import MolaObservation, Plane
+from building.preprocessing.mola.models.sample import MolaSample
 from building.preprocessing.mola.utils import geometry
 
 
-def read(identifier: str) -> MolaObservation:
-    """Read every plane one tile was downloaded as into an observation.
+def read(identifier: str) -> MolaSample:
+    """Read every plane one tile was downloaded as onto the grid they share.
 
     Args:
         identifier: The tile, whose files must already be in the cache that
             `download.fetch` puts them in.
 
     Returns:
-        The observation, both planes loaded and each placed on the grid its own
-        label projects it onto.
+        The sample, its two planes on the one grid their labels project them
+        onto.
 
     Raises:
         FileNotFoundError: When either plane or its label is missing.
@@ -31,4 +32,13 @@ def read(identifier: str) -> MolaObservation:
             configs.CACHE.files(identifier, product, kind)[".img"]
         )
         planes[kind] = Plane(kind, values, label, *geometry.load(label))
-    return MolaObservation(identifier, planes)
+    observation = MolaObservation(identifier, planes)
+    height, shots = observation.topography, observation.counts
+    return MolaSample(
+        observation.identifier,
+        height.values,
+        shots.values,
+        height.latitude,
+        height.longitude,
+        observation.resolution,
+    )

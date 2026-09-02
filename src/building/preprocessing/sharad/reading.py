@@ -1,21 +1,25 @@
-"""Reading one SHARAD observation off disk, whole."""
+"""Reading one SHARAD observation off disk and placing its traces."""
 
 from __future__ import annotations
+
+import numpy as np
 
 from building.preprocessing.common.pds import images, tables
 from building.preprocessing.sharad import configs
 from building.preprocessing.sharad.models.observation import SharadObservation
+from building.preprocessing.sharad.models.sample import SharadSample
 
 
-def read(identifier: str) -> SharadObservation:
-    """Read the radargram and the geometry one observation was published as.
+def read(identifier: str) -> SharadSample:
+    """Read one radargram and join it to the geometry it was measured at.
 
     Args:
         identifier: The observation, whose files must already be in the cache
             that `download.fetch` puts them in.
 
     Returns:
-        The observation, its radargram and its geometry loaded.
+        The sample holding only the traces the geometry places, in the order
+        the radargram stores them.
 
     Raises:
         FileNotFoundError: When either product or its label is missing.
@@ -25,11 +29,24 @@ def read(identifier: str) -> SharadObservation:
     # The echoes themselves, then the places they were sounded at.
     power, label = images.load_plane(
         configs.CACHE.files(
-            identifier, configs.NAMING.product(identifier, configs.OBSERVATION)
+            identifier,
+            configs.NAMING.product(identifier, configs.OBSERVATION),
+            configs.OBSERVATION,
         )[".img"]
     )
     geometry = configs.NAMING.product(identifier, configs.GEOMETRY)
     table, geometry_label = tables.load_table(
         configs.CACHE.files(identifier, geometry, configs.GEOMETRY)[".tab"]
     )
-    return SharadObservation(identifier, power, label, table, geometry_label)
+    observation = SharadObservation(identifier, power, label, table, geometry_label)
+
+    # The geometry counts columns from one, and the radargram from zero.
+    traces = observation.geometry[configs.COLUMN_FIELD].astype("i8") - 1
+    # Read the geometry in the order the radargram stores its columns.
+    order = np.argsort(traces)
+    return SharadSample(
+        observation.identifier,
+        observation.power[:, traces[order]],
+        observation.geometry[order],
+        traces[order],
+    )

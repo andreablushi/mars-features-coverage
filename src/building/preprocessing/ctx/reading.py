@@ -1,4 +1,4 @@
-"""Reading one CTX observation off disk, whole."""
+"""Reading one CTX observation off disk and placing it on its grid."""
 
 from __future__ import annotations
 
@@ -7,19 +7,20 @@ import tifffile
 from building.preprocessing.common.pds import labels
 from building.preprocessing.ctx import configs
 from building.preprocessing.ctx.models.observation import CtxObservation
+from building.preprocessing.ctx.models.sample import CtxSample
 from building.preprocessing.ctx.utils import geometry
 
 
-def read(identifier: str) -> CtxObservation:
-    """Read the scan and the label one observation was published as.
+def read(identifier: str) -> CtxSample:
+    """Read one scan and place it on the grid its label projects it onto.
 
     Args:
         identifier: The observation, whose files must already be in the cache
             that `download.fetch` puts them in.
 
     Returns:
-        The observation, its image loaded and placed on the grid its label
-        projects it onto.
+        The sample, its image on that grid and the pixels it never measured
+        marked.
 
     Raises:
         FileNotFoundError: When the image or its label is missing.
@@ -32,4 +33,12 @@ def read(identifier: str) -> CtxObservation:
     image = tifffile.imread(files[configs.SUFFIXES[configs.IMAGE]])
     if image.ndim != 2:
         raise ValueError(f"{identifier} holds a {image.ndim} dimensional image.")
-    return CtxObservation(identifier, image, label, *geometry.load(label))
+    observation = CtxObservation(identifier, image, label, *geometry.load(label))
+    return CtxSample(
+        observation.identifier,
+        observation.image,
+        observation.image == configs.BLANK,
+        observation.latitude,
+        observation.longitude,
+        geometry.pixel(observation.label),
+    )
