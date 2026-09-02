@@ -7,32 +7,32 @@ from bisect import bisect_left
 from analysis.selector import configs
 from analysis.selector.filters import floors, redundancy, timeless
 from analysis.selector.models.counter import Counter
-from analysis.selector.models.strategy import Constraints, Strategy
+from analysis.selector.models.filter import Constraints, Filter
 from analysis.selector.models.survey import Survey
 from analysis.selector.models.track import Track
 from analysis.selector.models.window import Window
 from analysis.selector.utils import scoring
 
 
-def search(track: Track, strategy: Strategy) -> Survey | None:
+def search(track: Track, criteria: Filter) -> Survey | None:
     """Search a timeline for the window the ground is best studied over.
 
     Args:
         track: The admissible observations on one time axis.
-        strategy: The strategy read against the feature, holding what it is asked.
+        criteria: The filter read against the feature, holding what it is asked.
 
     Returns:
         The chosen window, or None when no window is worth keeping.
     """
-    # What the strategy asks of this feature, worked out once when it was read
-    windowed, standing = strategy.windowed, strategy.standing
+    # What the filter asks of this feature, worked out once when it was read
+    windowed, standing = criteria.windowed, criteria.standing
     # What time cannot change is asked of the whole record rather than a window
     if standing:
         whole = Counter.over(track, 0, len(track.observations) - 1)
         if floors.met(standing, whole.cells_reached) is None:
             return None
     # Take the best window
-    picked = _best(track, windowed, strategy)
+    picked = _best(track, windowed, criteria)
     if picked is None:
         return None
     # Clean up the record to only what is worth keeping, and report reached
@@ -45,22 +45,22 @@ def search(track: Track, strategy: Strategy) -> Survey | None:
         geo_mean=geo_mean,
         kept=tuple(kept),
         dropped=picked.last - picked.first + 1 - len(kept),
-        standing=timeless.kept(track, strategy.timeless),
+        standing=timeless.kept(track, criteria.timeless),
     )
 
 
-def _best(track: Track, windowed: Constraints, strategy: Strategy) -> Window | None:
+def _best(track: Track, windowed: Constraints, criteria: Filter) -> Window | None:
     """Take the window worth the most, at the price a day of waiting costs.
 
     Args:
         track: The admissible observations on one time axis.
         windowed: The cells each instrument insisted on has to reach.
-        strategy: What the window is asked for, which caps how long it runs.
+        criteria: What the window is asked for, which caps how long it runs.
 
     Returns:
         The window worth the most, or None when no window is worth keeping.
     """
-    span_days = strategy.span_days
+    span_days = criteria.span_days
     looked = _looked_before(track)
     reached = [0] * len(track.iids)
     best: Window | None = None
@@ -79,7 +79,7 @@ def _best(track: Track, windowed: Constraints, strategy: Strategy) -> Window | N
             reached[track.owners[right]] += fresh
             counts = floors.met(windowed, reached)
             if counts is None:
-                continue  # the window does not hold what the strategy asks
+                continue  # the window does not hold what the filter asks
             paid = scoring.scored(track, counts, days)
             if paid > worth:
                 best, worth = Window(left, right, days), paid

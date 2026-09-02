@@ -1,4 +1,4 @@
-"""Reading one strategy against one feature, once, into what the feature is asked."""
+"""Reading the filter against one feature, once, into what the feature is asked."""
 
 from __future__ import annotations
 
@@ -7,43 +7,43 @@ import math
 from collections.abc import Sequence
 
 from analysis.coverage.results import SetCoverage
+from analysis.selector.models.filter import Constraints, Filter
 from analysis.selector.models.grid import Grid
-from analysis.selector.models.strategy import Constraints, Strategy
 from analysis.utils.maths import ground
 
 
-def read(strategy: Strategy, coverage: Sequence[SetCoverage], grid: Grid) -> Strategy:
-    """Settle everything a strategy asks of a feature.
+def read(criteria: Filter, coverage: Sequence[SetCoverage], grid: Grid) -> Filter:
+    """Settle everything the filter asks of a feature.
 
-    This is the only place a strategy is read. What it works out is held on the
-    strategy it hands back, so the search and the admission both take what they
+    This is the only place the filter is read. What it works out is held on the
+    filter it hands back, so the search and the admission both take what they
     need off that rather than working it out again.
 
     Args:
-        strategy: What the instruments are asked for, and which of them are timeless.
+        criteria: What the instruments are asked for, and which of them are timeless.
         coverage: The feature's instrument sets, in any order.
         grid: The grid the feature is searched over.
 
     Returns:
-        The same strategy, carrying what it asks of the feature.
+        The same filter, carrying what it asks of the feature.
     """
     iids = [instrument.summary.iid for instrument in coverage]
-    windowed, standing = _asked(strategy, iids, grid.area_km2, grid.cell_km2)
+    windowed, standing = _asked(criteria, iids, grid.area_km2, grid.cell_km2)
     return dataclasses.replace(
-        strategy,
-        least=_least(coverage, grid, strategy.admits),
+        criteria,
+        least=_least(coverage, grid, criteria.admits),
         windowed=windowed,
         standing=standing,
     )
 
 
 def _asked(
-    strategy: Strategy, iids: Sequence[str], area_km2: float, cell_km2: float
+    criteria: Filter, iids: Sequence[str], area_km2: float, cell_km2: float
 ) -> tuple[Constraints, Constraints]:
-    """Read what a strategy asks into the sets and the cells of one feature.
+    """Read what the filter asks into the sets and the cells of one feature.
 
     Args:
-        strategy: What the instruments are asked for, and which of them are timeless.
+        criteria: What the instruments are asked for, and which of them are timeless.
         iids: The instrument each set on the timeline belongs to, in order.
         area_km2: How much ground the feature covers.
         cell_km2: How much ground one cell of that ground covers.
@@ -53,7 +53,7 @@ def _asked(
     """
     windowed: Constraints = []
     standing: Constraints = []
-    for constraint in strategy.constraints:
+    for constraint in criteria.constraints:
         answers = [
             (
                 tuple(index for index, owner in enumerate(iids) if owner == iid),
@@ -64,7 +64,7 @@ def _asked(
         # A constraint is out of the window only when everything answering it is
         held = (
             standing
-            if all(iid in strategy.timeless for iid in constraint)
+            if all(iid in criteria.timeless for iid in constraint)
             else windowed
         )
         held.append(answers)

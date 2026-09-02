@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from analysis.selector.models.strategy import Constraints
+from analysis.selector.models.filter import Constraints
 
 
 def met(constraints: Constraints, cells_reached: Sequence[int]) -> list[int] | None:

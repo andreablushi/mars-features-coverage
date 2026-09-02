@@ -11,25 +11,25 @@ Constraints = list[list[Answer]]
 
 
 @dataclass(frozen=True, slots=True)
-class Strategy:
-    """One way of asking the instruments for what only they can give.
+class Filter:
+    """What the instruments are asked for before a feature earns a place.
 
     Attributes:
-        name: What the strategy is called, which is how a run picks it.
         constraints: What a window meets all of, any one instrument answering each.
         admits: The pixels each instrument has to land on a feature to count, by iid.
         span_days: How long a window may run, in days.
         timeless: The instruments the ground answers for whenever they came.
+        unfloored: Whether the ground bars are lifted, which is the relaxed reading.
         least: The pixels each set has to land on the feature, by set.
         windowed: What a window is scored on, tightest constraint first.
         standing: What the whole record answers for, tightest first.
     """
 
-    name: str
     constraints: tuple[dict[str, float], ...]
     admits: dict[str, float]
     span_days: float
     timeless: frozenset[str] = frozenset()
+    unfloored: bool = False
     least: list[float] = field(default_factory=list)
     windowed: Constraints = field(default_factory=list)
     standing: Constraints = field(default_factory=list)

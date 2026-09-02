@@ -6,7 +6,7 @@ import numpy as np
 
 from analysis.selector.filters import floors
 from analysis.selector.models.counter import Counter
-from analysis.selector.models.strategy import Constraints
+from analysis.selector.models.filter import Constraints
 from analysis.selector.models.track import Track
 from analysis.selector.models.window import Window
 from analysis.selector.utils import scoring

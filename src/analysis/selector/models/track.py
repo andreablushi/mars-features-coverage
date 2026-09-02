@@ -10,8 +10,8 @@ import numpy as np
 from analysis.coverage.results import Event, SetCoverage
 from analysis.selector import configs
 from analysis.selector.filters import admissible
+from analysis.selector.models.filter import Filter
 from analysis.selector.models.grid import Grid
-from analysis.selector.models.strategy import Strategy
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,19 +45,19 @@ class Track:
 
 
 def build(
-    coverage: Sequence[SetCoverage], grid: Grid, strategy: Strategy
+    coverage: Sequence[SetCoverage], grid: Grid, criteria: Filter
 ) -> Track | None:
     """Merge a feature's instrument sets onto one timeline.
 
     Args:
         coverage: The feature's instrument sets, in any order.
         grid: The grid the feature is searched over.
-        strategy: The strategy read against the feature, read once.
+        criteria: The filter read against the feature, read once.
 
     Returns:
         The timeline, or None when the feature holds nothing measurable.
     """
-    held, refused = admissible.admit_observation(coverage, grid, strategy)
+    held, refused = admissible.admit_observation(coverage, grid, criteria)
     if not held:
         return None
     held.sort(key=lambda item: item[0].t_start)
