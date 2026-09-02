@@ -2,13 +2,21 @@
 
 from __future__ import annotations
 
+from building.preprocessing.common.disk.product_cache import ProductCache
+from building.preprocessing.crism import naming
 from utils.disk import paths
 
 # Where the metadata download stage writes what it fetched from ODE.
 METADATA_ROOT = paths.METADATA_ROOT
 
-# Where downloaded observations are kept, one directory each.
-CACHE_ROOT = paths.CRISM_ROOT
+# Where each product of an observation is kept, and what it is called there.
+# The geometry sits in a subdirectory of its own, beside the scan it belongs to.
+CACHE = ProductCache(
+    paths.CRISM_ROOT, {None: (".lbl", ".img")}, {naming.GEOMETRY: "ddr"}
+)
+
+# The directory every wavelength file is kept in, shared by every observation.
+WAVELENGTH_DIR = "cdr"
 
 # The wavelength window in nm each detector is trusted over, outside which the
 # sensor edge sees almost no light and the reading is noise.

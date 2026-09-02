@@ -7,7 +7,7 @@ from urllib.parse import quote
 
 from building.preprocessing.common import download
 from building.preprocessing.common.disk import catalogue
-from building.preprocessing.ctx import configs, locations, naming
+from building.preprocessing.ctx import configs, naming
 
 # The metadata file each feature keeps its CTX products in.
 EDR_METADATA_NAME = "mro_ctx_edr.jsonl"
@@ -71,7 +71,7 @@ def fetch(observation_id: str, client: download.Client | None = None) -> Path:
         FileNotFoundError: When ODE carries no raw scan to read the volume off.
         ValueError: When ODE offers that scan from no volume this can read.
     """
-    destination = locations.files(observation_id)
+    destination = configs.CACHE.files(observation_id, observation_id)
     if any(not path.exists() for path in destination.values()):
         with download.opened(client) as ode:
             offered = ode.offers(observation_id, pt=PRODUCT_TYPE, **ODE)
@@ -79,7 +79,7 @@ def fetch(observation_id: str, client: download.Client | None = None) -> Path:
             raise FileNotFoundError(f"ODE carries no raw scan for {observation_id}.")
         volume_id = naming.volume(offered[ODE_SUFFIX])
         download.bring(destination, _asu(observation_id, volume_id), configs.TIMEOUT)
-    return locations.label(observation_id)
+    return destination[naming.SUFFIXES[naming.LABEL]]
 
 
 def _asu(observation_id: str, volume_id: str) -> dict[str, str]:

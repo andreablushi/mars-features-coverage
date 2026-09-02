@@ -7,7 +7,7 @@ from pathlib import Path
 
 from building.preprocessing.common import download
 from building.preprocessing.common.disk import catalogue
-from building.preprocessing.mola import configs, locations, naming
+from building.preprocessing.mola import configs, naming
 
 # What ODE publishes MOLA under.
 ODE = {"ihid": "MGS", "iid": "MOLA"}
@@ -102,10 +102,11 @@ def fetch(tile: str, client: download.Client | None = None) -> Path:
     """
     with download.opened(client) as ode:
         for kind in naming.KINDS:
+            product = naming.product(tile, kind)
             ode.collect(
-                f"{naming.product(tile, kind)}{ODE_SUFFIX}",
-                locations.files(tile, kind),
+                f"{product}{ODE_SUFFIX}",
+                configs.CACHE.files(tile, product, kind),
                 pt=PRODUCT_TYPE,
                 **ODE,
             )
-    return locations.label(tile)
+    return configs.CACHE.files(tile, naming.product(tile))[".lbl"]

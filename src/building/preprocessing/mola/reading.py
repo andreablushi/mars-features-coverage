@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from building.preprocessing.common.pds import images
-from building.preprocessing.mola import geometry, locations, naming
+from building.preprocessing.mola import configs, geometry, naming
 from building.preprocessing.mola.models.observation import MolaObservation, Plane
 
 
@@ -25,6 +25,9 @@ def read(identifier: str) -> MolaObservation:
     """
     planes = {}
     for kind in naming.KINDS:
-        values, label = images.load_plane(locations.files(identifier, kind)[".img"])
+        product = naming.product(identifier, kind)
+        values, label = images.load_plane(
+            configs.CACHE.files(identifier, product, kind)[".img"]
+        )
         planes[kind] = Plane(kind, values, label, *geometry.load(label))
     return MolaObservation(identifier, planes)

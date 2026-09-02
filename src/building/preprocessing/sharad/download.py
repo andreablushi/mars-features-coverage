@@ -6,7 +6,7 @@ from pathlib import Path
 
 from building.preprocessing.common import download
 from building.preprocessing.common.disk import catalogue
-from building.preprocessing.sharad import configs, locations, naming
+from building.preprocessing.sharad import configs, naming
 
 # The metadata file each feature keeps its radargram products in.
 RDR_METADATA_NAME = "mro_sharad_usrdrv2.jsonl"
@@ -62,10 +62,11 @@ def fetch(observation_id: str, client: download.Client | None = None) -> Path:
     """
     with download.opened(client) as ode:
         for kind, product_type in TYPES.items():
+            product_id = naming.product(observation_id, kind)
             ode.collect(
-                naming.product(observation_id, kind),
-                locations.files(observation_id, kind),
+                product_id,
+                configs.CACHE.files(observation_id, product_id, kind),
                 pt=product_type,
                 **ODE,
             )
-    return locations.label(observation_id)
+    return configs.CACHE.files(observation_id, naming.product(observation_id))[".lbl"]

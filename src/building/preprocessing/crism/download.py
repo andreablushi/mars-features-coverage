@@ -8,7 +8,7 @@ from pathlib import Path
 from building.preprocessing.common import download
 from building.preprocessing.common.disk import catalogue
 from building.preprocessing.common.pds import labels
-from building.preprocessing.crism import configs, locations, naming
+from building.preprocessing.crism import configs, naming
 
 # The metadata file each feature keeps its multispectral survey products in.
 MSP_METADATA_NAME = "mro_crism_trdr_msp.jsonl"
@@ -76,19 +76,29 @@ def fetch(
     with download.opened(client) as ode:
         for detector in naming.DETECTORS:
             for kind, product_type in TYPES.items():
+                product_id = naming.product(observation_id, detector, kind)
                 ode.collect(
-                    naming.product(observation_id, detector, kind),
-                    locations.files(observation_id, detector, kind),
+                    product_id,
+                    configs.CACHE.files(observation_id, product_id, kind),
                     pt=product_type,
                     **ODE,
                 )
+        found = {
+            detector: configs.CACHE.files(
+                observation_id, naming.product(observation_id, detector)
+            )[".lbl"]
+            for detector in naming.DETECTORS
+        }
         # Only now do the labels exist to be asked which file calibrated them.
-        for label in locations.labels(observation_id).values():
+        for label in found.values():
             name = naming.wavelength(labels.load(label))
             ode.collect(
-                name, locations.wavelength_file(name), pt=WAVELENGTH_TYPE, **ODE
+                name,
+                configs.CACHE.files(configs.WAVELENGTH_DIR, name.lower()),
+                pt=WAVELENGTH_TYPE,
+                **ODE,
             )
-    return locations.labels(observation_id)
+    return found
 
 
 def wavelength_file(name: str, client: download.Client | None = None) -> Path:
@@ -104,7 +114,7 @@ def wavelength_file(name: str, client: download.Client | None = None) -> Path:
     Raises:
         FileNotFoundError: When ODE offers no download for it.
     """
-    half = locations.wavelength_file(name)
+    half = configs.CACHE.files(configs.WAVELENGTH_DIR, name.lower())
     with download.opened(client) as ode:
         ode.collect(name, half, pt=WAVELENGTH_TYPE, **ODE)
     return half[".img"]

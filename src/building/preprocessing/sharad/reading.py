@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from building.preprocessing.common.pds import images, tables
-from building.preprocessing.sharad import locations, naming
+from building.preprocessing.sharad import configs, naming
 from building.preprocessing.sharad.models.observation import SharadObservation
 
 
@@ -23,8 +23,11 @@ def read(identifier: str) -> SharadObservation:
         ValueError: When the geometry holds fewer rows than its label promises.
     """
     # The echoes themselves, then the places they were sounded at.
-    power, label = images.load_plane(locations.files(identifier)[".img"])
+    power, label = images.load_plane(
+        configs.CACHE.files(identifier, naming.product(identifier))[".img"]
+    )
+    geometry = naming.product(identifier, naming.GEOMETRY)
     table, geometry_label = tables.load_table(
-        locations.files(identifier, naming.GEOMETRY)[".tab"]
+        configs.CACHE.files(identifier, geometry, naming.GEOMETRY)[".tab"]
     )
     return SharadObservation(identifier, power, label, table, geometry_label)
