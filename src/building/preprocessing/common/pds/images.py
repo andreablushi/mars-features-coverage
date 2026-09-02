@@ -21,7 +21,6 @@ def build_cube(image: Path, label: dict[str, str]) -> np.ndarray:
         stores them in.
 
     Raises:
-        ValueError: When the label names a band order this cannot read.
         KeyError: When it names a sample type this cannot read.
     """
     # How the image is shaped, ordered and written.
@@ -49,7 +48,6 @@ def load_cube(image: Path) -> tuple[np.ndarray, dict[str, str]]:
 
     Raises:
         FileNotFoundError: When the image or its label is missing.
-        ValueError: When the label names a band order this cannot read.
         KeyError: When it names a sample type this cannot read.
     """
     label = labels.load(image.with_suffix(".lbl"))
@@ -67,10 +65,7 @@ def load_plane(image: Path) -> tuple[np.ndarray, dict[str, str]]:
 
     Raises:
         FileNotFoundError: When the image or its label is missing.
-        ValueError: When the label describes more than one band.
         KeyError: When it names a sample type this cannot read.
     """
     cube, label = load_cube(image)
-    if cube.shape[2] != 1:
-        raise ValueError(f"{image.name} holds {cube.shape[2]} bands, not one.")
     return cube[:, :, 0], label

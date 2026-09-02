@@ -57,7 +57,6 @@ def layout(label: dict[str, str]) -> tuple[int, int, int, str, str]:
         in, and the numpy dtype its samples are stored as.
 
     Raises:
-        ValueError: When the label names a band order this cannot read.
         KeyError: When it names a sample type this cannot read.
     """
     # How many rows the image holds.
@@ -68,8 +67,6 @@ def layout(label: dict[str, str]) -> tuple[int, int, int, str, str]:
     bands = int(label.get("BANDS", 1))
     # The order bands are written in, BIL for a TRDR and BSQ for a DDR.
     stored = label.get("BAND_STORAGE_TYPE", BIL)
-    if stored not in (BIL, BSQ):
-        raise ValueError(f"Cannot read a {stored} image.")
     # The sample type and its width, which together name a numpy dtype.
     dtype = _DTYPES[label["SAMPLE_TYPE"], int(label["SAMPLE_BITS"])]
     return lines, samples, bands, stored, dtype
