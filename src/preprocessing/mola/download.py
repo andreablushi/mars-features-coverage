@@ -5,14 +5,12 @@ from __future__ import annotations
 from collections import defaultdict
 from pathlib import Path
 
-from metadata.api.client import ODEClient
-from preprocessing.common import catalogue
-from preprocessing.common.download import borrowed, bring, published_on_ode
+from preprocessing.common import download
+from preprocessing.common.disk import catalogue
 from preprocessing.mola import configs, locations, naming
 
-# The instrument host and instrument ODE publishes MOLA under.
-IHID = "MGS"
-IID = "MOLA"
+# What ODE publishes MOLA under.
+ODE = {"ihid": "MGS", "iid": "MOLA"}
 
 # The ODE product type the gridded record is published under.
 PRODUCT_TYPE = "MEGDR"
@@ -26,7 +24,7 @@ PAGE = 500
 
 
 def available(
-    resolution: int = configs.RESOLUTION, client: ODEClient | None = None
+    resolution: int = configs.RESOLUTION, client: download.Client | None = None
 ) -> list[str]:
     """Read the ids of every tile both planes are published for.
 
@@ -35,7 +33,7 @@ def available(
 
     Args:
         resolution: How fine a grid to keep, in pixels per degree.
-        client: An ODE client to reuse, or None to open one for this call.
+        client: A client to reuse, or None to open one for this call.
 
     Returns:
         The tile ids, sorted and without repeats.
@@ -45,20 +43,16 @@ def available(
     """
     if resolution not in naming.RESOLUTIONS.values():
         raise ValueError(f"MEGDR is not published at {resolution} pixels per degree.")
-    with borrowed(client) as ode:
-        results = ode.query(
-            {
-                "query": "product",
-                "results": "f",
-                "target": "mars",
-                "ihid": IHID,
-                "iid": IID,
-                "pt": PRODUCT_TYPE,
-                "limit": str(PAGE),
-            }
-        )
+    with download.opened(client) as ode:
+        entries = ode.query(pt=PRODUCT_TYPE, limit=str(PAGE), **ODE)
+    names = {
+        Path(filename).stem
+        for entry in entries
+        for filename in download.published(entry)
+        if filename.endswith(ODE_SUFFIX)
+    }
     found: dict[str, set[str]] = defaultdict(set)
-    for name in _image_names(results):
+    for name in names:
         # Keep only wanted tiles, which drops the polar stereographic ones.
         tile = naming.parse(name)
         if tile and naming.resolution(tile) == resolution:
@@ -70,38 +64,17 @@ def available(
     )
 
 
-def _image_names(results: dict) -> list[str]:
-    """Read the stem of every gridded image one ODE answer names.
-
-    Args:
-        results: The parsed ODEResults of a product query.
-
-    Returns:
-        The lowercase stem of each `.img` the answer offers.
-    """
-    entries = results.get("Products", {})
-    entries = entries.get("Product", []) if isinstance(entries, dict) else []
-    names = []
-    for entry in entries if isinstance(entries, list) else [entries]:
-        offers = entry.get("Product_files", {}).get("Product_file", [])
-        for offer in offers if isinstance(offers, list) else [offers]:
-            name = Path(str(offer.get("FileName", "")).lower())
-            if name.suffix == ODE_SUFFIX:
-                names.append(name.stem)
-    return names
-
-
 def sample(
     seed: int = 42,
     resolution: int = configs.RESOLUTION,
-    client: ODEClient | None = None,
+    client: download.Client | None = None,
 ) -> Path:
     """Bring down the one tile a number picks out.
 
     Args:
         seed: The number to draw with.
         resolution: How fine a grid to draw from, in pixels per degree.
-        client: An ODE client to reuse, or None to open one for this call.
+        client: A client to reuse, or None to open one for this call.
 
     Returns:
         The path to the topography label, whose image sits beside it.
@@ -110,15 +83,15 @@ def sample(
         ValueError: When no tile is published at that resolution.
     """
     wanted = f"MEGDR tile published at {resolution} pixels per degree"
-    return fetch(catalogue.pick(available(resolution, client), seed, wanted), client)
+    return fetch(catalogue.sample(available(resolution, client), seed, wanted), client)
 
 
-def fetch(tile: str, client: ODEClient | None = None) -> Path:
+def fetch(tile: str, client: download.Client | None = None) -> Path:
     """Bring both planes of one tile down, or return what is here.
 
     Args:
         tile: The tile to fetch, such as 00n180hb.
-        client: An ODE client to reuse, or None to open one for this call.
+        client: A client to reuse, or None to open one for this call.
 
     Returns:
         The path to the topography label, whose image sits beside it and whose
@@ -127,12 +100,12 @@ def fetch(tile: str, client: ODEClient | None = None) -> Path:
     Raises:
         FileNotFoundError: When ODE offers no download for a plane.
     """
-    with borrowed(client) as ode:
-        offers = published_on_ode(IHID, IID, PRODUCT_TYPE, ode)
+    with download.opened(client) as ode:
         for kind in naming.KINDS:
-            bring(
+            ode.collect(
                 f"{naming.product(tile, kind)}{ODE_SUFFIX}",
                 locations.files(tile, kind),
-                offers,
+                pt=PRODUCT_TYPE,
+                **ODE,
             )
     return locations.label(tile)

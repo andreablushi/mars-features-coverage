@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import random
 from collections.abc import Callable, Iterator, Sequence
 from pathlib import Path
+
+from utils.disk.files import read_jsonl
 
 
 def product_ids(metadata_root: Path, filename: str) -> Iterator[str]:
@@ -19,11 +20,9 @@ def product_ids(metadata_root: Path, filename: str) -> Iterator[str]:
         The product id of each record, as the metadata spells it.
     """
     for source in metadata_root.rglob(filename):
-        # Read the metadata file line by line, which is a JSON object per line.
-        for line in source.read_text().splitlines():
-            if line.strip():
-                # The product id is in the `pdsid` field
-                yield json.loads(line)["pdsid"]
+        for record in read_jsonl(source):
+            # The product id is in the `pdsid` field
+            yield record["pdsid"]
 
 
 def observations(
@@ -48,7 +47,7 @@ def observations(
     return sorted(found)
 
 
-def pick(pool: Sequence[str], seed: int, wanted: str) -> str:
+def sample(pool: Sequence[str], seed: int, wanted: str) -> str:
     """Draw the one observation a number picks out.
 
     Args:

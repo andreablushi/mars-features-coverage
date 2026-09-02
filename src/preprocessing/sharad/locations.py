@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from preprocessing.common.locations import product_files
+from preprocessing.common.disk.locations import product_files
 from preprocessing.sharad import configs, naming
 
 # The two halves each product is downloaded as, the label and what it describes.

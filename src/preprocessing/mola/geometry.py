@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import numpy as np
 
-from preprocessing.common import grids
-
 # The only projection the gridded record is written in.
 PROJECTION = "SIMPLE CYLINDRICAL"
 
@@ -13,12 +11,15 @@ PROJECTION = "SIMPLE CYLINDRICAL"
 def load(label: dict[str, str]) -> tuple[np.ndarray, np.ndarray]:
     """Return the centre latitude of every line and longitude of every sample.
 
+    A simple cylindrical grid is even in both directions, so the two axes are
+    all that place it and a pixel sits where they cross.
+
     Args:
         label: The parsed label of one plane.
 
     Returns:
-        The latitude of every line and the longitude of every sample, both in
-        degrees, so a pixel sits where the two cross.
+        The latitude of every line, falling southward, and the longitude of
+        every sample, rising eastward, both in degrees.
 
     Raises:
         ValueError: When the label names a projection this cannot read.
@@ -27,14 +28,17 @@ def load(label: dict[str, str]) -> tuple[np.ndarray, np.ndarray]:
         raise ValueError(f"Cannot place a {label['MAP_PROJECTION_TYPE']} grid.")
     step = pixel(label)
     # The projection counts pixels from one, from the offset it puts its origin at.
-    first_line = 1.0 - float(label["LINE_PROJECTION_OFFSET"])
-    first_sample = 1.0 - float(label["SAMPLE_PROJECTION_OFFSET"])
-    return grids.axes(
-        int(label["LINES"]),
-        int(label["LINE_SAMPLES"]),
-        float(label["CENTER_LATITUDE"]) - first_line * step,
-        float(label["CENTER_LONGITUDE"]) + first_sample * step,
-        step,
+    north = (
+        float(label["CENTER_LATITUDE"])
+        - (1.0 - float(label["LINE_PROJECTION_OFFSET"])) * step
+    )
+    west = (
+        float(label["CENTER_LONGITUDE"])
+        + (1.0 - float(label["SAMPLE_PROJECTION_OFFSET"])) * step
+    )
+    return (
+        north - np.arange(int(label["LINES"])) * step,
+        west + np.arange(int(label["LINE_SAMPLES"])) * step,
     )
 
 

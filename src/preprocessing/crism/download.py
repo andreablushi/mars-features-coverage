@@ -5,18 +5,16 @@ from __future__ import annotations
 from collections import defaultdict
 from pathlib import Path
 
-from metadata.api.client import ODEClient
-from preprocessing.common import catalogue
-from preprocessing.common.download import borrowed, bring, published_on_ode
+from preprocessing.common import download
+from preprocessing.common.disk import catalogue
 from preprocessing.common.pds import labels
 from preprocessing.crism import configs, locations, naming
 
 # The metadata file each feature keeps its multispectral survey products in.
 MSP_METADATA_NAME = "mro_crism_trdr_msp.jsonl"
 
-# The instrument host and instrument ODE publishes CRISM under.
-IHID = "MRO"
-IID = "CRISM"
+# What ODE publishes CRISM under.
+ODE = {"ihid": "MRO", "iid": "CRISM"}
 
 # The ODE product types an observation and its geometry are published under.
 TYPES = {naming.OBSERVATION: "TRDR", naming.GEOMETRY: "DDR"}
@@ -41,12 +39,12 @@ def available() -> list[str]:
     )
 
 
-def sample(seed: int = 42, client: ODEClient | None = None) -> dict[str, Path]:
+def sample(seed: int = 42, client: download.Client | None = None) -> dict[str, Path]:
     """Bring down the one observation a number picks out.
 
     Args:
         seed: The number to draw with.
-        client: An ODE client to reuse, or None to open one for this call.
+        client: A client to reuse, or None to open one for this call.
 
     Returns:
         The path to each detector's label, keyed by detector.
@@ -55,15 +53,17 @@ def sample(seed: int = 42, client: ODEClient | None = None) -> dict[str, Path]:
         ValueError: When the metadata holds no multispectral survey products.
     """
     wanted = "multispectral survey product in the metadata"
-    return fetch(catalogue.pick(available(), seed, wanted), client)
+    return fetch(catalogue.sample(available(), seed, wanted), client)
 
 
-def fetch(observation_id: str, client: ODEClient | None = None) -> dict[str, Path]:
+def fetch(
+    observation_id: str, client: download.Client | None = None
+) -> dict[str, Path]:
     """Bring both detectors of one observation down, or return what is here.
 
     Args:
         observation_id: The observation to fetch.
-        client: An ODE client to reuse, or None to open one for this call.
+        client: A client to reuse, or None to open one for this call.
 
     Returns:
         The path to each detector's label, whose image sits beside it and whose
@@ -73,28 +73,30 @@ def fetch(observation_id: str, client: ODEClient | None = None) -> dict[str, Pat
         FileNotFoundError: When ODE offers no download for a product.
         KeyError: When a label names no wavelength file.
     """
-    with borrowed(client) as ode:
+    with download.opened(client) as ode:
         for detector in naming.DETECTORS:
             for kind, product_type in TYPES.items():
-                bring(
+                ode.collect(
                     naming.product(observation_id, detector, kind),
                     locations.files(observation_id, detector, kind),
-                    published_on_ode(IHID, IID, product_type, ode),
+                    pt=product_type,
+                    **ODE,
                 )
         # Only now do the labels exist to be asked which file calibrated them.
-        offers = published_on_ode(IHID, IID, WAVELENGTH_TYPE, ode)
         for label in locations.labels(observation_id).values():
             name = naming.wavelength(labels.load(label))
-            bring(name, locations.wavelength_file(name), offers)
+            ode.collect(
+                name, locations.wavelength_file(name), pt=WAVELENGTH_TYPE, **ODE
+            )
     return locations.labels(observation_id)
 
 
-def wavelength_file(name: str, client: ODEClient | None = None) -> Path:
+def wavelength_file(name: str, client: download.Client | None = None) -> Path:
     """Bring down the wavelength file one label names, or return what is here.
 
     Args:
         name: The product id ODE knows the wavelength file by.
-        client: An ODE client to reuse, or None to open one for this call.
+        client: A client to reuse, or None to open one for this call.
 
     Returns:
         The path to the file's image, whose label sits beside it.
@@ -103,6 +105,6 @@ def wavelength_file(name: str, client: ODEClient | None = None) -> Path:
         FileNotFoundError: When ODE offers no download for it.
     """
     half = locations.wavelength_file(name)
-    with borrowed(client) as ode:
-        bring(name, half, published_on_ode(IHID, IID, WAVELENGTH_TYPE, ode))
+    with download.opened(client) as ode:
+        ode.collect(name, half, pt=WAVELENGTH_TYPE, **ODE)
     return half[".img"]

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from preprocessing.common.locations import product_files
+from preprocessing.common.disk.locations import product_files
 from preprocessing.crism import configs, naming
 
 # The two halves a product is downloaded as.

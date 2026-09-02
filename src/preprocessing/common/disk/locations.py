@@ -15,10 +15,6 @@ def product_files(
 ) -> dict[str, Path]:
     """Return where each half of one product belongs.
 
-    Every instrument keeps a product in a directory of its own under its cache
-    root, named after what it holds, with each half named for the product and
-    suffixed for what that half is.
-
     Args:
         root: The cache root the instrument downloads under.
         directory: The directory under it, which is the observation for a

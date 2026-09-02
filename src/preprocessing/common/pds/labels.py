@@ -1,8 +1,20 @@
-"""Reading a PDS or ISIS label into the keys it names."""
+"""Reading a PDS or ISIS label, and whatever it says about what sits beside it."""
 
 from __future__ import annotations
 
 from pathlib import Path
+
+# The two orders an image is written in.
+BIL = "LINE_INTERLEAVED"
+BSQ = "BAND_SEQUENTIAL"
+
+# What a PDS sample type and width mean as a numpy dtype.
+_DTYPES = {
+    ("PC_REAL", 32): "<f4",
+    ("PC_REAL", 64): "<f8",
+    ("MSB_INTEGER", 16): ">i2",
+    ("UNSIGNED_INTEGER", 8): "u1",
+}
 
 
 def load(path: Path) -> dict[str, str]:
@@ -32,3 +44,56 @@ def load(path: Path) -> dict[str, str]:
         if key and key not in label:
             label[key] = value.strip('"').split("<")[0].strip()
     return label
+
+
+def layout(label: dict[str, str]) -> tuple[int, int, int, str, str]:
+    """Read how one image is shaped and written from its label.
+
+    Args:
+        label: The parsed label.
+
+    Returns:
+        The lines, samples and bands it holds, the order its bands are written
+        in, and the numpy dtype its samples are stored as.
+
+    Raises:
+        ValueError: When the label names a band order this cannot read.
+        KeyError: When it names a sample type this cannot read.
+    """
+    # How many rows the image holds.
+    lines = int(label["LINES"])
+    # How many columns each row holds.
+    samples = int(label["LINE_SAMPLES"])
+    # How many channels each pixel holds, which a single band image omits.
+    bands = int(label.get("BANDS", 1))
+    # The order bands are written in, BIL for a TRDR and BSQ for a DDR.
+    stored = label.get("BAND_STORAGE_TYPE", BIL)
+    if stored not in (BIL, BSQ):
+        raise ValueError(f"Cannot read a {stored} image.")
+    # The sample type and its width, which together name a numpy dtype.
+    dtype = _DTYPES[label["SAMPLE_TYPE"], int(label["SAMPLE_BITS"])]
+    return lines, samples, bands, stored, dtype
+
+
+def columns(path: Path) -> list[dict[str, str]]:
+    """Read the COLUMN objects one table label names, in the order written.
+
+    Args:
+        path: The `.lbl` file describing the table.
+
+    Returns:
+        One dictionary per column, keyed as the label writes it, with quotes
+        and unit suffixes stripped.
+    """
+    found: list[dict[str, str]] = []
+    inside: dict[str, str] | None = None
+    for line in path.read_text(errors="replace").splitlines():
+        key, _, value = (part.strip() for part in line.partition("="))
+        if key == "OBJECT" and value == "COLUMN":
+            inside = {}
+        elif key == "END_OBJECT" and value == "COLUMN" and inside is not None:
+            found.append(inside)
+            inside = None
+        elif inside is not None and key:
+            inside[key] = value.strip('"').split("<")[0].strip()
+    return found

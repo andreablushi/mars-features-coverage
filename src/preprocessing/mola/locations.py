@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from preprocessing.common.locations import product_files
+from preprocessing.common.disk.locations import product_files
 from preprocessing.mola import configs, naming
 
 # The two halves each plane is downloaded as, the label and what it describes.

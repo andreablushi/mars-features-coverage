@@ -8,36 +8,12 @@ import numpy as np
 
 from preprocessing.common.pds import labels
 
-# What a PDS column data type means as a numpy dtype, once its width is known.
+# The two column data types read as something other than a float.
 _INTEGER = "ASCII_INTEGER"
 _TIME = "TIME"
 
 # How wide a UT instant is written, to the millisecond.
 _TIME_UNIT = "ms"
-
-
-def columns(path: Path) -> list[dict[str, str]]:
-    """Read the COLUMN objects one table label names, in the order written.
-
-    Args:
-        path: The `.lbl` file describing the table.
-
-    Returns:
-        One dictionary per column, keyed as the label writes it, with quotes
-        and unit suffixes stripped.
-    """
-    found: list[dict[str, str]] = []
-    inside: dict[str, str] | None = None
-    for line in path.read_text(errors="replace").splitlines():
-        key, _, value = (part.strip() for part in line.partition("="))
-        if key == "OBJECT" and value == "COLUMN":
-            inside = {}
-        elif key == "END_OBJECT" and value == "COLUMN" and inside is not None:
-            found.append(inside)
-            inside = None
-        elif inside is not None and key:
-            inside[key] = value.strip('"').split("<")[0].strip()
-    return found
 
 
 def build_table(table: Path, label: dict[str, str], fields: list[dict[str, str]]):
@@ -46,7 +22,7 @@ def build_table(table: Path, label: dict[str, str], fields: list[dict[str, str]]
     Args:
         table: The `.tab` file holding the records.
         label: The parsed label describing it.
-        fields: The COLUMN objects, as `columns` returns them.
+        fields: The COLUMN objects, as `labels.columns` returns them.
 
     Returns:
         A structured array of one row per record, its fields named as the label
@@ -105,4 +81,4 @@ def load_table(table: Path) -> tuple[np.recarray, dict[str, str]]:
     """
     path = table.with_suffix(".lbl")
     label = labels.load(path)
-    return build_table(table, label, columns(path)), label
+    return build_table(table, label, labels.columns(path)), label

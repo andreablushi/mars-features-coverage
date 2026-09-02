@@ -1,8 +1,8 @@
-"""Finding where a product's files are published, and bringing them here."""
+"""The one client an archive is asked through, and what it brings down."""
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -11,16 +11,96 @@ import httpx
 from metadata.api.client import ODEClient
 from utils.disk.files import atomic_path
 
-# What answers where each half of one product can be downloaded from. It is
-# given the product id and the suffixes wanted, and returns a URL per suffix.
-Offers = Callable[[str, tuple[str, ...]], dict[str, str]]
-
 # How long to wait for the larger half of a product.
 TIMEOUT = 300.0
 
 
+class Client:
+    """What an instrument asks where its products are, and downloads them from.
+
+    ODE is asked through the metadata stage's client, and any other archive by
+    streaming the URL the instrument builds for itself.
+    """
+
+    def __init__(self) -> None:
+        """Open the client an archive is asked through.
+
+        Returns:
+            None.
+        """
+        self._ode = ODEClient()
+
+    def query(self, **params: str) -> list[dict]:
+        """Read the products one ODE query names, one entry each.
+
+        Args:
+            params: What to ask for, such as the instrument host, the
+                instrument, the product type, and a product id or a page size.
+
+        Returns:
+            One entry per product ODE answers with, empty when it matched none.
+        """
+        results = self._ode.query(
+            {"query": "product", "results": "f", "target": "mars", **params}
+        )
+        # ODE answers a query that matched nothing with a sentence, not a product.
+        products = results.get("Products", {})
+        entries = products.get("Product", []) if isinstance(products, dict) else []
+        return entries if isinstance(entries, list) else [entries]
+
+    def offers(self, product_id: str, **params: str) -> dict[str, str]:
+        """Read where ODE offers each file of one product.
+
+        Args:
+            product_id: The product to ask about.
+            params: What else names it, such as the instrument and its type.
+
+        Returns:
+            The download URL of each file suffix the product is published as,
+            the first offer of a suffix winning.
+        """
+        entries = self.query(productid=product_id, **params)
+        found: dict[str, str] = {}
+        for name, url in published(entries[0] if entries else {}).items():
+            found.setdefault(Path(name).suffix, url)
+        return found
+
+    def collect(
+        self,
+        product_id: str,
+        destination: dict[str, Path],
+        timeout: float = TIMEOUT,
+        **params: str,
+    ) -> None:
+        """Download whichever halves of one ODE product are not on disk yet.
+
+        Args:
+            product_id: The product to fetch.
+            destination: Where each of its halves belongs, keyed by suffix.
+            timeout: How long to wait on each transfer.
+            params: What names the product to ODE, such as the instrument host,
+                the instrument and the product type.
+
+        Returns:
+            None.
+
+        Raises:
+            FileNotFoundError: When ODE offers no download for a missing half.
+        """
+        if any(not path.exists() for path in destination.values()):
+            bring(destination, self.offers(product_id, **params), timeout)
+
+    def close(self) -> None:
+        """Close the client.
+
+        Returns:
+            None.
+        """
+        self._ode.close()
+
+
 @contextmanager
-def borrowed(client: ODEClient | None) -> Iterator[ODEClient]:
+def opened(client: Client | None) -> Iterator[Client]:
     """Yield a client to ask with, closing it only if it was opened here.
 
     Args:
@@ -29,7 +109,7 @@ def borrowed(client: ODEClient | None) -> Iterator[ODEClient]:
     Yields:
         The client to ask through.
     """
-    owned = client or ODEClient()
+    owned = client or Client()
     try:
         yield owned
     finally:
@@ -37,103 +117,45 @@ def borrowed(client: ODEClient | None) -> Iterator[ODEClient]:
             owned.close()
 
 
-def published_on_ode(
-    ihid: str, iid: str, product_type: str, client: ODEClient
-) -> Offers:
-    """Return what answers where ODE publishes a product's files.
+def published(entry: dict) -> dict[str, str]:
+    """Read the name and URL of every file one ODE product entry offers.
 
     Args:
-        ihid: The instrument host, such as MRO.
-        iid: The instrument, such as CRISM.
-        product_type: The ODE product type the product is published under.
-        client: The ODE client to ask through.
+        entry: One product, as `Client.query` returns it.
 
     Returns:
-        Something that takes a product id and the suffixes wanted, and gives
-        back the download URL of each suffix ODE offers.
+        The download URL of each file, keyed by its lowercase filename.
     """
-
-    def offers(product_id: str, suffixes: tuple[str, ...]) -> dict[str, str]:
-        """Ask ODE where one product's files are.
-
-        Args:
-            product_id: The product to ask about.
-            suffixes: Which file suffixes to keep.
-
-        Returns:
-            The download URL for each of those suffixes ODE offers.
-        """
-        results = client.query(
-            {
-                "query": "product",
-                "results": "f",
-                "target": "mars",
-                "ihid": ihid,
-                "iid": iid,
-                "pt": product_type,
-                "productid": product_id,
-            }
-        )
-        return {
-            suffix: url
-            for suffix, url in _offered(results).items()
-            if suffix in suffixes
-        }
-
-    return offers
-
-
-def _offered(results: dict) -> dict[str, str]:
-    """Read the download URL of every file one ODE answer names.
-
-    Args:
-        results: The parsed ODEResults of a product query.
-
-    Returns:
-        The URL of each file suffix the product is published as.
-    """
-    # ODE answers a query that matched nothing with a sentence, not a product.
-    entry = results.get("Products", {})
-    entry = entry.get("Product", {}) if isinstance(entry, dict) else {}
-    entry = entry[0] if isinstance(entry, list) else entry
-    files = entry.get("Product_files", {}).get("Product_file", [])
-    found = {}
-    for offer in files if isinstance(files, list) else [files]:
-        suffix = Path(str(offer.get("FileName", "")).lower()).suffix
-        if offer.get("Type") == "Product":
-            found.setdefault(suffix, str(offer.get("URL", "")))
-    return found
+    offered = entry.get("Product_files", {}).get("Product_file", [])
+    return {
+        str(offer.get("FileName", "")).lower(): str(offer.get("URL", ""))
+        for offer in (offered if isinstance(offered, list) else [offered])
+        if offer.get("Type") == "Product"
+    }
 
 
 def bring(
-    product_id: str,
-    destination: dict[str, Path],
-    offers: Offers,
-    timeout: float = TIMEOUT,
+    destination: dict[str, Path], urls: dict[str, str], timeout: float = TIMEOUT
 ) -> None:
-    """Download whichever halves of one product are not on disk yet.
+    """Stream whichever halves of one product are not on disk yet.
 
     Args:
-        product_id: The product to fetch.
-        destination: Where each of its halves belongs, keyed by suffix.
-        offers: What answers where those halves can be downloaded from.
+        destination: Where each half belongs, keyed by suffix.
+        urls: Where each half is served from, keyed by the same suffix.
         timeout: How long to wait on each transfer.
 
     Returns:
         None.
 
     Raises:
-        FileNotFoundError: When no download is offered for a half.
+        FileNotFoundError: When a missing half is served from nowhere.
     """
-    if all(path.exists() for path in destination.values()):
-        return
-    offered = offers(product_id, tuple(destination))
-    missing = [suffix for suffix in destination if not offered.get(suffix)]
-    if missing:
-        raise FileNotFoundError(f"No {', '.join(missing)} offered for {product_id}.")
     for suffix, path in destination.items():
-        if not path.exists():
-            stream(offered[suffix], path, timeout)
+        if path.exists():
+            continue
+        if not urls.get(suffix):
+            raise FileNotFoundError(f"No {suffix} offered for {path.stem}.")
+        stream(urls[suffix], path, timeout)
 
 
 def stream(url: str, path: Path, timeout: float = TIMEOUT) -> None:
@@ -147,7 +169,6 @@ def stream(url: str, path: Path, timeout: float = TIMEOUT) -> None:
     Returns:
         None.
     """
-    path.parent.mkdir(parents=True, exist_ok=True)
     with atomic_path(path) as tmp, httpx.stream("GET", url, timeout=timeout) as reply:
         reply.raise_for_status()
         with tmp.open("wb") as handle:
