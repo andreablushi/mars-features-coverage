@@ -18,7 +18,7 @@ LINE_CLIP_MARGIN_DEG = 2.0
 LAEA_MIN_DENOMINATOR = 1e-12
 
 # The union is kept per sector so each insert touches a small shape. A sector
-# is not a tile of the survey: it exists only to keep the union small.
+# is not a unit of the survey: it exists only to keep the union small.
 MIN_UNION_SECTORS = 4
 MAX_UNION_SECTORS = 32
 
