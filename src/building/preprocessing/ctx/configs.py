@@ -21,9 +21,7 @@ DIRECTORIES = {IMAGE: "prj_full", LABEL: "stage"}
 REMOTE_SUFFIXES = {IMAGE: ".tiff", LABEL: ".scyl.isis.hdr"}
 
 # How a scan is named, for its mission phase, orbit, latitude and where it
-# looked. Every phase is a letter and two digits, apart from orbit insertion.
-# ASU names both products after the scan itself, so there is no product to
-# write and no kind written into the id.
+# looked.
 NAMING = Naming(
     re.compile(
         r"^(?P<scan>(?:[a-z]\d{2}|moi)_\d{6}_\d{4}_[a-z]{2}_\d{2}[ns]\d{3}[we])$"
@@ -42,5 +40,4 @@ METADATA_ROOT = paths.METADATA_ROOT
 CACHE = ProductCache(paths.CTX_ROOT, {None: tuple(SUFFIXES.values())})
 
 # How long to wait for the scan, which ASU builds on the way out and which no
-# other product of this pipeline comes close to in size.
 TIMEOUT = 900.0

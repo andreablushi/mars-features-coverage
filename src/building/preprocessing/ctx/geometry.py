@@ -18,9 +18,6 @@ CONVENTIONS = {
 def load(label: dict[str, str]) -> tuple[np.ndarray, np.ndarray]:
     """Return the centre latitude of every line and longitude of every sample.
 
-    A simple cylindrical grid is even in both directions, so the two axes are
-    all that place it and a pixel sits where they cross.
-
     Args:
         label: The parsed ISIS label of one scan.
 

@@ -16,11 +16,7 @@ TIMEOUT = 300.0
 
 
 class Client:
-    """What an instrument asks where its products are, and downloads them from.
-
-    ODE is asked through the metadata stage's client, and any other archive by
-    streaming the URL the instrument builds for itself.
-    """
+    """What an instrument asks where its products are, and downloads them from."""
 
     def __init__(self) -> None:
         """Open the client an archive is asked through.

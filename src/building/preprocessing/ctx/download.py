@@ -35,7 +35,14 @@ def available() -> list[str]:
     Returns:
         The observation ids, sorted and without repeats.
     """
-    return catalogue.observations(configs.METADATA_ROOT, EDR_METADATA_NAME, _scan)
+    return catalogue.observations(
+        configs.METADATA_ROOT,
+        EDR_METADATA_NAME,
+        # ODE spells a scan in lower case, and ASU serves it in upper.
+        lambda product_id: (
+            (scan := configs.NAMING.parse(product_id.lower())) and scan.upper()
+        ),
+    )
 
 
 def sample(seed: int = 42, client: download.Client | None = None) -> Path:
@@ -78,7 +85,10 @@ def fetch(observation_id: str, client: download.Client | None = None) -> Path:
             offered = ode.offers(observation_id, pt=PRODUCT_TYPE, **ODE)
         if ODE_SUFFIX not in offered:
             raise FileNotFoundError(f"ODE carries no raw scan for {observation_id}.")
-        volume_id = _volume(offered[ODE_SUFFIX])
+        archived = configs.VOLUME.search(offered[ODE_SUFFIX])
+        if not archived:
+            raise ValueError(f"{offered[ODE_SUFFIX]} names no CTX volume.")
+        volume_id = archived["volume"]
         download.bring(destination, _asu(observation_id, volume_id), configs.TIMEOUT)
     return destination[configs.SUFFIXES[configs.LABEL]]
 
@@ -107,35 +117,3 @@ def _asu(observation_id: str, volume_id: str) -> dict[str, str]:
         )
         for kind in configs.KINDS
     }
-
-
-def _scan(product_id: str) -> str | None:
-    """Read which scan a product id names, as ASU spells it.
-
-    Args:
-        product_id: The id to read, as the metadata spells it.
-
-    Returns:
-        The observation id in the upper case ASU serves it under, or None when
-        the id is not a CTX scan.
-    """
-    found = configs.NAMING.parse(product_id.lower())
-    return found.upper() if found else None
-
-
-def _volume(url: str) -> str:
-    """Read which PDS volume a scan was archived on from where ODE offers it.
-
-    Args:
-        url: The download URL ODE gives the raw scan.
-
-    Returns:
-        The volume, such as mrox_0009.
-
-    Raises:
-        ValueError: When the URL runs through no volume this can read.
-    """
-    match = configs.VOLUME.search(url)
-    if not match:
-        raise ValueError(f"{url} names no CTX volume.")
-    return match["volume"]
