@@ -16,9 +16,8 @@ KINDS = (TOPOGRAPHY, COUNTS)
 # How fine a grid each resolution letter stands for, in pixels per degree.
 RESOLUTIONS = {"c": 4, "e": 16, "f": 32, "g": 64, "h": 128}
 
-# How the archive spells one plane of a tile, which is named for the corner it
-# starts at, how fine it is, and its width. A plane writes its kind where the
-# tile on its own writes nothing, which is what drops the polar tiles.
+# How the archive spells one plane of a tile, named for the corner it starts at
+# and how fine it is. Its kind is what drops the polar tiles.
 NAMING = Naming(
     re.compile(r"^(?:meg(?P<marker>[tc]))?(?P<tile>\d{2}[ns]\d{3}(?P<step>[cefgh])b)$"),
     identity="{tile}",
