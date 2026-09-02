@@ -5,9 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from building.preprocessing.common.pds import images
-from building.preprocessing.crism import configs, wavelengths
+from building.preprocessing.crism import configs
 from building.preprocessing.crism.cleaning import bands_calibration
 from building.preprocessing.crism.models.observation import CrismObservation, Detector
+from building.preprocessing.crism.utils import wavelengths
 
 
 def read(identifier: str) -> CrismObservation:

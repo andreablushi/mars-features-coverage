@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from building.preprocessing.ctx import geometry
 from building.preprocessing.ctx.models.observation import CtxObservation
 from building.preprocessing.ctx.models.sample import CtxSample
+from building.preprocessing.ctx.utils import geometry
 
 # What the projection writes where the scan swept no ground.
 BLANK = 0
