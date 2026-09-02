@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import numpy as np
-
 from building.preprocessing.common.pds import images, tables
 from building.preprocessing.sharad import configs
 from building.preprocessing.sharad.models.observation import SharadObservation
@@ -42,11 +40,9 @@ def read(identifier: str) -> SharadSample:
 
     # The geometry counts columns from one, and the radargram from zero.
     traces = observation.geometry[configs.COLUMN_FIELD].astype("i8") - 1
-    # Read the geometry in the order the radargram stores its columns.
-    order = np.argsort(traces)
     return SharadSample(
         observation.identifier,
-        observation.power[:, traces[order]],
-        observation.geometry[order],
-        traces[order],
+        observation.power[:, traces],
+        observation.geometry,
+        traces,
     )

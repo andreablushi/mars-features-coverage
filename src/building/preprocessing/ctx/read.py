@@ -5,10 +5,9 @@ from __future__ import annotations
 import tifffile
 
 from building.preprocessing.common.pds import labels
-from building.preprocessing.ctx import configs
+from building.preprocessing.ctx import configs, geometry
 from building.preprocessing.ctx.models.observation import CtxObservation
 from building.preprocessing.ctx.models.sample import CtxSample
-from building.preprocessing.ctx.utils import geometry
 
 
 def read(identifier: str) -> CtxSample:

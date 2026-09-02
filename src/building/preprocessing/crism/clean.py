@@ -6,14 +6,14 @@ from dataclasses import replace
 
 import numpy as np
 
-from building.preprocessing.crism import reading
+from building.preprocessing.crism import read
 from building.preprocessing.crism.cleaning import (
     atmospheric,
     bands_calibration,
-    despiking,
-    destriping,
+    despike,
+    destripe,
     masking,
-    ratioing,
+    ratio,
 )
 from building.preprocessing.crism.models.observation import CrismObservation
 
@@ -33,7 +33,7 @@ def clean(identifier: str) -> CrismObservation:
         FileNotFoundError: When any file the observation needs is missing.
         ValueError: When a window keeps no band of a cube.
     """
-    observation = reading.read(identifier)
+    observation = read.read(identifier)
     detectors = {}
     for name, detector in observation.detectors.items():
         cube, mask = masking.bad_pixels(
@@ -42,15 +42,15 @@ def clean(identifier: str) -> CrismObservation:
         cube, mask = atmospheric.remove_atmospheric_bands(
             cube, mask, detector.wavelengths, detector.name
         )
-        cube, mask = destriping.remove_spike_columns(
+        cube, mask = destripe.remove_spike_columns(
             cube, mask, detector.wavelengths, detector.name
         )
-        cube = ratioing.ratio_colmed(cube, mask.pixels)
+        cube = ratio.ratio_colmed(cube, mask.pixels)
         # Despike only the bands still in play, so the filled ones cannot pull
         # the moving median around at their edges.
         kept = ~mask.bands
         block = np.ascontiguousarray(cube[:, :, kept])
-        despiking.remove_spikes(
+        despike.remove_spikes(
             block, bands_calibration.centres(detector.wavelengths)[kept]
         )
         cube[:, :, kept] = block

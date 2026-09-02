@@ -10,11 +10,6 @@ from dataclasses import dataclass, field
 class Naming:
     """How one archive spells the products of one observation.
 
-    An archive tells its products apart by writing something into the id that
-    the observation's own id does not carry, a letter, a word or a level. One
-    pattern reads both, naming every part either is written from, and the
-    templates put those parts back together.
-
     Attributes:
         pattern: What matches a product id, and matches an identifier too where
             the parts telling the kinds apart are absent.

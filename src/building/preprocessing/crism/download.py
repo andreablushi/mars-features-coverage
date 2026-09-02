@@ -105,22 +105,3 @@ def fetch(
                 **ODE,
             )
     return found
-
-
-def wavelength_file(name: str, client: download.Client | None = None) -> Path:
-    """Bring down the wavelength file one label names, or return what is here.
-
-    Args:
-        name: The product id ODE knows the wavelength file by.
-        client: A client to reuse, or None to open one for this call.
-
-    Returns:
-        The path to the file's image, whose label sits beside it.
-
-    Raises:
-        FileNotFoundError: When ODE offers no download for it.
-    """
-    half = configs.CACHE.files(configs.WAVELENGTH_DIR, name.lower())
-    with download.opened(client) as ode:
-        ode.collect(name, half, pt=WAVELENGTH_TYPE, **ODE)
-    return half[".img"]
