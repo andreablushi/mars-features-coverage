@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+from analysis.models.feature import Feature
+from analysis.models.instrument import InstrumentSetInfo
 from metadata import configs
 from metadata.api.client import ODEClient
 from metadata.api.response import as_items
 from metadata.selection.dedupe import dedupe
-from models.feature import Feature
-from models.instrument import InstrumentSetInfo
 
 
 def fetch_features(client: ODEClient) -> list[Feature]:

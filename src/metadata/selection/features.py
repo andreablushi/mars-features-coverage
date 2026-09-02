@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from models.feature import Feature
+from analysis.models.feature import Feature
 
 
 def select_features(features: Sequence[Feature]) -> list[Feature]:

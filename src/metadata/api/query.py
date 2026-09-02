@@ -6,12 +6,12 @@ from collections.abc import Iterator
 from typing import Any, TypeAlias
 
 import utils.disk.provenance as provenance
+from analysis.models.feature import Feature
+from analysis.models.instrument import InstrumentSet
 from metadata import configs
 from metadata.api.client import ODEClient
 from metadata.api.response import as_items
 from metadata.models.errors import ODEError
-from models.feature import Feature
-from models.instrument import InstrumentSet
 
 Box = tuple[float, float, float, float]
 ProductRecord: TypeAlias = dict[str, Any]

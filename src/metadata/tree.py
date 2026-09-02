@@ -6,8 +6,8 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import utils.disk.paths as paths
-from models.instrument import InstrumentSet
-from models.job import Outcome
+from analysis.models.instrument import InstrumentSet
+from analysis.models.job import Outcome
 
 
 def find_sets(root: Path = paths.METADATA_ROOT) -> list[Path]:

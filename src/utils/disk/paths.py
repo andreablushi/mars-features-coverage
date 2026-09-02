@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from models.feature import Feature
-from models.instrument import InstrumentSet
+from analysis.models.feature import Feature
+from analysis.models.instrument import InstrumentSet
 from utils.disk.slugify import slugify
 
 REPO_ROOT = Path(__file__).resolve().parents[3]

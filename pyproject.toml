@@ -23,14 +23,10 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-name = [
-    "coverage",
+    "analysis",
+    "building",
     "metadata",
-    "models",
-    "preprocessing",
-    "sampling",
-    "selector",
     "utils",
-    "visualization",
 ]
 
 [dependency-groups]

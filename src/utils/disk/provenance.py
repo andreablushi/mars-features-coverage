@@ -5,8 +5,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from models.feature import Feature
-from models.instrument import InstrumentSet
+from analysis.models.feature import Feature
+from analysis.models.instrument import InstrumentSet
 
 
 def stamp(feature: Feature, instrument_set: InstrumentSet, loc: str) -> dict[str, Any]:
