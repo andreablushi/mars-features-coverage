@@ -29,14 +29,14 @@ def counted(number: float, noun: str) -> str:
 
 
 def spread(measured: Spread, written: Callable[[float], str]) -> str:
-    """Write a measurement read off many tiles, and how far they sit from it.
+    """Write a measurement read off many features, and how far they sit from it.
 
     Args:
-        measured: The measurement, tile by tile.
+        measured: The measurement, feature by feature.
         written: How one of its numbers is put into words and units.
 
     Returns:
-        The average, and the deviation after it where the tiles disagree.
+        The average, and the deviation after it where the features disagree.
     """
     if not measured.counted:
         return NOTHING
@@ -47,25 +47,25 @@ def spread(measured: Spread, written: Callable[[float], str]) -> str:
 
 
 def share(measured: Spread) -> str:
-    """Write a share read off many tiles.
+    """Write a share read off many features.
 
     Args:
-        measured: The share, tile by tile.
+        measured: The share, feature by feature.
 
     Returns:
-        The average, and how far the tiles sit from it where they disagree.
+        The average, and how far the features sit from it where they disagree.
     """
     return spread(measured, lambda held: f"{held:.0%}")
 
 
 def landed(measured: Spread) -> str:
-    """Write a pixel count read off many tiles.
+    """Write a pixel count read off many features.
 
     Args:
-        measured: The pixels, tile by tile.
+        measured: The pixels, feature by feature.
 
     Returns:
-        The average, and how far the tiles sit from it where they disagree.
+        The average, and how far the features sit from it where they disagree.
     """
     if not measured.counted:
         return UNCOUNTED

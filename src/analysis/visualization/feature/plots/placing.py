@@ -1,4 +1,4 @@
-"""Where a feature's grid falls back onto lon and lat, tile by tile."""
+"""Where a feature's grid falls back onto lon and lat."""
 
 from __future__ import annotations
 
@@ -63,17 +63,14 @@ class Placed:
 
     Attributes:
         side: How many cells the grid holds along each axis.
-        across: How many tiles the grid is cut into along each axis.
-        wide: How many cells a tile holds along each axis.
     """
 
-    def __init__(self, feature: Feature, side: int, across: int) -> None:
+    def __init__(self, feature: Feature, side: int) -> None:
         """Project one feature and lay its grid back onto lon and lat.
 
         Args:
             feature: The catalogued feature, carrying the box the grid covers.
             side: How many cells the grid holds along each axis.
-            across: How many tiles it is cut into along each axis.
 
         Returns:
             None.
@@ -85,8 +82,6 @@ class Placed:
         self._dx = (east - west) / side
         self._dy = (north - south) / side
         self.side = side
-        self.across = across
-        self.wide = side // across if across else side
 
     def ring(
         self, column: int, row: int, columns: int, rows: int
@@ -116,17 +111,13 @@ class Placed:
         )
         return self.around(lon), lat
 
-    def tile(self, row: int, column: int) -> tuple[np.ndarray, np.ndarray]:
-        """Trace one tile of the feature as a closed lon/lat ring.
-
-        Args:
-            row: Its row, counting north from the south edge.
-            column: Its column, counting east from the west edge.
+    def outline(self) -> tuple[np.ndarray, np.ndarray]:
+        """Trace the whole feature as a closed lon/lat ring.
 
         Returns:
             The ring longitudes and latitudes.
         """
-        return self.ring(column * self.wide, row * self.wide, self.wide, self.wide)
+        return self.ring(0, 0, self.side, self.side)
 
     def around(self, lon: np.ndarray) -> np.ndarray:
         """Bring longitudes onto the same turn as the feature's own.
@@ -145,29 +136,16 @@ class Placed:
         Returns:
             The box, held open to a minimum span so a thin feature still reads.
         """
-        return _around(*self.ring(0, 0, self.side, self.side))
-
-    def tile_box(self, row: int, column: int) -> Box:
-        """Return the lon/lat box one tile falls in.
-
-        Args:
-            row: Its row, counting north from the south edge.
-            column: Its column, counting east from the west edge.
-
-        Returns:
-            The box, held open to a minimum span.
-        """
-        return _around(*self.tile(row, column))
+        return _around(*self.outline())
 
 
-def placed(feature_class: str, name: str, side: int, across: int) -> Placed | None:
+def placed(feature_class: str, name: str, side: int) -> Placed | None:
     """Lay one feature's grid back onto the mosaic.
 
     Args:
         feature_class: The feature class, such as Crater.
         name: The feature name as ODE spells it.
         side: How many cells the grid holds along each axis.
-        across: How many tiles it is cut into along each axis.
 
     Returns:
         The placed grid, or None when it has no box or wraps the planet.
@@ -175,9 +153,9 @@ def placed(feature_class: str, name: str, side: int, across: int) -> Placed | No
     feature = _catalogue().get((slugify(feature_class), slugify(name)))
     if feature is None:
         return None
-    grid = Placed(feature, side, across)
+    grid = Placed(feature, side)
     # A feature wrapping the planet has no lon/lat box a plate carree crop can cover
-    lon, _ = grid.ring(0, 0, grid.side, grid.side)
+    lon, _ = grid.outline()
     return grid if lon.max() - lon.min() <= HALF_TURN_DEG else None
 
 
@@ -189,7 +167,7 @@ def _around(lon: np.ndarray, lat: np.ndarray) -> Box:
         lat: The ring latitudes.
 
     Returns:
-        The box, held open to a minimum span so a thin block still reads.
+        The box, held open to a minimum span so a thin feature still reads.
     """
     centre_lat = float((lat.min() + lat.max()) / 2.0)
     south, north = _floored(float(lat.min()), float(lat.max()), MIN_SPAN_DEG)

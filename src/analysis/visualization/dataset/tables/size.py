@@ -1,4 +1,4 @@
-"""How big a dataset each strategy would leave, and how good its tiles are."""
+"""How big a dataset each strategy would leave, and how good its features are."""
 
 from __future__ import annotations
 
@@ -24,14 +24,14 @@ def final(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     iids = list(dict.fromkeys(one.iid for one in settings.load().instrument_sets))
     headings = (
         "Strategy",
-        "Tiles searched",
-        "Tiles kept",
+        "Features searched",
+        "Features kept",
         "Share kept",
         *(f"{iid} observations offered" for iid in iids),
     )
     rows: list[Row] = []
     for stats in read.values():
-        tiles = stats.tiles
+        held = stats.held
         observations: list[str] = []
         for iid in iids:
             measured = stats.offered.get(iid)
@@ -43,10 +43,10 @@ def final(read: Mapping[str, DatasetStats]) -> widgets.Widget:
         rows.append(
             (
                 stats.strategy,
-                f"{tiles.searched:,}",
-                f"{tiles.kept:,}",
-                f"{tiles.kept / tiles.searched:.1%}"
-                if tiles.searched
+                f"{held.searched:,}",
+                f"{held.kept:,}",
+                f"{held.kept / held.searched:.1%}"
+                if held.searched
                 else wording.NOTHING,
                 *observations,
             )

@@ -1,54 +1,57 @@
-"""The tile on show, and everything the search left on it."""
+"""The feature on show, and everything the search left on it."""
 
 from __future__ import annotations
 
 import ipywidgets as widgets
 
 from analysis.sampling import measuring
-from analysis.sampling.models.tiles import TileStats
+from analysis.sampling.models.feature import FeatureStats
 from analysis.utils.maths import quantities
-from analysis.visualization.common import panels, tables, wording
+from analysis.visualization.common import panels, surveys, tables, wording
+from analysis.visualization.common.picker import View
 from analysis.visualization.common.tables import Row
-from analysis.visualization.feature import picker
-from analysis.visualization.feature.picker import TileView
 
-_HEADINGS = ("On this tile", "What it holds")
+_HEADINGS = ("On this feature", "What it holds")
+_NOTHING = "No instrument set filled a cell of this feature."
 _NONE = "-"
 
 
-def plot(chosen: TileView | None) -> widgets.Widget:
-    """Summarise what the search left on the tile on show.
+def plot(view: View) -> widgets.Widget:
+    """Summarise what the search left on the feature on show.
 
     Args:
-        chosen: The tile on show, or None while none is picked.
+        view: The feature on show and the strategy it is judged under.
 
     Returns:
-        The table as a widget, or the grey panel when no tile is picked.
+        The table as a widget, or the grey panel when nothing is loaded.
     """
-    if chosen is None:
-        return panels.unavailable(picker.NO_TILE)
+    if not view.coverage:
+        return panels.unavailable()
+    stats = measuring.measured_feature(surveys.studied(view.coverage, view.strategy))
+    if stats is None:
+        return panels.unavailable(_NOTHING)
     return tables.written(
-        f"{chosen.name}  -  what it holds", _HEADINGS, _rows(chosen.stats)
+        f"{panels.title(view.coverage)}  -  what it holds", _HEADINGS, _rows(stats)
     )
 
 
-def _rows(stats: TileStats) -> list[Row]:
-    """Write out everything the tile holds.
+def _rows(stats: FeatureStats) -> list[Row]:
+    """Write out everything the feature holds.
 
     Args:
-        stats: The tile, as the search left it.
+        stats: The feature, as the search left it.
 
     Returns:
-        Every row, the tile itself first and what each instrument left last.
+        Every row, the feature itself first and what each instrument left last.
     """
     written: list[Row] = [
-        ("Ground the tile covers", quantities.area(stats.area_km2)),
+        ("Ground the feature covers", quantities.area(stats.area_km2)),
         ("How long its window lasts", _window(stats)),
         ("Ground its window reaches", f"{stats.geo_mean:.0%}" if stats.kept else _NONE),
         (
             "Looks too small inside the window",
-            f"{stats.refused:,}, with {stats.turned_away:,} too small for the tile "
-            f"at all",
+            f"{stats.refused:,}, with {stats.turned_away:,} too small for the "
+            f"feature at all",
         ),
         (
             "Pixels its window holds",
@@ -68,14 +71,14 @@ def _rows(stats: TileStats) -> list[Row]:
     return written
 
 
-def _window(stats: TileStats) -> str:
-    """Say how long the tile's window lasts and when it is open.
+def _window(stats: FeatureStats) -> str:
+    """Say how long the feature's window lasts and when it is open.
 
     Args:
-        stats: The tile, as the search left it.
+        stats: The feature, as the search left it.
 
     Returns:
-        The length and the dates, or that the tile earned no window.
+        The length and the dates, or that the feature earned no window.
     """
     if not stats.kept or stats.start is None or stats.end is None:
         return _NONE
@@ -85,15 +88,15 @@ def _window(stats: TileStats) -> str:
     )
 
 
-def _reach(stats: TileStats, iid: str) -> str:
-    """Write what one instrument left on the tile.
+def _reach(stats: FeatureStats, iid: str) -> str:
+    """Write what one instrument left on the feature.
 
     Args:
-        stats: The tile, as the search left it.
+        stats: The feature, as the search left it.
         iid: The instrument the row is written for.
 
     Returns:
-        The share of the tile it reaches, its pixels, and how many it keeps.
+        The share of the feature it reaches, its pixels, and how many it keeps.
     """
     reach = stats.reached[iid]
     share = f"{reach.km2 / stats.area_km2:.0%}" if stats.area_km2 else wording.NOTHING
@@ -101,11 +104,11 @@ def _reach(stats: TileStats, iid: str) -> str:
     return f"{share}, {wording.pixels(reach.pixels)}, from {taken}"
 
 
-def _pixels(stats: TileStats) -> float | None:
-    """Add up the pixels the tile keeps.
+def _pixels(stats: FeatureStats) -> float | None:
+    """Add up the pixels the feature keeps.
 
     Args:
-        stats: The tile, as the search left it.
+        stats: The feature, as the search left it.
 
     Returns:
         The total, or None when any instrument carries no count.

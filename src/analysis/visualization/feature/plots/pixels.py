@@ -1,4 +1,4 @@
-"""How many pixels one observation lands on a tile, instrument by instrument."""
+"""How many pixels one observation lands on a feature, instrument by instrument."""
 
 from __future__ import annotations
 
@@ -9,15 +9,15 @@ from matplotlib.axes import Axes
 from matplotlib.ticker import FuncFormatter, MaxNLocator
 
 from analysis.utils.maths import quantities
-from analysis.visualization.common import panels, wording
-from analysis.visualization.feature.picker import NO_TILE, TileView
+from analysis.visualization.common import panels, surveys, wording
+from analysis.visualization.common.picker import View
 from analysis.visualization.feature.stats import landed
 from analysis.visualization.feature.stats.landed import Landed
 
 # One panel per instrument set, each on a scale of its own, so height is per panel
 PANEL_HEIGHT = 1.4
 
-# The strip left clear above the panels, in inches, for the line naming the tile.
+# The strip left clear above the panels, in inches, for the line naming the feature.
 TITLE_BAND = 0.42
 
 # How many places along the axis the observations are counted into.
@@ -41,22 +41,24 @@ BAR_WIDTH = 1.0
 
 _TRACES = "traces"
 _PIXELS = "px"
-_NOTHING = "nothing on this tile"
-_LANDED = "Pixels one observation lands on the tile"
+_NOTHING = "nothing on this feature"
+_LANDED = "Pixels one observation lands on the feature"
 
 
-def plot(chosen: TileView | None) -> widgets.Widget:
-    """Draw what each instrument lands on the tile, one observation at a time.
+def plot(view: View) -> widgets.Widget:
+    """Draw what each instrument lands on the feature, one observation at a time.
 
     Args:
-        chosen: The tile on show, or None while none is picked.
+        view: The feature on show and the strategy it is judged under.
 
     Returns:
-        The figure as a widget, or the grey panel when no tile is picked.
+        The figure as a widget, or the grey panel when nothing is loaded.
     """
-    if chosen is None:
-        return panels.unavailable(NO_TILE)
-    drawn = landed.read(chosen)
+    if not view.coverage:
+        return panels.unavailable()
+    drawn = landed.read(surveys.studied(view.coverage, view.strategy))
+    if not drawn:
+        return panels.unavailable(_NOTHING)
     colours = panels.colours([one.label for one in drawn])
     tall = PANEL_HEIGHT * len(drawn) + TITLE_BAND
     figure, axes = plt.subplots(len(drawn), 1, figsize=(panels.FIGURE_WIDTH, tall))
@@ -71,7 +73,7 @@ def plot(chosen: TileView | None) -> widgets.Widget:
     figure.text(
         0.01,
         1.0 - above / 2.0,
-        f"{chosen.name}  -  pixels per observation",
+        f"{panels.title(view.coverage)}  -  pixels per observation",
         fontsize=12,
         va="center",
     )
@@ -83,7 +85,7 @@ def _panel(axis: Axes, one: Landed, colour) -> None:
 
     Args:
         axis: The panel to draw on.
-        one: What the set landed on the tile.
+        one: What the set landed on the feature.
         colour: The colour the set is drawn in.
 
     Returns:

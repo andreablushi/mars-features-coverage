@@ -9,21 +9,22 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 
-from analysis.visualization.common import panels, series
+from analysis.visualization.common import panels, series, surveys
 from analysis.visualization.common.picker import View
 from analysis.visualization.common.series import Series
 from analysis.visualization.common.surveys import Stretch
-from analysis.visualization.feature.picker import NO_TILE, TileView
 
 # One stacked panel per instrument set, so the height is per panel
 PANEL_HEIGHT = 2.5
 
-_FEATURE_GROUND = "Share of the feature covered by one observation"
-_TILE_GROUND = "Share of the tile covered by one observation"
+_GROUND = "Share of the feature covered by one observation"
 
 
 def plot(view: View) -> widgets.Widget:
     """Draw one stacked panel per instrument set, over the whole feature.
+
+    Every observation ODE published is drawn, including the ones the search
+    turned away as too small, and the window it chose is shaded across them.
 
     Args:
         view: The feature on show and the strategy it is judged under.
@@ -33,49 +34,27 @@ def plot(view: View) -> widgets.Widget:
     """
     if not view.coverage:
         return panels.unavailable()
+    study = surveys.studied(view.coverage, view.strategy)
     return _draw(
         series.over_feature(view.coverage),
         f"{panels.title(view.coverage)}  -  coverage per observation",
-        _FEATURE_GROUND,
-        [],
+        surveys.open_for(study),
         view.strategy.timeless,
-    )
-
-
-def plot_tile(chosen: TileView | None) -> widgets.Widget:
-    """Draw the same panels for the tile on show.
-
-    Args:
-        chosen: The tile on show, or None while none is picked.
-
-    Returns:
-        The figure as a widget, or the grey panel when no tile is picked.
-    """
-    if chosen is None:
-        return panels.unavailable(NO_TILE)
-    return _draw(
-        series.over_tile(chosen.track),
-        f"{chosen.name}  -  coverage per observation",
-        _TILE_GROUND,
-        chosen.open_for,
-        chosen.view.strategy.timeless,
     )
 
 
 def _draw(
     drawn: Sequence[Series],
     title: str,
-    ground: str,
     open_for: Sequence[Stretch],
     timeless: frozenset[str],
 ) -> widgets.Widget:
     """Draw one stacked panel per instrument set, sharing both axes.
 
     Args:
-        drawn: What each set observed of the ground on show.
+        drawn: What each set observed of the feature.
         title: The line above the top panel.
-        ground: What the heights are a share of.
-        open_for: The stretches of time the windows are open over.
+        open_for: The stretch of time the window is open over.
         timeless: The instruments the strategy asks of the whole record.
 
     Returns:
@@ -104,7 +83,7 @@ def _draw(
     axes[0].set_ylim(-0.05, 1.05)
     axes[0].set_title(title, fontsize=12, loc="left")
     axes[-1].set_xlabel("Observation start time")
-    figure.supylabel(ground, fontsize=10)
+    figure.supylabel(_GROUND, fontsize=10)
     figure.tight_layout()
     return panels.rendered(figure)
 
@@ -137,28 +116,23 @@ def _panel(axis, one: Series, colour) -> None:
 
 
 def _key(axis, open_for: Sequence[Stretch]) -> None:
-    """Name the marked stretches of time, when the tiles earned any.
+    """Name the marked stretch of time, when the feature earned one.
 
     Args:
         axis: The top panel, which carries the legend.
-        open_for: The stretches of time the windows are open over.
+        open_for: The stretch of time the window is open over.
 
     Returns:
         None.
     """
     if not open_for:
         return
-    counted = (
-        "the window the tile earned"
-        if len(open_for) == 1
-        else f"{len(open_for):,} stretches the tiles' windows open over"
-    )
     marker = Line2D(
         [],
         [],
         color=panels.SURVEY_LINE,
         linestyle=panels.SURVEY_STYLE,
         linewidth=panels.SURVEY_WIDTH,
-        label=counted,
+        label="the window the feature earned",
     )
     axis.legend(handles=[marker], fontsize=8, loc="upper right", frameon=False)

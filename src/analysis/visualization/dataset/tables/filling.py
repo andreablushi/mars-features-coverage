@@ -1,4 +1,4 @@
-"""How each strategy cuts the features up, and what lands on the tiles."""
+"""How much of an instrument a feature swallows, and what lands on one."""
 
 from __future__ import annotations
 
@@ -21,21 +21,14 @@ _TRACE_KM = configs.SHARAD_ALONG_TRACK_M / 1000.0
 # How much further a corner to corner crossing runs than a straight one.
 _DIAGONAL = math.sqrt(2.0)
 
-_TILES = (
-    "Strategy",
-    "Tile width asked",
-    "Tiles created",
-    "Mean tile width",
-    "Narrowest",
-    "Widest",
-)
 _FILLING = (
     "Strategy",
     "Instrument",
     "Ground one pixel covers",
-    "Pixels across a tile",
+    "Mean feature width",
+    "Pixels across a feature",
     "Pixels corner to corner",
-    "Pixels to fill a tile",
+    "Pixels to fill a feature",
 )
 _LANDED = (
     "Strategy",
@@ -47,33 +40,8 @@ _LANDED = (
 )
 
 
-def sizes(read: Mapping[str, DatasetStats]) -> widgets.Widget:
-    """Tabulate how big a tile each strategy cuts its features into.
-
-    Args:
-        read: What each strategy made of the features swept, by strategy name.
-
-    Returns:
-        The table as a widget.
-    """
-    rows: list[Row] = []
-    for stats in read.values():
-        wide = stats.widths
-        rows.append(
-            (
-                stats.strategy,
-                _km(strategies.named(stats.strategy).tile_km),
-                f"{wide.counted:,}",
-                wording.spread(wide, _km),
-                _km(wide.low),
-                _km(wide.high),
-            )
-        )
-    return tables.written("How big a tile is", _TILES, rows)
-
-
 def filling(read: Mapping[str, DatasetStats]) -> widgets.Widget:
-    """Tabulate how much of each instrument it takes to cover a whole tile.
+    """Tabulate how much of each instrument it takes to cover a whole feature.
 
     Args:
         read: What each strategy made of the features swept, by strategy name.
@@ -82,11 +50,11 @@ def filling(read: Mapping[str, DatasetStats]) -> widgets.Widget:
         The table as a widget.
     """
     rows = [_fills(stats, iid) for stats in read.values() for iid in stats.iids]
-    return tables.written("What it takes to fill a tile", _FILLING, rows)
+    return tables.written("What it takes to fill a feature", _FILLING, rows)
 
 
 def landed(read: Mapping[str, DatasetStats]) -> widgets.Widget:
-    """Tabulate what each instrument really lands on a tile and what is asked of it.
+    """Tabulate what each instrument really lands on a feature and what is asked of it.
 
     Args:
         read: What each strategy made of the features swept, by strategy name.
@@ -95,14 +63,16 @@ def landed(read: Mapping[str, DatasetStats]) -> widgets.Widget:
         The table as a widget.
     """
     rows = [_lands(stats, iid) for stats in read.values() for iid in stats.iids]
-    return tables.written("What each instrument lands on a tile", _LANDED, rows)
+    return tables.written("What each instrument lands on a feature", _LANDED, rows)
 
 
 def _fills(stats: DatasetStats, iid: str) -> Row:
-    """Write how much of one instrument it takes to cover a whole tile.
+    """Write how much of one instrument it takes to cover a whole feature.
 
     A sounder never fills an area, so its pixels are traces counted along the
-    track it flies and it is credited with no count for filling a tile at all.
+    track it flies and it is credited with no count for filling a feature at all.
+    The feature is taken at its middling width, since a handful of very wide ones
+    would otherwise stand for the rest.
 
     Args:
         stats: What the strategy made of the features swept.
@@ -111,26 +81,29 @@ def _fills(stats: DatasetStats, iid: str) -> Row:
     Returns:
         The row, reading nothing at all where no pixel size is known.
     """
-    measured = stats.tiles.pixel_km2.get(iid)
+    measured = stats.held.pixel_km2.get(iid)
     # The median, since a handful of records publish a pixel orders out from the rest
     ground = measured.middle if measured and measured.counted else 0.0
-    if not ground:
-        return (stats.strategy, iid) + (wording.UNCOUNTED,) * 4
+    feature_km = stats.widths.middle if stats.widths.counted else 0.0
+    if not ground or not feature_km:
+        return (stats.strategy, iid) + (wording.UNCOUNTED,) * 5
     sounder = iid == wording.SOUNDER
-    tile_km = strategies.named(stats.strategy).tile_km
     across = _TRACE_KM if sounder else math.sqrt(ground)
     return (
         stats.strategy,
         iid,
         f"{ground * 1e6:,.0f} m2",
-        quantities.compact(tile_km / across),
-        quantities.compact(tile_km * _DIAGONAL / across),
-        wording.NOTHING if sounder else quantities.compact(tile_km * tile_km / ground),
+        _km(feature_km),
+        quantities.compact(feature_km / across),
+        quantities.compact(feature_km * _DIAGONAL / across),
+        wording.NOTHING
+        if sounder
+        else quantities.compact(feature_km * feature_km / ground),
     )
 
 
 def _lands(stats: DatasetStats, iid: str) -> Row:
-    """Write what one instrument offers a tile and what the strategy asks of it.
+    """Write what one instrument offers a feature and what the strategy asks of it.
 
     Args:
         stats: What the strategy made of the features swept.
@@ -142,7 +115,7 @@ def _lands(stats: DatasetStats, iid: str) -> Row:
     asked = strategies.named(stats.strategy).admits.get(iid)
 
     def counted(measured: Spread | None) -> str:
-        """Write a pixel count read off many tiles, in the instrument's own units."""
+        """Write a pixel count read off many features, in the instrument's own units."""
         if measured is None or not measured.counted:
             return wording.UNCOUNTED
         return wording.spread(measured, lambda pixels: _written(pixels, iid))
@@ -151,8 +124,8 @@ def _lands(stats: DatasetStats, iid: str) -> Row:
         stats.strategy,
         iid,
         wording.spread(stats.offered[iid], lambda offered: f"{offered:,.1f}"),
-        counted(stats.tiles.landed.get(iid)),
-        counted(stats.tiles.pixels_per_look.get(iid)),
+        counted(stats.held.landed.get(iid)),
+        counted(stats.held.pixels_per_look.get(iid)),
         f"{asked:,.0f}" if asked else wording.NOTHING,
     )
 

@@ -18,7 +18,7 @@ from analysis.coverage.results import SetCoverage
 
 GREY = "#8a8a8a"
 
-# How a tile that earned a window is marked, and one the search refused.
+# How a feature that earned a window is marked, and one the search refused.
 KEPT = "#2e7d32"
 REFUSED = "#c62828"
 
@@ -34,7 +34,7 @@ KEY_WIDTH = 0.78
 KEY_SIDE = 0.80
 KEY_TOP = 0.92
 
-# The windows the tiles earned, marked across the time panels.
+# The window the feature earned, marked across the time panels.
 SURVEY_LINE = "#1a1a1a"
 SURVEY_STYLE = (0, (6, 3))
 SURVEY_WIDTH = 0.8
@@ -154,7 +154,7 @@ def tidy(axis: Axes, percent: str, grid: str) -> None:
 
 
 def shade(axis: Axes, open_for: Sequence[tuple[datetime, datetime]]) -> None:
-    """Mark the stretches of time the tiles' windows are open over.
+    """Mark the stretches of time the windows are open over.
 
     Args:
         axis: The panel to draw on, whose x axis carries time.

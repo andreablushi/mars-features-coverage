@@ -31,7 +31,7 @@ def studied(coverage: Sequence[SetCoverage], strategy: Strategy) -> Study:
         strategy: Which instruments a window has to hold.
 
     Returns:
-        What the search found over every tile of it.
+        What the search found over it.
     """
     key = (strategy.name, _key(coverage))
     if key not in _found:
@@ -39,6 +39,20 @@ def studied(coverage: Sequence[SetCoverage], strategy: Strategy) -> Study:
             _found.clear()
         _found[key] = searching.study_feature(coverage, strategy)
     return _found[key]
+
+
+def open_for(study: Study) -> list[Stretch]:
+    """Return the stretch of time the feature's window is open over.
+
+    Args:
+        study: What the search found over one feature.
+
+    Returns:
+        The one stretch it earned, and nothing at all when it earned none.
+    """
+    if study.survey is None:
+        return []
+    return [(study.survey.start, study.survey.end)]
 
 
 def opening() -> Strategy:

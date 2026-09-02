@@ -7,8 +7,6 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from analysis.coverage.results import SetCoverage
-from analysis.selector.models.track import Track
-from analysis.utils.maths import ground
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,58 +73,3 @@ def over_feature(coverage: Sequence[SetCoverage]) -> list[Series]:
         )
         for instrument in coverage
     ]
-
-
-def over_tile(track: Track) -> list[Series]:
-    """Read every instrument set's observations of one tile of a feature.
-
-    Args:
-        track: The tile's admissible observations on one time axis.
-
-    Returns:
-        One series per set, in the order the track indexes them.
-    """
-    first, last = track.observations[0].t_start, track.observations[-1].t_start
-    held: list[list[int]] = [[] for _ in track.labels]
-    for index in range(len(track.observations)):
-        held[track.owners[index]].append(index)
-    return [
-        _tile_series(track, owner, held[owner], first, last)
-        for owner in range(len(track.labels))
-    ]
-
-
-def _tile_series(
-    track: Track, owner: int, held: list[int], first: datetime, last: datetime
-) -> Series:
-    """Read one instrument set's observations of one tile.
-
-    Args:
-        track: The tile's admissible observations on one time axis.
-        owner: Which of the feature's sets it is, as the track indexes them.
-        held: Where its observations sit on that axis, oldest first.
-        first: The earliest moment the tile is drawn from.
-        last: The latest moment it is drawn to.
-
-    Returns:
-        The series.
-    """
-    reached: set[int] = set()
-    running = []
-    for index in held:
-        reached.update(track.cells[index])
-        running.append(ground.share(len(reached), track.cell_km2, track.area_km2))
-    return Series(
-        label=track.labels[owner],
-        iid=track.iids[owner],
-        times=[track.observations[index].t_start for index in held],
-        shares=[
-            ground.share(len(track.cells[index]), track.cell_km2, track.area_km2)
-            for index in held
-        ],
-        running=running,
-        covered=running[-1] if running else 0.0,
-        first=first,
-        last=last,
-        reason="" if held else "nothing on this tile",
-    )

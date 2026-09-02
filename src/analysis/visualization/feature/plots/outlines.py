@@ -15,7 +15,7 @@ from analysis.coverage.results import SetCoverage
 from analysis.models.instrument import InstrumentSet
 from utils.disk.slugify import slugify
 
-# How many features' footprints are kept, so a tile already read draws in memory
+# How many features' footprints are kept, so a feature already read draws in memory
 OUTLINE_CACHE = 4
 
 Trace = tuple[np.ndarray, np.ndarray]

@@ -12,7 +12,7 @@ from analysis.utils.maths import quantities
 from analysis.visualization.common import tables, wording
 from analysis.visualization.common.tables import Row
 
-_REACHED = ("Strategy", "Instrument", "Mean coverage inside a tile", "Least")
+_REACHED = ("Strategy", "Instrument", "Mean coverage inside a feature", "Least")
 _WINDOWS = ("Strategy", "Mean window", "Longest", "Time Window Score")
 
 # What the row holding the ground every instrument reaches at once is called.
@@ -20,7 +20,7 @@ _OVERLAP = "Overlap"
 
 
 def reached(read: Mapping[str, DatasetStats]) -> widgets.Widget:
-    """Tabulate how much of a tile each instrument reaches and how much they share.
+    """Tabulate how much of a feature each instrument reaches and how much they share.
 
     Args:
         read: What each strategy made of the features swept, by strategy name.
@@ -31,10 +31,12 @@ def reached(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     rows: list[Row] = []
     for stats in read.values():
         rows.extend(
-            _share(stats.strategy, iid, stats.tiles.reached[iid]) for iid in stats.iids
+            _share(stats.strategy, iid, stats.held.reached[iid]) for iid in stats.iids
         )
         rows.append(_share(stats.strategy, _OVERLAP, stats.overlap))
-    return tables.written("How much of a tile each instrument reaches", _REACHED, rows)
+    return tables.written(
+        "How much of a feature each instrument reaches", _REACHED, rows
+    )
 
 
 def windows(read: Mapping[str, DatasetStats]) -> widgets.Widget:
@@ -48,25 +50,25 @@ def windows(read: Mapping[str, DatasetStats]) -> widgets.Widget:
     """
     rows: list[Row] = []
     for stats in read.values():
-        days = stats.tiles.days
+        days = stats.held.days
         rows.append(
             (
                 stats.strategy,
                 wording.spread(days, quantities.duration),
                 quantities.duration(days.high) if days.counted else wording.NOTHING,
-                wording.spread(stats.tiles.geo_mean, _percent),
+                wording.spread(stats.held.geo_mean, _percent),
             )
         )
     return tables.written("How long a window runs", _WINDOWS, rows)
 
 
 def _share(strategy: str, name: str, measured: Spread) -> Row:
-    """Write one share read off every tile that earned a window.
+    """Write one share read off every feature that earned a window.
 
     Args:
-        strategy: The strategy the tiles were searched under.
+        strategy: The strategy the features were searched under.
         name: What the share is of, such as an instrument or a count of them.
-        measured: The share, tile by tile.
+        measured: The share, feature by feature.
 
     Returns:
         The row.

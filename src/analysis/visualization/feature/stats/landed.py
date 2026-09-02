@@ -1,23 +1,22 @@
-"""What every observation offered to a tile landed on it, and the bar it faced."""
+"""What every observation offered to a feature landed on it, and the bar it faced."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 from analysis.coverage.results import Event
-from analysis.visualization.common import surveys
-from analysis.visualization.feature.picker import TileView
+from analysis.sampling.models.study import Study
 
 
 @dataclass(frozen=True, slots=True)
 class Landed:
-    """What one instrument set landed on a tile, look by look.
+    """What one instrument set landed on a feature, look by look.
 
     Attributes:
         label: The set's short readable name.
         iid: The instrument it belongs to, which is what a strategy names.
-        counts: The pixels each of its observations landed on the tile, smallest
-            first, the ones the tile turned away counted alongside the ones it kept.
+        counts: The pixels each of its observations landed on the feature, smallest
+            first, the ones it turned away counted alongside the ones it kept.
         bar: The pixels the strategy asks of it before a look counts as one.
     """
 
@@ -27,18 +26,19 @@ class Landed:
     bar: float
 
 
-def read(chosen: TileView) -> list[Landed]:
-    """Read what every observation offered to one tile landed on it.
+def read(study: Study) -> list[Landed]:
+    """Read what every observation offered to one feature landed on it.
 
     Args:
-        chosen: The tile on show, and the strategy it was searched under.
+        study: What the search found over it, carrying the strategy it was read under.
 
     Returns:
         One entry per instrument set, in the order the track indexes them.
     """
-    track = chosen.track
-    settled = surveys.studied(chosen.view.coverage, chosen.view.strategy).strategy
-    least = settled.least[track.tile]
+    track = study.track
+    if track is None:
+        return []
+    least = study.strategy.least
     counted: list[list[float]] = [[] for _ in track.labels]
     for index, owner in enumerate(track.owners):
         counted[owner].append(
@@ -58,15 +58,15 @@ def read(chosen: TileView) -> list[Landed]:
 
 
 def _pixels(observation: Event, cells: int, cell_km2: float) -> float:
-    """Read how many pixels one observation landed inside the tile.
+    """Read how many pixels one observation landed inside the feature.
 
     Args:
         observation: The observation, carrying what it covered and what it landed.
-        cells: How many of the tile's own cells its footprint fills.
+        cells: How many of the feature's own cells its footprint fills.
         cell_km2: How much ground one of those cells covers.
 
     Returns:
-        Its pixels, scaled to the part of its footprint the tile holds.
+        Its pixels, scaled to the part of its footprint the feature holds.
     """
     if not observation.own_km2:
         return 0.0

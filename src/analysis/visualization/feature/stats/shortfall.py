@@ -1,26 +1,26 @@
-"""What a tile was asked for, and the most it could ever answer with."""
+"""What a feature was asked for, and the most it could ever answer with."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 from analysis.sampling import measuring
-from analysis.sampling.models.tiles import TileStats
+from analysis.sampling.models.feature import FeatureStats
 from analysis.selector import relaxing
 from analysis.selector.models.counter import Counter
 from analysis.selector.models.track import Track
 from analysis.utils.maths import ground
 from analysis.visualization.common import surveys
-from analysis.visualization.feature.picker import TileView
+from analysis.visualization.common.picker import View
 
 
 @dataclass(frozen=True, slots=True)
 class Shortfall:
-    """What one instrument is asked of a tile, and the most it brings there.
+    """What one instrument is asked of a feature, and the most it brings there.
 
     Attributes:
         iid: The instrument.
-        asked: The share of the tile it is asked to reach.
+        asked: The share of the feature it is asked to reach.
         windowed: The share it reaches in the best window, the ground bars lifted.
         whole: The share it reaches over the whole record, however long that runs.
         timeless: Whether the record answers for it rather than a window.
@@ -33,21 +33,23 @@ class Shortfall:
     timeless: bool
 
 
-def best(chosen: TileView) -> list[Shortfall]:
-    """Search one tile again with no ground asked, and read what it came back with.
+def best(view: View) -> list[Shortfall]:
+    """Search a feature again with no ground asked, and read what it came back with.
 
     Args:
-        chosen: The tile on show, and the strategy it was really searched under.
+        view: The feature on show and the strategy it was really searched under.
 
     Returns:
         What each instrument is asked and the most it brings, in the order the
         strategy names its constraints.
     """
-    strategy = chosen.view.strategy
-    study = surveys.studied(chosen.view.coverage, relaxing.unfloored(strategy))
-    measured = {stats.tile: stats for stats in measuring.measured_tiles(study)}
-    stats = measured.get(chosen.stats.tile)
-    whole = _whole(chosen.track)
+    strategy = view.strategy
+    track = surveys.studied(view.coverage, strategy).track
+    if track is None:
+        return []
+    relaxed = surveys.studied(view.coverage, relaxing.unfloored(strategy))
+    stats = measuring.measured_feature(relaxed)
+    whole = _whole(track)
     return [
         Shortfall(
             iid=iid,
@@ -62,10 +64,10 @@ def best(chosen: TileView) -> list[Shortfall]:
 
 
 def _whole(track: Track) -> dict[str, float]:
-    """Read the most of a tile each instrument reaches over its whole record.
+    """Read the most of a feature each instrument reaches over its whole record.
 
     Args:
-        track: The tile's admissible observations on one time axis.
+        track: The feature's admissible observations on one time axis.
 
     Returns:
         The share each of them reaches, counting a cell once however often it flew.
@@ -80,15 +82,15 @@ def _whole(track: Track) -> dict[str, float]:
     return reached
 
 
-def _reached(stats: TileStats | None, iid: str) -> float:
-    """Read what one instrument left on a tile the unfloored search kept.
+def _reached(stats: FeatureStats | None, iid: str) -> float:
+    """Read what one instrument left on a feature the unfloored search kept.
 
     Args:
-        stats: The tile as that search left it, or None when it kept none.
+        stats: The feature as that search left it, or None when it kept none.
         iid: The instrument to read.
 
     Returns:
-        The share of the tile it reaches there, and nought where it reaches none.
+        The share of the feature it reaches there, and nought where it reaches none.
     """
     if stats is None or not stats.kept or not stats.area_km2:
         return 0.0
