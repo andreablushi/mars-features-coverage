@@ -132,7 +132,6 @@ def _set_summary_row(
         mask_cells=raster.cells,
         pixels=sum(observation.pixels for observation in observations),
         grid_side=raster.side,
-        tiles_across=raster.across,
         cell_km2=raster.cell_km2,
         grid_mask=raster.mask,
     )

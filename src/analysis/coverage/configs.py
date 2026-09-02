@@ -44,11 +44,9 @@ SHARAD_ALONG_TRACK_M = 460.0
 # median of the 497,279 that do.
 FALLBACK_PIXEL_M = {"MRO/CRISM/TRDR:msp*": 180.0, "MRO/CTX/EDR": 5.4}
 
-# How wide one block of the measurement grid is, in kilometres. A CTX swath is
-# some tens of kilometres across, so a tile this wide is a few images across:
-# narrower, and a single image fills it and the share of it asked for stops
-# meaning anything; wider, and one window stretches over ground nothing looked
-# at together.
+# How wide one block of the measurement grid is, in kilometres. A feature is
+# given a block of cells for every block of ground this wide it spans, so a
+# large feature is measured on a finer grid rather than a coarser one.
 GRID_KM = 100
 
 # How wide a cell of the grid of Mars is, in kilometres, on which the features

@@ -67,7 +67,6 @@ class Summary:
         span_days: How long the row's observations span.
         mask_cells: How many of the feature's grid cells fall inside it.
         grid_side: How many cells the feature's grid holds along each axis.
-        tiles_across: How many tiles the feature was cut into along each axis.
         cell_km2: How much ground one cell of that grid covers.
         grid_mask: Which cells of that grid fall inside the feature, packed as a mask.
         pixels: How many pixels the set landed inside the feature, revisits counted.
@@ -89,7 +88,6 @@ class Summary:
     mask_cells: int
     pixels: float
     grid_side: int
-    tiles_across: int
     cell_km2: float
     grid_mask: bytes
 

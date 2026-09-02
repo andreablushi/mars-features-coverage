@@ -16,8 +16,8 @@ from analysis.utils.maths import mask as packing
 _NONE = np.empty(0, dtype=np.int64)
 
 
-def grid_for(span_m: float, grid_km: int, grid_cells: int) -> tuple[int, int]:
-    """Cut a feature into tiles, and give every tile the same grid.
+def grid_for(span_m: float, grid_km: int, grid_cells: int) -> int:
+    """Give a feature a grid fine enough for how much ground it covers.
 
     Args:
         span_m: How wide the feature's box is, in metres.
@@ -25,11 +25,10 @@ def grid_for(span_m: float, grid_km: int, grid_cells: int) -> tuple[int, int]:
         grid_cells: How many cells one block holds along each axis.
 
     Returns:
-        The tiles the feature is cut into per axis, and the cells that gives the grid.
+        How many cells the grid holds along each axis.
     """
     span_km = max(span_m, 0.0) / 1000.0
-    across = max(1, math.ceil(span_km / grid_km))
-    return across, across * grid_cells
+    return max(1, math.ceil(span_km / grid_km)) * grid_cells
 
 
 class FeatureRaster:
@@ -39,7 +38,6 @@ class FeatureRaster:
         cells: How many of the grid's cells fall inside the feature.
         mask: Which of them those are, packed as one footprint's cells are.
         side: How many cells the grid holds along each axis.
-        across: How many tiles the feature is cut into along each axis.
         cell_km2: How much ground one cell covers.
     """
 
@@ -54,7 +52,7 @@ class FeatureRaster:
         """
         west, south, east, north = region.shape.bounds
         config = settings.load()
-        self.across, side = grid_for(
+        side = grid_for(
             math.sqrt((east - west) * (north - south)),
             configs.GRID_KM,
             config.grid_cells,
