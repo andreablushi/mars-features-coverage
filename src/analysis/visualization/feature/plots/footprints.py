@@ -6,8 +6,9 @@ import ipywidgets as widgets
 from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
 
-from analysis.selector.models.survey import Study
-from analysis.visualization.common import panels, surveys
+from analysis.stats.feature import reading
+from analysis.stats.models.feature import FeatureLooks
+from analysis.visualization.common import panels
 from analysis.visualization.common.picker import Coverage
 from analysis.visualization.feature.plots import mosaic, outlines, placing
 from analysis.visualization.feature.plots.placing import Box, Placed
@@ -44,23 +45,28 @@ def plot(coverage: Coverage) -> widgets.Widget:
     )
     if grid is None:
         return panels.unavailable(mosaic.BASEMAP_FAILED.format(reason=mosaic.NO_BOX))
-    study = surveys.studied(coverage)
+    looks = reading.read_feature(coverage)
     box = grid.box()
     title = panels.title(coverage)
     return mosaic.fetched(
-        box, lambda image: figure(grid, coverage, study, box, image, title)
+        box, lambda image: figure(grid, coverage, looks, box, image, title)
     )
 
 
 def figure(
-    grid: Placed, coverage: Coverage, study: Study, box: Box, image: bytes, title: str
+    grid: Placed,
+    coverage: Coverage,
+    looks: FeatureLooks | None,
+    box: Box,
+    image: bytes,
+    title: str,
 ) -> widgets.Widget:
     """Draw the feature's crop with the footprints its window keeps traced on it.
 
     Args:
         grid: Where the feature's grid falls on the mosaic.
         coverage: The feature on show, whose published footprints are traced.
-        study: What the search found over it.
+        looks: What the selection left on it, or None where it left nothing.
         box: The lon/lat box the crop covers.
         image: The crop as PNG bytes.
         title: The feature, for the line above the map.
@@ -72,7 +78,7 @@ def figure(
     mosaic.draw(axis, box, image)
     lon, lat = grid.outline()
     axis.plot(lon, lat, color=FEATURE_EDGE, linewidth=FEATURE_WIDTH)
-    colours = _traces(axis, grid, coverage, study)
+    colours = _traces(axis, grid, coverage, looks)
     if not colours:
         panels.note(axis, _NOTHING, colour=NOTE_COLOUR, size=NOTE_SIZE)
     axis.set_title(title, fontsize=12, loc="left")
@@ -90,7 +96,7 @@ def figure(
 
 
 def _traces(
-    axis: Axes, grid: Placed, coverage: Coverage, study: Study
+    axis: Axes, grid: Placed, coverage: Coverage, looks: FeatureLooks | None
 ) -> dict[str, panels.Colour]:
     """Trace the footprint of every observation the feature keeps.
 
@@ -98,18 +104,18 @@ def _traces(
         axis: The panel to draw on.
         grid: Where the feature's grid falls on the mosaic.
         coverage: The feature on show, whose published footprints are read.
-        study: What the search found over it.
+        looks: What the selection left on it, or None where it left nothing.
 
     Returns:
         The colour each instrument set was drawn in, by set label.
     """
-    track, survey = study.track, study.survey
-    if track is None or survey is None:
+    if looks is None or not looks.window.kept:
         return {}
+    track = looks.track
     shapes = outlines.read(coverage)
     colours = panels.colours(track.labels)
     drawn: dict[str, panels.Colour] = {}
-    for index in survey.taken:
+    for index in looks.taken:
         shape = shapes.get(track.observations[index].pdsid)
         if shape is None:
             continue

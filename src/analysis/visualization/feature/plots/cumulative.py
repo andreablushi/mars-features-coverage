@@ -7,9 +7,10 @@ from collections.abc import Sequence
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
 
-from analysis.visualization.common import panels, series
+from analysis.stats.feature import series
+from analysis.stats.models.series import Series
+from analysis.visualization.common import panels
 from analysis.visualization.common.picker import Coverage
-from analysis.visualization.common.series import Series
 
 # How an instrument set with nothing to draw is drawn anyway.
 UNOBSERVED_LINESTYLE = (0, (1, 3))
@@ -32,7 +33,7 @@ def plot(coverage: Coverage) -> widgets.Widget:
     """
     if not coverage:
         return panels.unavailable()
-    drawn = series.over_feature(coverage)
+    drawn = series.coverage_over_time(coverage)
     colours = panels.colours([one.label for one in drawn])
     figure, (running, bars) = plt.subplots(
         1,

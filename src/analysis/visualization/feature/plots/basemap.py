@@ -8,8 +8,9 @@ import ipywidgets as widgets
 from matplotlib.colors import to_rgba
 from matplotlib.patches import Patch
 
-from analysis.selector.models.survey import Study
-from analysis.visualization.common import panels, surveys
+from analysis.stats.feature import reading
+from analysis.stats.models.feature import FeatureLooks
+from analysis.visualization.common import panels
 from analysis.visualization.common.picker import Coverage
 from analysis.visualization.feature.plots import mosaic, placing
 from analysis.visualization.feature.plots.placing import Box, Placed
@@ -40,7 +41,7 @@ def plot(coverage: Coverage) -> widgets.Widget:
     if not coverage:
         return panels.unavailable()
     summary = coverage[0].summary
-    study = surveys.studied(coverage)
+    looks = reading.read_feature(coverage)
     grid = placing.placed(
         summary.feature_class, summary.feature_name, summary.grid_side
     )
@@ -50,8 +51,8 @@ def plot(coverage: Coverage) -> widgets.Widget:
     box = grid.box()
     return widgets.HBox(
         [
-            _report(coverage, study, box),
-            mosaic.fetched(box, lambda image: figure(grid, study, box, image, title)),
+            _report(coverage, looks, box),
+            mosaic.fetched(box, lambda image: figure(grid, looks, box, image, title)),
         ],
         layout=widgets.Layout(
             align_items="flex-start", flex_flow="row nowrap", grid_gap="24px"
@@ -60,13 +61,13 @@ def plot(coverage: Coverage) -> widgets.Widget:
 
 
 def figure(
-    grid: Placed, study: Study, box: Box, image: bytes, title: str
+    grid: Placed, looks: FeatureLooks | None, box: Box, image: bytes, title: str
 ) -> widgets.Image:
     """Draw the mosaic with the feature laid over it.
 
     Args:
         grid: Where the feature's grid falls on the mosaic.
-        study: What the search found over it.
+        looks: What the selection left on it, or None where it left nothing.
         box: The lon/lat box the crop covers.
         image: The crop as PNG bytes.
         title: The feature, for the line above the map.
@@ -77,7 +78,7 @@ def figure(
     drawn, axis = panels.board(MAP_FIGURE_SIZE)
     mosaic.draw(axis, box, image)
     # The feature is shaded and outlined by what the search made of it
-    colour = panels.KEPT if study.survey is not None else panels.REFUSED
+    colour = panels.KEPT if looks and looks.window.kept else panels.REFUSED
     lon, lat = grid.outline()
     axis.fill(lon, lat, color=colour, alpha=FEATURE_FILL, zorder=2)
     axis.plot(lon, lat, color=colour, linewidth=FEATURE_WIDTH, zorder=3)
@@ -95,21 +96,21 @@ def figure(
     return panels.rendered(drawn)
 
 
-def _report(coverage: Coverage, study: Study, box: Box) -> widgets.HTML:
+def _report(coverage: Coverage, looks: FeatureLooks | None, box: Box) -> widgets.HTML:
     """Report the feature's extent, its window, and what each set holds of it.
 
     Args:
         coverage: The feature on show, as the instrument sets it holds.
-        study: What the search found over it.
+        looks: What the selection left on it, or None where it left nothing.
         box: The lon/lat box its grid falls in.
 
     Returns:
         The report.
     """
-    survey = study.survey
+    window = looks.window if looks else None
     verdict = (
-        f"{survey.start:%Y-%m-%d} to {survey.end:%Y-%m-%d}, {survey.days:,.0f} days"
-        if survey
+        f"{window.start:%Y-%m-%d} to {window.end:%Y-%m-%d}, {window.days:,.0f} days"
+        if window and window.kept
         else "no window worth keeping"
     )
     summary = coverage[0].summary

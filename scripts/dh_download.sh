@@ -11,7 +11,7 @@ With no name, every one of them comes down.
   artifacts    the coverage measurements       -> data/analysis/artifacts
   metadata     the ODE records behind them     -> data/analysis/metadata
   selection    the features and looks kept    -> data/analysis/selection
-  predictions  what the filter would keep      -> data/analysis/predictions
+  stats        what the filter left of it     -> data/analysis/stats
   summary      one row per feature and set     -> data/analysis/artifacts
 EOF
 }
@@ -68,7 +68,7 @@ download() {
         artifacts) download_and_extract artifact coverage-artifacts data/analysis/artifacts ;;
         metadata) download_and_extract artifact coverage-metadata data/analysis/metadata ;;
         selection) download_and_extract artifact coverage-selection data/analysis/selection ;;
-        predictions) download_and_extract artifact coverage-predictions data/analysis/predictions ;;
+        stats) download_and_extract artifact coverage-stats data/analysis/stats ;;
         summary) download_and_extract dataitem coverage-summary data/analysis/artifacts shares ;;
         *)
             echo "nothing is published under \`$1\`" >&2
@@ -85,7 +85,7 @@ fi
 
 names=("$@")
 if [[ ${#names[@]} -eq 0 ]]; then
-    names=(artifacts metadata selection predictions summary)
+    names=(artifacts metadata selection stats summary)
 fi
 
 for name in "${names[@]}"; do

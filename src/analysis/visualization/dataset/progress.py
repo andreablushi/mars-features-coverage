@@ -8,8 +8,8 @@ import ipywidgets as widgets
 from IPython.display import display
 
 import analysis.utils.settings as settings
-from analysis.sampling import sweeping
-from analysis.sampling.models.dataset import DatasetStats
+from analysis.stats.dataset import reading
+from analysis.stats.models.dataset import DatasetStats
 from analysis.visualization.common import panels
 
 _NOTE = (
@@ -104,7 +104,7 @@ def read() -> DatasetStats:
             shown = _Bar(total)
         shown.moved(done, total)
 
-    found = sweeping.read_prediction(settings.load().workers, moved)
+    found = reading.read_dataset_stats(settings.load().workers, moved)
     if shown is not None:
         shown.closed()
     return found

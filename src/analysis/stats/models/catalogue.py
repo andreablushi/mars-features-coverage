@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from analysis.sampling.models.spread import Spread
+from analysis.stats.models.spread import Spread
 
 
 @dataclass(frozen=True, slots=True)

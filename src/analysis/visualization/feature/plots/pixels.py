@@ -8,11 +8,11 @@ import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.ticker import FuncFormatter, MaxNLocator
 
+from analysis.stats.feature import landing, reading
+from analysis.stats.models.landing import Landed
 from analysis.utils.maths import quantities
-from analysis.visualization.common import panels, surveys, wording
+from analysis.visualization.common import panels, wording
 from analysis.visualization.common.picker import Coverage
-from analysis.visualization.feature.stats import landed
-from analysis.visualization.feature.stats.landed import Landed
 
 # One panel per instrument set, each on a scale of its own, so height is per panel
 PANEL_HEIGHT = 1.4
@@ -56,7 +56,8 @@ def plot(coverage: Coverage) -> widgets.Widget:
     """
     if not coverage:
         return panels.unavailable()
-    drawn = landed.read(surveys.studied(coverage))
+    looks = reading.read_feature(coverage)
+    drawn = landing.landed_per_set(looks) if looks else []
     if not drawn:
         return panels.unavailable(_NOTHING)
     colours = panels.colours([one.label for one in drawn])

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Predict the dataset on DigitalHub: what the platform calls, and what submits it."""
+"""The stats on DigitalHub: what the platform calls, and what submits it."""
 
 from __future__ import annotations
 
@@ -16,25 +16,26 @@ import analysis.utils.settings as settings
 import utils.disk.paths as paths
 from analysis import console
 from analysis.coverage.artifacts import indexing
-from analysis.sampling import predicting, storing, sweeping
 from analysis.selector import selecting
+from analysis.stats.artifacts import storing
+from analysis.stats.dataset import aggregating, reading
 
-FUNCTION_NAME = "features-prediction"
-HANDLER = "scripts.dh_prediction_pipeline:save_predictions"
+FUNCTION_NAME = "features-stats"
+HANDLER = "scripts.dh_stats_pipeline:save_stats"
 
-PREDICTIONS_NAME = "coverage-predictions"
+STATS_NAME = "coverage-stats"
 SELECTION_NAME = "coverage-selection"
 
 
-@handler(outputs=[SELECTION_NAME, PREDICTIONS_NAME])
-def save_predictions(project):
-    """Select the dataset under the filter, and publish it with what it predicts.
+@handler(outputs=[SELECTION_NAME, STATS_NAME])
+def save_stats(project):
+    """Select the dataset under the filter, and publish it with the stats it leaves.
 
     Args:
         project: The DigitalHub project both archives are logged into.
 
     Returns:
-        The uploaded archives of the selection and of the prediction.
+        The uploaded archives of the selection and of the stats.
 
     Raises:
         RuntimeError: When the published measurements hold no feature to search.
@@ -65,25 +66,26 @@ def save_predictions(project):
             "unpack under data/analysis/."
         ),
     )
-    # The sweep reads the selection just written, so it never stands for a
-    # filter the selection no longer holds
-    print(f"reading what the filter made of {len(picked):,} features", flush=True)
-    storing.write_prediction(
-        predicting.prediction(sweeping.sweep(picked, workers, console.logged("sweep")))
+    # The stats are read off the selection just written, so they never stand
+    # for a filter the selection no longer holds
+    print(f"reading what the filter left of {len(picked):,} features", flush=True)
+    storing.write_stats_file(
+        aggregating.dataset_stats(
+            reading.measure_every_feature(picked, workers, console.logged("stats")),
+            len(picked),
+        )
     )
-
-    print("uploading the prediction", flush=True)
-    packed = dh_pipeline.archive(paths.PREDICTIONS_ROOT, PREDICTIONS_NAME)
-    prediction = project.log_artifact(
-        name=PREDICTIONS_NAME,
+    print("uploading the stats", flush=True)
+    stats = project.log_artifact(
+        name=STATS_NAME,
         kind="artifact",
-        source=str(packed),
+        source=str(dh_pipeline.archive(paths.STATS_ROOT, STATS_NAME)),
         description=(
-            "What the filter would make of the dataset; unpack under data/analysis/."
+            "What the filter left of the dataset; unpack under data/analysis/."
         ),
     )
     print("done", flush=True)
-    return selection, prediction
+    return selection, stats
 
 
 def _unpack(downloaded: str, into: Path) -> None:

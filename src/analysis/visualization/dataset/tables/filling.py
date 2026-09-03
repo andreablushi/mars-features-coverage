@@ -7,9 +7,9 @@ import math
 import ipywidgets as widgets
 
 from analysis.coverage import configs
-from analysis.sampling.models.dataset import DatasetStats
-from analysis.sampling.models.spread import Spread
 from analysis.selector.artifacts import filter_config as filtering
+from analysis.stats.models.dataset import DatasetStats
+from analysis.stats.models.spread import Spread
 from analysis.utils.maths import quantities
 from analysis.visualization.common import tables, wording
 from analysis.visualization.common.tables import Row

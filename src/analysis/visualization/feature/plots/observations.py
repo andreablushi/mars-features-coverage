@@ -7,9 +7,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 
-from analysis.visualization.common import panels, series, surveys
+from analysis.stats.feature import reading, series
+from analysis.stats.models.series import Series
+from analysis.visualization.common import panels
 from analysis.visualization.common.picker import Coverage
-from analysis.visualization.common.series import Series
 
 # One stacked panel per instrument set, so the height is per panel
 PANEL_HEIGHT = 2.5
@@ -31,10 +32,10 @@ def plot(coverage: Coverage) -> widgets.Widget:
     """
     if not coverage:
         return panels.unavailable()
-    study = surveys.studied(coverage)
-    open_for = surveys.open_for(study)
-    timeless = study.criteria.timeless
-    drawn = series.over_feature(coverage)
+    looks = reading.read_feature(coverage)
+    open_for = looks.open_for if looks else []
+    timeless = looks.criteria.timeless if looks else frozenset()
+    drawn = series.coverage_over_time(coverage)
     colours = panels.colours([one.label for one in drawn])
     figure, axes = plt.subplots(
         len(drawn),

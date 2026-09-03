@@ -1,9 +1,4 @@
-"""Selecting the dataset: every measured feature searched, and what is kept.
-
-This is the whole selection stage. A feature earns a place or it does not, and
-the observations the ones that do keep are written down by name, so a later run
-knows what to download and what to leave alone without searching again.
-"""
+"""Selecting the dataset: every measured feature searched, and what is kept."""
 
 from __future__ import annotations
 
@@ -66,11 +61,22 @@ def selected(study: Study) -> Selection:
         Its own row, and a row for each observation it keeps.
     """
     survey, track = study.survey, study.track
+    row = SelectedFeature(
+        feature_class=study.feature_class,
+        feature_name=study.feature_name,
+        kept=survey is not None,
+        area_km2=track.grid.area_km2 if track else 0.0,
+        start=survey.start if survey else None,
+        end=survey.end if survey else None,
+        days=survey.days if survey else 0.0,
+        geo_mean=survey.geo_mean if survey else 0.0,
+        taken=len(survey.taken) if survey else 0,
+    )
     if survey is None or track is None:
-        return Selection(feature=selected_feature(study))
+        return Selection(feature=row)
     standing = set(survey.standing)
     return Selection(
-        feature=selected_feature(study),
+        feature=row,
         observations=[
             SelectedObservation(
                 feature_class=study.feature_class,
@@ -84,29 +90,6 @@ def selected(study: Study) -> Selection:
             )
             for index in survey.taken
         ],
-    )
-
-
-def selected_feature(study: Study) -> SelectedFeature:
-    """Read one feature's search as the window it earned, or did not.
-
-    Args:
-        study: What the search found over it.
-
-    Returns:
-        Its own row.
-    """
-    survey, track = study.survey, study.track
-    return SelectedFeature(
-        feature_class=study.feature_class,
-        feature_name=study.feature_name,
-        kept=survey is not None,
-        area_km2=track.grid.area_km2 if track else 0.0,
-        start=survey.start if survey else None,
-        end=survey.end if survey else None,
-        days=survey.days if survey else 0.0,
-        geo_mean=survey.geo_mean if survey else 0.0,
-        taken=len(survey.taken) if survey else 0,
     )
 
 

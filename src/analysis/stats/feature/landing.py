@@ -2,43 +2,22 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from analysis.coverage.models.coverage import Event
-from analysis.selector.models.survey import Study
+from analysis.stats.models.feature import FeatureLooks
+from analysis.stats.models.landing import Landed
 
 
-@dataclass(frozen=True, slots=True)
-class Landed:
-    """What one instrument set landed on a feature, look by look.
-
-    Attributes:
-        label: The set's short readable name.
-        iid: The instrument it belongs to, which is what the filter names.
-        counts: The pixels each of its observations landed on the feature, smallest
-            first, the ones it turned away counted alongside the ones it kept.
-        bar: The pixels the filter asks of it before a look counts as one.
-    """
-
-    label: str
-    iid: str
-    counts: list[float]
-    bar: float
-
-
-def read(study: Study) -> list[Landed]:
+def landed_per_set(looks: FeatureLooks) -> list[Landed]:
     """Read what every observation offered to one feature landed on it.
 
     Args:
-        study: What the search found over it, carrying the filter it was read under.
+        looks: Its timeline and the filter it was read under.
 
     Returns:
         One entry per instrument set, in the order the track indexes them.
     """
-    track = study.track
-    if track is None:
-        return []
-    least = study.criteria.least
+    track = looks.track
+    least = looks.criteria.least
     counted: list[list[float]] = [[] for _ in track.labels]
     for index, owner in enumerate(track.owners):
         counted[owner].append(

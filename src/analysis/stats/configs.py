@@ -1,4 +1,4 @@
-"""Central configuration for the sweep and what it publishes."""
+"""Central configuration for the stats and what they publish."""
 
 from __future__ import annotations
 
@@ -8,5 +8,8 @@ SHARE_CEILING = 1.01
 # What separates the instruments naming one piece of shared ground in a key.
 INSTRUMENTS_JOINED = "|"
 
+# How many features are held read at once, so every panel of one shares it.
+FEATURE_CACHE = 8
+
 # The layout of a published file, raised whenever what is written changes.
-PREDICTION_SHAPE = 6
+STATS_SHAPE = 1

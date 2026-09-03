@@ -9,8 +9,8 @@ from analysis.coverage.artifacts import indexing
 from analysis.coverage.measuring import overlaps
 from analysis.coverage.models.summary import Summary
 from analysis.metadata.loaders.features import load_features
-from analysis.sampling.models.catalogue import CatalogueStats, InstrumentStats
-from analysis.sampling.models.spread import Spread
+from analysis.stats.models.catalogue import CatalogueStats, InstrumentStats
+from analysis.stats.models.spread import Spread
 
 
 def read_catalogue() -> CatalogueStats:

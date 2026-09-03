@@ -49,7 +49,6 @@ def search(track: Track, criteria: Filter) -> Survey | None:
         days=track.times[kept[-1]] - track.times[kept[0]],
         geo_mean=_scored(track, reached),
         kept=tuple(kept),
-        dropped=picked.last - picked.first + 1 - len(kept),
         standing=timeless.fresh_looks(track, criteria.timeless),
     )
 

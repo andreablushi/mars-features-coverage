@@ -1,8 +1,8 @@
-"""What a sweep made of the dataset, written out so it need not be swept again.
+"""What the stats made of the dataset, written out so they need not be read again.
 
-The keys below are the published format, not the field names the stats carry,
-so a field may be renamed without the published file having to be swept again.
-Only a change to what is written raises `configs.PREDICTION_SHAPE`.
+The keys below are the published format, not the field names the stats carry, so
+a field may be renamed without the published file having to be read again. Only
+a change to what is written raises `configs.STATS_SHAPE`.
 """
 
 from __future__ import annotations
@@ -13,15 +13,14 @@ from pathlib import Path
 from typing import Any
 
 import utils.disk.paths as paths
-from analysis.sampling import configs
-from analysis.sampling.models.dataset import ClassStats, DatasetStats
-from analysis.sampling.models.feature import Aggregate
-from analysis.sampling.models.spread import Spread
+from analysis.stats import configs
+from analysis.stats.models.dataset import Aggregate, ClassStats, DatasetStats
+from analysis.stats.models.spread import Spread
 from utils.disk.files import atomic_path
 
 
-def prediction_path(root: Path = paths.PREDICTIONS_ROOT) -> Path:
-    """Return the file a sweep is published as.
+def stats_path(root: Path = paths.STATS_ROOT) -> Path:
+    """Return the file the stats are published as.
 
     Args:
         root: The directory it is written in.
@@ -29,34 +28,27 @@ def prediction_path(root: Path = paths.PREDICTIONS_ROOT) -> Path:
     Returns:
         The file, which need not exist.
     """
-    return root / paths.PREDICTION_NAME
+    return root / paths.STATS_NAME
 
 
-def write_prediction(
-    predicted: DatasetStats, root: Path = paths.PREDICTIONS_ROOT
-) -> Path:
-    """Write out what the filter made of the dataset.
+def write_stats_file(held: DatasetStats, root: Path = paths.STATS_ROOT) -> Path:
+    """Write out what the filter left of the dataset.
 
     Args:
-        predicted: The stats the sweep left.
+        held: The stats read over every feature searched.
         root: The directory to write it in, made when it is missing.
 
     Returns:
         The file written.
     """
-    path = prediction_path(root)
+    path = stats_path(root)
     with atomic_path(path) as tmp:
-        tmp.write_text(
-            json.dumps(_as_json(predicted), indent=1) + "\n", encoding="utf-8"
-        )
+        tmp.write_text(json.dumps(_as_json(held), indent=1) + "\n", encoding="utf-8")
     return path
 
 
-def read_prediction(root: Path = paths.PREDICTIONS_ROOT) -> DatasetStats | None:
+def read_stats_file(root: Path = paths.STATS_ROOT) -> DatasetStats | None:
     """Read back what a previous run made of the dataset.
-
-    A file written under an older shape, or one nothing can be read from at all,
-    is passed over and named on the way past, so the sweep runs again.
 
     Args:
         root: The directory the file was written in.
@@ -64,18 +56,20 @@ def read_prediction(root: Path = paths.PREDICTIONS_ROOT) -> DatasetStats | None:
     Returns:
         The stats it holds, or None where there is nothing to read back.
     """
-    path = prediction_path(root)
+    path = stats_path(root)
     if not path.is_file():
         return None
     try:
         saved = json.loads(path.read_text(encoding="utf-8"))
         shape = saved.get("shape")
-        if shape != configs.PREDICTION_SHAPE:
-            raise ValueError(f"shape {shape!r}, not {configs.PREDICTION_SHAPE}")
+        if shape != configs.STATS_SHAPE:
+            raise ValueError(f"shape {shape!r}, not {configs.STATS_SHAPE}")
         return _from_json(saved)
     except Exception as why:
-        # A file that cannot be read leaves no answer but to sweep again
-        print(f"{path.name} cannot be read back ({why}), so the sweep runs again")
+        # A file that cannot be read leaves no answer but to read the features again
+        print(
+            f"{path.name} cannot be read back ({why}), so the features are read again"
+        )
         return None
 
 
@@ -83,14 +77,14 @@ def _as_json(stats: DatasetStats) -> dict[str, Any]:
     """Lay the stats out as the file holds them.
 
     Args:
-        stats: What the filter made of the dataset.
+        stats: What the filter left of the dataset.
 
     Returns:
         What the file is written from.
     """
     held = stats.held
     return {
-        "shape": configs.PREDICTION_SHAPE,
+        "shape": configs.STATS_SHAPE,
         "features": stats.features,
         "classes": {
             name: [held.selected, _spreads(held.taken)]
@@ -101,7 +95,6 @@ def _as_json(stats: DatasetStats) -> dict[str, Any]:
             "searched": held.searched,
             "kept": held.kept,
             "area_km2": held.area_km2,
-            "kept_km2": held.kept_km2,
             "days": _spread(held.days),
             "geo_mean": _spread(held.geo_mean),
             "reached": _spreads(held.reached),
@@ -126,12 +119,10 @@ def _from_json(saved: Mapping[str, Any]) -> DatasetStats:
         saved: What the file was written with.
 
     Returns:
-        The stats the sweep left.
+        The stats the run left.
 
     Raises:
         Exception: When anything it holds is not what the stats are read from.
-            The caller checks the shape first and treats any failure here as a
-            file it cannot read.
     """
     held = saved["held"]
     return DatasetStats(
@@ -144,7 +135,6 @@ def _from_json(saved: Mapping[str, Any]) -> DatasetStats:
             searched=held["searched"],
             kept=held["kept"],
             area_km2=held["area_km2"],
-            kept_km2=held["kept_km2"],
             days=_read(held["days"]),
             geo_mean=_read(held["geo_mean"]),
             reached=_spreads_back(held["reached"]),

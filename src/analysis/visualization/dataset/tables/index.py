@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import ipywidgets as widgets
 
-from analysis.sampling.models.catalogue import CatalogueStats
+from analysis.stats.models.catalogue import CatalogueStats
 from analysis.utils.maths import quantities
 from analysis.visualization.common import tables, wording
 

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import ipywidgets as widgets
 
-from analysis.sampling.models.catalogue import CatalogueStats
-from analysis.sampling.models.dataset import DatasetStats
+from analysis.stats.models.catalogue import CatalogueStats
+from analysis.stats.models.dataset import DatasetStats
 from analysis.visualization.common import tables, wording
 from analysis.visualization.common.tables import Row
 
