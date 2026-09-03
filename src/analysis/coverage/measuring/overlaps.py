@@ -18,7 +18,7 @@ from analysis.coverage.models.summary import Summary
 from analysis.coverage.projection.geometry import footprints, geodesy
 from analysis.metadata.loaders.features import load_features
 from analysis.models.feature import Feature
-from analysis.utils.maths.mask import cells_of
+from analysis.utils.mask import cells_of
 from utils.disk.files import atomic_path
 
 OVERLAPS_NAME = "overlaps.json"

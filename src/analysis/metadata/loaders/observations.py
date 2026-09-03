@@ -5,7 +5,7 @@ from __future__ import annotations
 from itertools import chain
 from pathlib import Path
 
-import analysis.utils.provenance as provenance
+import analysis.metadata.provenance as provenance
 from analysis.models.observation import Observation, ObservationSet
 from utils.disk.files import read_jsonl
 

@@ -11,6 +11,7 @@ from rich.progress import BarColumn, MofNCompleteColumn, Progress
 
 from analysis.models.job import Plan
 from analysis.models.progress import CoverageSummary, DownloadSummary, ProgressEvent
+from analysis.models.settings import Settings
 
 # How many items are named before the rest are counted
 LISTED = 5
@@ -22,50 +23,35 @@ PLAIN_LOG_ENV = "PIPELINE_PLAIN_LOG"
 LOGGED_LINES = 50
 
 
-def describe_download(plan: Plan, workers: int, console: Console) -> None:
-    """Print the initial state of the download plan.
-
-    Args:
-        plan: The plan produced by the download planner.
-        workers: The effective worker count.
-        console: The console to print on.
-
-    Returns:
-        None.
-    """
-    console.print(
-        f"download: {plan.feature_count} features x {plan.set_count} sets, "
-        f"{len(plan.jobs)} to run, {plan.skipped_existing} already downloaded, "
-        f"{workers} workers"
-    )
-
-
-def describe_coverage(
-    plan: Plan, workers: int, union_threads: int, console: Console
+def describe(
+    download: Plan, coverage: Plan, settings: Settings, console: Console
 ) -> None:
-    """Print the initial state of the coverage plan.
+    """Print what each half of the run has to do before it starts.
 
     Args:
-        plan: The plan produced by the coverage planner.
-        workers: The effective worker count.
-        union_threads: How many threads each of those workers accumulates on.
+        download: The plan produced by the download planner.
+        coverage: The plan produced by the coverage planner.
+        settings: The settled choices for the run, which size both halves.
         console: The console to print on.
 
     Returns:
         None.
     """
     console.print(
-        f"coverage: {plan.feature_count} features, {plan.set_count} instrument sets, "
-        f"{len(plan.jobs)} to compute, {plan.skipped_existing} already done, "
-        f"{workers} workers x {union_threads} threads"
+        f"download: {download.feature_count} features x {download.set_count} sets, "
+        f"{len(download.jobs)} to run, {download.skipped_existing} already "
+        f"downloaded, {settings.workers} workers"
+    )
+    console.print(
+        f"coverage: {coverage.feature_count} features, "
+        f"{coverage.set_count} instrument sets, {len(coverage.jobs)} to compute, "
+        f"{coverage.skipped_existing} already done, "
+        f"{settings.workers} workers x {settings.union_threads} threads"
     )
 
 
 def render(
-    events: Iterable[ProgressEvent],
-    total: int,
-    description: str,
-    console: Console | None = None,
+    events: Iterable[ProgressEvent], total: int, description: str, console: Console
 ) -> None:
     """Draw a live progress bar while consuming runner events.
 
@@ -73,15 +59,14 @@ def render(
         events: The progress events produced by a runner.
         total: The number of units in the run.
         description: The label for the progress task.
-        console: Optional console to render on.
+        console: The console to render on.
 
     Returns:
         None.
     """
-    console = console or Console()
     # A platform log takes plain flushed lines, since no cursor can be moved there
     if os.environ.get(PLAIN_LOG_ENV):
-        step = _step(total)
+        step = max(1, total // LOGGED_LINES)
         for event in events:
             outcome = event.outcome
             if outcome.failed:
@@ -114,64 +99,21 @@ def logged(description: str) -> Callable[[int, int], None]:
     """
 
     def moved(done: int, total: int) -> None:
-        """Print where the stage has reached, on the units it reports on.
-
-        Args:
-            done: How many units are finished.
-            total: How many there are.
-
-        Returns:
-            None.
-        """
-        if done % _step(total) == 0 or done == total:
+        """Print where the stage has reached, on the units it reports on."""
+        if done % max(1, total // LOGGED_LINES) == 0 or done == total:
             _reached(description, done, total)
 
     return moved
 
 
-def _step(total: int) -> int:
-    """Return how many units pass between the lines a stage prints.
-
-    Args:
-        total: The number of units in the run.
-
-    Returns:
-        The stride, never less than one unit.
-    """
-    return max(1, total // LOGGED_LINES)
-
-
-def _reached(description: str, completed: int, total: int, label: str = "") -> None:
-    """Print how far a stage has got, in the plain form a platform log takes.
-
-    Args:
-        description: The label for the stage.
-        completed: How many units are finished.
-        total: How many there are.
-        label: What just finished, where the stage names its units.
-
-    Returns:
-        None.
-    """
-    share = completed / total
-    print(
-        f"{description} {completed}/{total} ({share:.0%}) {label}".rstrip(), flush=True
-    )
-
-
-def print_interrupted(noun: str, console: Console | None = None) -> None:
+def print_interrupted() -> None:
     """Print the notice shown when a run is stopped with Ctrl-C.
 
-    Args:
-        noun: What was left pending, for example "features" or "jobs".
-        console: Optional console to print on.
-
     Returns:
         None.
     """
-    console = console or Console()
-    console.print(
-        f"[yellow]interrupted: pending {noun} cancelled, finished files kept. "
+    Console().print(
+        "[yellow]interrupted: pending jobs cancelled, finished files kept. "
         "Re-run to resume.[/yellow]"
     )
 
@@ -217,3 +159,21 @@ def print_summary(
         console.print(f"[yellow]  {source}[/yellow]")
     if len(missing) > LISTED:
         console.print(f"[yellow]  and {len(missing) - LISTED} more[/yellow]")
+
+
+def _reached(description: str, completed: int, total: int, label: str = "") -> None:
+    """Print how far a stage has got, in the plain form a platform log takes.
+
+    Args:
+        description: The label for the stage.
+        completed: How many units are finished.
+        total: How many there are.
+        label: What just finished, where the stage names its units.
+
+    Returns:
+        None.
+    """
+    share = completed / total
+    print(
+        f"{description} {completed}/{total} ({share:.0%}) {label}".rstrip(), flush=True
+    )

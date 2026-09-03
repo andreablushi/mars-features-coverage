@@ -19,9 +19,6 @@ PAGE_ORDER = "oba"
 # A feature running through every longitude is asked for in two halves.
 LONGITUDE_HALVES = ((0.0, 180.0), (180.0, 360.0))
 
-# Localization modes for the products API
-LOC_MODES = ("b", "f", "o", "i")
-
 RETAINED_FIELDS = (
     "pdsid",
     "ihid",

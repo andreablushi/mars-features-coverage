@@ -7,8 +7,7 @@ import numpy as np
 from matplotlib.ticker import FuncFormatter, MaxNLocator
 
 from analysis.stats.feature import landing, reading
-from analysis.utils.maths import quantities
-from analysis.visualization.common import panels, wording
+from analysis.visualization.common import panels, quantities, wording
 from analysis.visualization.common.models.coverage import Coverage
 
 PANEL_HEIGHT = 1.4

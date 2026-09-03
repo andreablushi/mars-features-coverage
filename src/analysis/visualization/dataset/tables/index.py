@@ -5,8 +5,7 @@ from __future__ import annotations
 import ipywidgets as widgets
 
 from analysis.stats.models.catalogue import CatalogueStats
-from analysis.utils.maths import quantities
-from analysis.visualization.common import tables, wording
+from analysis.visualization.common import quantities, tables, wording
 
 _FEATURES = ("Statistic", "Value")
 _INSTRUMENTS = (

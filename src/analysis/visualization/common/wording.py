@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from analysis.stats.models.spread import Spread
-from analysis.utils.maths import quantities
+from analysis.visualization.common import quantities
 
 NOTHING = "none"
 UNCOUNTED = "not counted"

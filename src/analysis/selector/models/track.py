@@ -13,7 +13,7 @@ from analysis.selector.filters import admissible
 from analysis.selector.filters.clean_window import clean_window
 from analysis.selector.models.filter import Filter
 from analysis.selector.models.grid import Grid
-from analysis.utils.maths import mask as packing
+from analysis.utils import mask as packing
 
 
 @dataclass(frozen=True, slots=True)

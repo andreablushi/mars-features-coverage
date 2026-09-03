@@ -49,5 +49,5 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except KeyboardInterrupt:
-        print_interrupted("jobs")
+        print_interrupted()
         raise SystemExit(130) from None

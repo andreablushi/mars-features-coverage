@@ -6,6 +6,7 @@ import math
 from bisect import bisect_left
 from collections.abc import Sequence
 
+from analysis.coverage import ground
 from analysis.selector import configs
 from analysis.selector.filters import redundancy, timeless
 from analysis.selector.filters.coverage_constraints import coverage_constraints
@@ -14,7 +15,6 @@ from analysis.selector.models.filter import Constraints, Filter
 from analysis.selector.models.survey import Survey
 from analysis.selector.models.track import Track
 from analysis.selector.models.window import Window
-from analysis.utils.maths import ground
 
 _PRICE_PER_DAY = 0.01 / configs.DAYS_PER_PERCENT
 

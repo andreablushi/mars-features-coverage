@@ -1,7 +1,7 @@
 # A run downloads every set still missing and measures every set not yet measured.
 
 # Jobs at once in each half: download threads, then coverage processes.
-workers: 8
+workers: 16
 
 # Keep each set's metadata once computed. Off makes the artifacts final.
 keep_metadata: true

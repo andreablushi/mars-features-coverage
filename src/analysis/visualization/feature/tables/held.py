@@ -5,8 +5,7 @@ from __future__ import annotations
 import ipywidgets as widgets
 
 from analysis.stats.feature import measuring, reading
-from analysis.utils.maths import quantities
-from analysis.visualization.common import panels, tables, wording
+from analysis.visualization.common import panels, quantities, tables, wording
 from analysis.visualization.common.models.coverage import Coverage
 from analysis.visualization.common.models.tables import Row
 

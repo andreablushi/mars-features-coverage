@@ -5,27 +5,27 @@ from __future__ import annotations
 from analysis.coverage.artifacts import writing
 from analysis.coverage.measuring import measuring
 from analysis.coverage.projection import projecting
-from analysis.models.job import Job
-from analysis.models.observation import ObservationSet
+from analysis.metadata.loaders.observations import load_observations
+from analysis.models.job import Job, Outcome
 
 
-def compute(
-    job: Job, loaded: ObservationSet, grid_cells: int, union_threads: int
-) -> tuple[int, int]:
+def compute(job: Job, grid_cells: int, union_threads: int) -> Outcome:
     """Measure one instrument set's coverage of its feature and write it out.
 
     Args:
-        job: The instrument set being computed, naming both destinations.
-        loaded: The set's stored observations, in chronological order.
+        job: The instrument set being computed, naming what it reads and writes.
         grid_cells: How many cells one block of the feature's grid holds per axis.
         union_threads: How many of the feature's cells to accumulate at once.
 
     Returns:
-        How many observation rows were written, and how many records were discarded.
+        The outcome, carrying the error when the job failed.
     """
-    projected = projecting.project(loaded)
-    if not projected.observations:
-        return 0, projected.discarded
-    events, summary = measuring.measure_set(projected, grid_cells, union_threads)
-    writing.write_coverage(job, events, summary)
-    return len(events), projected.discarded
+    try:
+        projected = projecting.project(load_observations(job.source))
+        if not projected.observations:
+            return Outcome(job=job, discarded=projected.discarded)
+        events, summary = measuring.measure_set(projected, grid_cells, union_threads)
+        writing.write_coverage(job, events, summary)
+        return Outcome(job=job, events=len(events), discarded=projected.discarded)
+    except Exception as exc:
+        return Outcome(job=job, error=exc)

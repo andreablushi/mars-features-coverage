@@ -6,8 +6,7 @@ import ipywidgets as widgets
 
 from analysis.stats.models.dataset import DatasetStats
 from analysis.stats.models.spread import Spread
-from analysis.utils.maths import quantities
-from analysis.visualization.common import tables, wording
+from analysis.visualization.common import quantities, tables, wording
 from analysis.visualization.common.models.tables import Row
 
 _REACHED = ("Reached by", "Mean coverage inside a feature", "Least")

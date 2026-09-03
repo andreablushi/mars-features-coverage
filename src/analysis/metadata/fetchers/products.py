@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import Any, TypeAlias
 
-import analysis.utils.provenance as provenance
+import analysis.metadata.provenance as provenance
 from analysis.models.feature import Feature
 from analysis.models.instrument import InstrumentSet
 from utils.ode import configs
