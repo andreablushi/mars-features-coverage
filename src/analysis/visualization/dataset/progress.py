@@ -39,7 +39,7 @@ class _Bar:
         """Move the bar on and say how long the rest looks like taking.
 
         Args:
-            done: How many features are searched.
+            done: How many features are read.
             total: How many there are.
 
         Returns:
@@ -56,9 +56,7 @@ class _Bar:
             None.
         """
         self._bar.bar_style = "success"
-        self._say(
-            f"{self._bar.max:,} features searched in {self._elapsed / 60:.1f} min"
-        )
+        self._say(f"{self._bar.max:,} features read in {self._elapsed / 60:.1f} min")
 
     def _say(self, text: str) -> None:
         """Write the grey line beside the bar.
@@ -84,7 +82,7 @@ class _Bar:
 def read() -> DatasetStats:
     """Read what the filter makes of the dataset, showing any sweep it runs.
 
-    Any sweep it has to run searches on as many processes as `runner.yaml` asks.
+    Any sweep it has to run measures on as many processes as `runner.yaml` asks.
 
     Returns:
         The stats the filter leaves over every measured feature.
@@ -95,7 +93,7 @@ def read() -> DatasetStats:
         """Show the bar on the first report, and move it on after that.
 
         Args:
-            done: How many features are searched.
+            done: How many features are read.
             total: How many there are.
 
         Returns:

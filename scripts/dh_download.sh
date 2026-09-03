@@ -10,6 +10,7 @@ With no name, every one of them comes down.
 
   artifacts    the coverage measurements       -> data/analysis/artifacts
   metadata     the ODE records behind them     -> data/analysis/metadata
+  selection    the features and looks kept    -> data/analysis/selection
   predictions  what the filter would keep      -> data/analysis/predictions
   summary      one row per feature and set     -> data/analysis/artifacts
 EOF
@@ -66,6 +67,7 @@ download() {
     case "$1" in
         artifacts) download_and_extract artifact coverage-artifacts data/analysis/artifacts ;;
         metadata) download_and_extract artifact coverage-metadata data/analysis/metadata ;;
+        selection) download_and_extract artifact coverage-selection data/analysis/selection ;;
         predictions) download_and_extract artifact coverage-predictions data/analysis/predictions ;;
         summary) download_and_extract dataitem coverage-summary data/analysis/artifacts shares ;;
         *)
@@ -83,7 +85,7 @@ fi
 
 names=("$@")
 if [[ ${#names[@]} -eq 0 ]]; then
-    names=(artifacts metadata predictions summary)
+    names=(artifacts metadata selection predictions summary)
 fi
 
 for name in "${names[@]}"; do

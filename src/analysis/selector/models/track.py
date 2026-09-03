@@ -10,8 +10,10 @@ import numpy as np
 from analysis.coverage.models.coverage import Event, SetCoverage
 from analysis.selector import configs
 from analysis.selector.filters import admissible
+from analysis.selector.filters.clean_window import clean_window
 from analysis.selector.models.filter import Filter
 from analysis.selector.models.grid import Grid
+from analysis.utils.maths import mask as packing
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,3 +72,29 @@ def build(
         grid=grid,
         refused=sorted(refused, key=lambda item: item[0].t_start),
     )
+
+
+def over(
+    coverage: Sequence[SetCoverage], criteria: Filter
+) -> tuple[Filter, Track | None]:
+    """Read one feature's filter and timeline off the sets it holds.
+
+    Args:
+        coverage: The feature's instrument sets, in any order.
+        criteria: Which instruments a window has to hold, and how much ground each.
+
+    Returns:
+        The filter as it was read against the feature, and the timeline it is
+        searched on, which is None where it holds nothing measurable.
+    """
+    summary = coverage[0].summary
+    inside = packing.cells_of(summary.grid_mask).tolist()
+    grid = Grid(
+        cells=summary.grid_side * summary.grid_side,
+        area_km2=len(inside) * summary.cell_km2,
+        cell_km2=summary.cell_km2,
+        inside=frozenset(inside),
+    )
+    # The one place the filter is read, which everything below takes it from
+    settled = clean_window(criteria, coverage, grid)
+    return settled, build(coverage, grid, settled)

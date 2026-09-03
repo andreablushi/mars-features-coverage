@@ -65,36 +65,12 @@ def save_predictions(project):
             "unpack under data/analysis/."
         ),
     )
-    # A sweep published before need not run again
-    held = None
-    if project.list_artifacts(name=PREDICTIONS_NAME):
-        print("fetching the prediction published before", flush=True)
-        _unpack(
-            project.get_artifact(PREDICTIONS_NAME).download(overwrite=True),
-            paths.PREDICTIONS_ROOT,
-        )
-        held = storing.read_prediction()
-        print(f"kept from it: {'the sweep' if held else 'nothing'}", flush=True)
-    else:
-        print("nothing was published before, sweeping the whole catalogue", flush=True)
-
-    if held is None:
-        print(
-            f"sweeping {len(named):,} features under the filter on {workers} workers",
-            flush=True,
-        )
-        held = predicting.prediction(
-            sweeping.sweep(named, workers, console.logged("sweep"))
-        )
-    else:
-        print("a sweep is published already, nothing to sweep", flush=True)
-
-    written = storing.write_prediction(held)
-    # A file left by an older layout names no sweep, so it is cleared
-    for path in sorted(paths.PREDICTIONS_ROOT.glob("*.json")):
-        if path != written:
-            print(f"dropping {path.name}, nothing reads it back", flush=True)
-            path.unlink()
+    # The sweep reads the selection just written, so it never stands for a
+    # filter the selection no longer holds
+    print(f"reading what the filter made of {len(picked):,} features", flush=True)
+    storing.write_prediction(
+        predicting.prediction(sweeping.sweep(picked, workers, console.logged("sweep")))
+    )
 
     print("uploading the prediction", flush=True)
     packed = dh_pipeline.archive(paths.PREDICTIONS_ROOT, PREDICTIONS_NAME)

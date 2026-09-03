@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
+from analysis.coverage.models.coverage import SetCoverage
+from analysis.selector.models import track as timeline
 from analysis.selector.models.filter import Filter
-from analysis.selector.models.track import Track
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,12 +51,40 @@ class Study:
     """What the search found over one feature.
 
     Attributes:
+        feature_class: The feature class, such as Crater.
+        feature_name: The feature name as ODE spells it.
         criteria: What the feature was asked for.
         track: Its admissible observations on one time axis, or None where it
             holds nothing measurable.
         survey: The window it earned, or None where it earned none.
     """
 
+    feature_class: str
+    feature_name: str
     criteria: Filter
-    track: Track | None
+    track: timeline.Track | None
     survey: Survey | None
+
+    @classmethod
+    def over(cls, coverage: Sequence[SetCoverage], criteria: Filter) -> Study:
+        """Search one feature under the filter.
+
+        Args:
+            coverage: The feature's instrument sets, in any order.
+            criteria: Which instruments a window has to hold, and how much ground each.
+
+        Returns:
+            What the search found, the timeline it ran over and the window it earned.
+        """
+        # Imported here, since the algorithm hands back the survey defined above
+        from analysis.selector import algorithm
+
+        summary = coverage[0].summary
+        settled, track = timeline.over(coverage, criteria)
+        return cls(
+            feature_class=summary.feature_class,
+            feature_name=summary.feature_name,
+            criteria=settled,
+            track=track,
+            survey=algorithm.search(track, settled) if track else None,
+        )
