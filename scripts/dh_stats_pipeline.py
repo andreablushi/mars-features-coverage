@@ -115,7 +115,7 @@ def _unpack(downloaded: str, into: Path) -> None:
 
 
 def main() -> int:
-    """Register a version of the prediction from a pushed commit, and run it.
+    """Register a version of the function from a pushed commit, and run it.
 
     Returns:
         A process exit code, non zero when the image did not build.

@@ -9,6 +9,7 @@ Brings down what the pipelines published and unpacks it under data/.
 With no name, every one of them comes down.
 
   artifacts    the coverage measurements       -> data/analysis/artifacts
+  catalog      the ODE feature and set lists   -> data/_catalog
   metadata     the ODE records behind them     -> data/analysis/metadata
   selection    the features and looks kept    -> data/analysis/selection
   stats        what the filter left of it     -> data/analysis/stats
@@ -66,6 +67,7 @@ download_and_extract() {
 download() {
     case "$1" in
         artifacts) download_and_extract artifact coverage-artifacts data/analysis/artifacts ;;
+        catalog) download_and_extract artifact coverage-catalog data/_catalog ;;
         metadata) download_and_extract artifact coverage-metadata data/analysis/metadata ;;
         selection) download_and_extract artifact coverage-selection data/analysis/selection ;;
         stats) download_and_extract artifact coverage-stats data/analysis/stats ;;
@@ -85,7 +87,7 @@ fi
 
 names=("$@")
 if [[ ${#names[@]} -eq 0 ]]; then
-    names=(artifacts metadata selection stats summary)
+    names=(artifacts catalog metadata selection stats summary)
 fi
 
 for name in "${names[@]}"; do
