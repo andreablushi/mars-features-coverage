@@ -81,14 +81,14 @@ def selected(study: Study) -> Selection:
             SelectedObservation(
                 feature_class=study.feature_class,
                 feature_name=study.feature_name,
-                ihid=track.observations[index].ihid,
-                iid=track.observations[index].iid,
-                pt=track.observations[index].pt,
-                pdsid=track.observations[index].pdsid,
-                t_start=track.observations[index].t_start,
-                standing=index in standing,
+                ihid=track.observations[at].ihid,
+                iid=track.observations[at].iid,
+                pt=track.observations[at].pt,
+                pdsid=track.observations[at].pdsid,
+                t_start=track.observations[at].t_start,
+                standing=at in standing,
             )
-            for index in survey.taken
+            for at in survey.taken
         ],
     )
 

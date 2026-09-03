@@ -34,10 +34,10 @@ def overlaps() -> Overlap | None:
     Returns:
         The measurement, or None when no run has left an index to make one from.
     """
-    index = paths.catalog_summary_path()
-    if not index.is_file():
+    summary_path = paths.catalog_summary_path()
+    if not summary_path.is_file():
         return None
-    stamp = f"{index.stat().st_size}:{int(index.stat().st_mtime)}"
+    stamp = f"{summary_path.stat().st_size}:{int(summary_path.stat().st_mtime)}"
     kept_path = paths.ARTIFACTS_ROOT / OVERLAPS_NAME
     if kept_path.is_file():
         kept = json.loads(kept_path.read_text(encoding="utf-8"))
