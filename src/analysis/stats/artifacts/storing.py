@@ -47,30 +47,15 @@ def write_stats_file(held: DatasetStats, root: Path = paths.STATS_ROOT) -> Path:
     return path
 
 
-def read_stats_file(root: Path = paths.STATS_ROOT) -> DatasetStats | None:
-    """Read back what a previous run made of the dataset.
-
-    Args:
-        root: The directory the file was written in.
-
-    Returns:
-        The stats it holds, or None where there is nothing to read back.
-    """
+def read_stats_file(root: Path = paths.STATS_ROOT) -> DatasetStats:
+    """Read back what the stats pipeline published."""
     path = stats_path(root)
-    if not path.is_file():
-        return None
-    try:
-        saved = json.loads(path.read_text(encoding="utf-8"))
-        shape = saved.get("shape")
-        if shape != configs.STATS_SHAPE:
-            raise ValueError(f"shape {shape!r}, not {configs.STATS_SHAPE}")
-        return _from_json(saved)
-    except Exception as why:
-        # A file that cannot be read leaves no answer but to read the features again
-        print(
-            f"{path.name} cannot be read back ({why}), so the features are read again"
+    saved = json.loads(path.read_text(encoding="utf-8"))
+    if saved["shape"] != configs.STATS_SHAPE:
+        raise ValueError(
+            f"{path.name} holds shape {saved['shape']}, not {configs.STATS_SHAPE}"
         )
-        return None
+    return _from_json(saved)
 
 
 def _as_json(stats: DatasetStats) -> dict[str, Any]:
@@ -121,8 +106,6 @@ def _from_json(saved: Mapping[str, Any]) -> DatasetStats:
     Returns:
         The stats the run left.
 
-    Raises:
-        Exception: When anything it holds is not what the stats are read from.
     """
     held = saved["held"]
     return DatasetStats(

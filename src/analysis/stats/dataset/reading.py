@@ -1,4 +1,4 @@
-"""What the filter left of the whole dataset, read off the selection it wrote."""
+"""Every feature the selection searched, measured as the dataset stats read it."""
 
 from __future__ import annotations
 
@@ -7,41 +7,12 @@ from concurrent.futures import ProcessPoolExecutor
 
 from analysis.coverage.artifacts import indexing
 from analysis.selector.models.selection import Selection
-from analysis.stats.artifacts import selection, storing
-from analysis.stats.dataset import aggregating
 from analysis.stats.feature import measuring
 from analysis.stats.feature import reading as feature
-from analysis.stats.models.dataset import DatasetStats
 from analysis.stats.models.feature import FeatureStats
 
 # Called with how many features are read and how many there are
 Progress = Callable[[int, int], None]
-
-_held: DatasetStats | None = None
-
-
-def read_dataset_stats(workers: int, progress: Progress | None = None) -> DatasetStats:
-    """Return what the filter left of the dataset, published or measured again.
-
-    Args:
-        workers: How many processes to measure on at once, as the run is configured.
-        progress: Called with how many features are read and how many there are.
-
-    Returns:
-        The stats over every feature the selection searched.
-
-    Raises:
-        FileNotFoundError: When neither the stats nor a selection has been written.
-    """
-    global _held
-    if _held is None:
-        _held = storing.read_stats_file()
-    if _held is None:
-        picked = selection.read_selection()
-        _held = aggregating.dataset_stats(
-            measure_every_feature(picked, workers, progress), len(picked)
-        )
-    return _held
 
 
 def measure_every_feature(

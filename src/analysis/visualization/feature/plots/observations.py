@@ -3,33 +3,19 @@
 from __future__ import annotations
 
 import ipywidgets as widgets
-import matplotlib.pyplot as plt
-import numpy as np
 from matplotlib.lines import Line2D
 
 from analysis.stats.feature import reading, series
-from analysis.stats.models.series import Series
 from analysis.visualization.common import panels
-from analysis.visualization.common.picker import Coverage
+from analysis.visualization.common.models.coverage import Coverage
 
-# One stacked panel per instrument set, so the height is per panel
 PANEL_HEIGHT = 2.5
 
 _GROUND = "Share of the feature covered by one observation"
 
 
 def plot(coverage: Coverage) -> widgets.Widget:
-    """Draw one stacked panel per instrument set, over the whole feature.
-
-    Every observation ODE published is drawn, including the ones the search
-    turned away as too small, and the window it chose is shaded across them.
-
-    Args:
-        coverage: The feature on show, as the instrument sets it holds.
-
-    Returns:
-        The figure as a widget, or the grey panel when nothing is loaded.
-    """
+    """Draw one stacked panel per instrument set, over the whole feature."""
     if not coverage:
         return panels.unavailable()
     looks = reading.read_feature(coverage)
@@ -37,17 +23,26 @@ def plot(coverage: Coverage) -> widgets.Widget:
     timeless = looks.criteria.timeless if looks else frozenset()
     drawn = series.coverage_over_time(coverage)
     colours = panels.colours([one.label for one in drawn])
-    figure, axes = plt.subplots(
-        len(drawn),
-        1,
-        figsize=(panels.FIGURE_WIDTH, PANEL_HEIGHT * len(drawn)),
-        sharex=True,
-        sharey=True,
+    figure, axes = panels.stacked(
+        len(drawn), PANEL_HEIGHT * len(drawn), sharex=True, sharey=True
     )
-    axes = np.atleast_1d(axes)
     marked = False
     for axis, one in zip(axes, drawn, strict=True):
-        _panel(axis, one, colours[one.label])
+        colour = colours[one.label]
+        axis.vlines(one.times, 0.0, one.shares, color=colour, alpha=0.35, linewidth=0.7)
+        axis.scatter(
+            one.times,
+            one.shares,
+            s=12,
+            alpha=0.65,
+            color=colour,
+            edgecolors="none",
+            zorder=3,
+        )
+        if not one.observed:
+            panels.note(axis, one.reason)
+        axis.set_ylabel(one.label, rotation=0, ha="right", va="center", fontsize=9)
+        panels.tidy(axis, percent="y", grid="y")
         if one.iid not in timeless:
             panels.shade(axis, open_for)
             marked = True
@@ -72,30 +67,3 @@ def plot(coverage: Coverage) -> widgets.Widget:
     figure.supylabel(_GROUND, fontsize=10)
     figure.tight_layout()
     return panels.rendered(figure)
-
-
-def _panel(axis, one: Series, colour) -> None:
-    """Draw one instrument set's observations on its own panel.
-
-    Args:
-        axis: The panel to draw on.
-        one: What the set observed.
-        colour: The colour the set is drawn in.
-
-    Returns:
-        None.
-    """
-    axis.vlines(one.times, 0.0, one.shares, color=colour, alpha=0.35, linewidth=0.7)
-    axis.scatter(
-        one.times,
-        one.shares,
-        s=12,
-        alpha=0.65,
-        color=colour,
-        edgecolors="none",
-        zorder=3,
-    )
-    if not one.observed:
-        panels.note(axis, one.reason)
-    axis.set_ylabel(one.label, rotation=0, ha="right", va="center", fontsize=9)
-    panels.tidy(axis, percent="y", grid="y")

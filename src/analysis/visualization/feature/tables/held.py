@@ -7,8 +7,8 @@ import ipywidgets as widgets
 from analysis.stats.feature import measuring, reading
 from analysis.utils.maths import quantities
 from analysis.visualization.common import panels, tables, wording
-from analysis.visualization.common.picker import Coverage
-from analysis.visualization.common.tables import Row
+from analysis.visualization.common.models.coverage import Coverage
+from analysis.visualization.common.models.tables import Row
 
 _HEADINGS = ("On this feature", "What it holds")
 _NOTHING = "No instrument set filled a cell of this feature."
@@ -16,14 +16,7 @@ _NONE = "-"
 
 
 def plot(coverage: Coverage) -> widgets.Widget:
-    """Summarise what the search left on the feature on show.
-
-    Args:
-        coverage: The feature on show, as the instrument sets it holds.
-
-    Returns:
-        The table as a widget, or the grey panel when nothing is loaded.
-    """
+    """Summarise what the search left on the feature on show."""
     if not coverage:
         return panels.unavailable()
     looks = reading.read_feature(coverage)
