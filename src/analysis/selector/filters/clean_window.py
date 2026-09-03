@@ -12,7 +12,7 @@ from analysis.selector.models.grid import Grid
 from analysis.utils.maths import ground
 
 
-def read_filter_config(
+def clean_window(
     criteria: Filter, coverage: Sequence[SetCoverage], grid: Grid
 ) -> Filter:
     """Settle everything the written filter asks of one feature.

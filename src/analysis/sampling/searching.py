@@ -7,10 +7,10 @@ from collections.abc import Sequence
 from analysis.coverage.models.coverage import SetCoverage
 from analysis.sampling.models.study import Study
 from analysis.selector import algorithm
+from analysis.selector.filters.clean_window import clean_window
 from analysis.selector.models import track as timeline
 from analysis.selector.models.filter import Filter
 from analysis.selector.models.grid import Grid
-from analysis.selector.utils.feature_filter import read_filter_config
 from analysis.utils.maths import mask as packing
 
 
@@ -33,7 +33,7 @@ def study_feature(coverage: Sequence[SetCoverage], criteria: Filter) -> Study:
         inside=frozenset(inside),
     )
     # The one place the filter is read, which everything below takes it from
-    settled = read_filter_config(criteria, coverage, grid)
+    settled = clean_window(criteria, coverage, grid)
     track = timeline.build(coverage, grid, settled)
     return Study(
         criteria=settled,
