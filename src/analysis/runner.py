@@ -18,8 +18,8 @@ from analysis import planner
 from analysis.console import describe_coverage, describe_download, render
 from analysis.coverage.measuring import run_job as compute_coverage
 from analysis.metadata import file_explorer
-from analysis.metadata.fetchers import query
-from analysis.metadata.loaders.catalog import load_features
+from analysis.metadata.fetchers.products import fetch_products
+from analysis.metadata.loaders.features import load_features
 from analysis.models.job import Job, Outcome
 from analysis.models.progress import ProgressEvent
 from analysis.models.settings import Settings
@@ -39,7 +39,7 @@ def download_metadata(job: Job, client: ODEClient, loc: str) -> Outcome:
         The outcome, carrying the error when the job failed.
     """
     try:
-        records = query.fetch_products(client, job.feature, job.instrument_set, loc)
+        records = fetch_products(client, job.feature, job.instrument_set, loc)
         write_jsonl(job.output_path, records)
         return Outcome(job=job)
     except Exception as exc:

@@ -7,7 +7,7 @@ from collections.abc import Sequence
 
 from analysis.coverage import overlaps, summary
 from analysis.coverage.results import Summary
-from analysis.metadata.loaders.catalog import load_features
+from analysis.metadata.loaders.features import load_features
 from analysis.sampling.models.catalogue import CatalogueStats, InstrumentStats
 from analysis.sampling.models.spread import Spread
 

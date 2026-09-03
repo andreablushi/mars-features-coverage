@@ -132,6 +132,7 @@ src/
     runner.py         # Orchestrates the stages, and downloads one set's metadata
     models/           # The data model: features, instruments, settings
     metadata/         # fetchers/, loaders/, and what is already downloaded
+      fetchers/       # features.py asks ODE for the catalog, products.py for records
     coverage/         # Coverage measurement, geometry, and what it leaves on disk
     selector/         # The best time window search
     sampling/         # The sweep over every feature, and the aggregates over it

@@ -6,7 +6,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 import utils.disk.paths as paths
-from analysis.metadata.fetchers.catalog import fetch_features
+from analysis.metadata.fetchers.features import fetch_features
 from analysis.models.feature import Feature
 from utils.disk.files import read_jsonl, write_jsonl
 from utils.disk.paths import features_path

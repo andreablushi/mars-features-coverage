@@ -26,7 +26,7 @@ from analysis.coverage import summary as index
 from analysis.coverage.geometry.region import FeatureRegion
 from analysis.coverage.results import Summary
 from analysis.coverage.utils import geodesy
-from analysis.metadata.loaders.catalog import load_features
+from analysis.metadata.loaders.features import load_features
 from analysis.models.feature import Feature
 from analysis.utils.maths.mask import cells_of
 from utils.disk.files import atomic_path

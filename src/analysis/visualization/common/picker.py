@@ -10,7 +10,7 @@ from IPython.display import display
 import analysis.utils.settings as settings
 from analysis.coverage import summary
 from analysis.coverage.results import SetCoverage
-from analysis.metadata.loaders import catalog
+from analysis.metadata.loaders.features import load_features
 from analysis.visualization.common import panels
 from analysis.visualization.common.areas import Areas
 from utils.disk.slugify import slugify
@@ -66,7 +66,7 @@ class FeaturePicker(Areas[Coverage]):
         """
         super().__init__()
         self._names: dict[str, list[str]] = {}
-        for feature in catalog.load_features():
+        for feature in load_features():
             self._names.setdefault(feature.feature_class, []).append(feature.name)
         for names in self._names.values():
             names.sort()

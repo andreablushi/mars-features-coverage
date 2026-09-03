@@ -1,4 +1,4 @@
-"""Product metadata queries for one feature and instrument set."""
+"""Fetching one feature and instrument set's product records, a page at a time."""
 
 from __future__ import annotations
 
@@ -6,7 +6,6 @@ from collections.abc import Iterator
 from typing import Any, TypeAlias
 
 import analysis.utils.provenance as provenance
-from analysis.metadata.fetchers.response import as_items
 from analysis.models.feature import Feature
 from analysis.models.instrument import InstrumentSet
 from utils.ode import configs
@@ -17,7 +16,7 @@ Box = tuple[float, float, float, float]
 ProductRecord: TypeAlias = dict[str, Any]
 
 
-def query_boxes(feature: Feature) -> tuple[Box, ...]:
+def _boxes(feature: Feature) -> tuple[Box, ...]:
     """Return the lat/lon boxes a feature has to be asked for in.
 
     Args:
@@ -34,7 +33,7 @@ def query_boxes(feature: Feature) -> tuple[Box, ...]:
     return ((feature.min_lat, feature.max_lat, feature.west_lon, feature.east_lon),)
 
 
-def _base_params(box: Box, instrument_set: InstrumentSet, loc: str) -> dict[str, str]:
+def _params(box: Box, instrument_set: InstrumentSet, loc: str) -> dict[str, str]:
     """Build the shared product query parameters for one box and set.
 
     Args:
@@ -81,8 +80,6 @@ def _pages(client: ODEClient, params: dict[str, str]) -> Iterator[list[Any]]:
         total = int(raw)
     except (TypeError, ValueError):
         raise ODEError(f"ODE returned no product count, found {raw!r}") from None
-    if total < 0:
-        raise ODEError(f"ODE could not place the query and returned a count of {total}")
 
     offset = 0
     while offset < total:
@@ -95,26 +92,14 @@ def _pages(client: ODEClient, params: dict[str, str]) -> Iterator[list[Any]]:
                 "offset": str(offset),
             }
         )
-        items = as_items(page, "Products", "Product")
+        found = page["Products"]["Product"]
+        # A box holding one product is answered with that product, not a list of one
+        items = found if isinstance(found, list) else [found]
+        # Nothing to advance by would page the same offset forever
         if not items:
             return
         yield items
         offset += len(items)
-
-
-def _identity(item: dict[str, Any]) -> tuple[str, str]:
-    """Return what makes one stored record distinct from another.
-
-    Args:
-        item: One raw product object from an ODE response.
-
-    Returns:
-        The footprint and acquisition time, empty when ODE published no footprint.
-    """
-    footprint = str(item.get("Footprint_C0_geometry") or "")
-    if not footprint:
-        return ("", str(item.get("pdsid") or item.get("ode_id")))
-    return (footprint, str(item.get("UTC_start_time") or ""))
 
 
 def fetch_products(
@@ -136,11 +121,12 @@ def fetch_products(
     """
     stamped = provenance.stamp(feature, instrument_set, loc)
     records: list[ProductRecord] = []
+    # The two boxes a polar feature is asked in overlap, so a product returns twice
     seen: set[tuple[str, str]] = set()
-    for box in query_boxes(feature):
-        for items in _pages(client, _base_params(box, instrument_set, loc)):
+    for box in _boxes(feature):
+        for items in _pages(client, _params(box, instrument_set, loc)):
             for item in items:
-                identity = _identity(item)
+                identity = (item["Footprint_C0_geometry"], item["UTC_start_time"])
                 if identity in seen:
                     continue
                 seen.add(identity)

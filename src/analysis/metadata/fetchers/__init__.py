@@ -1,1 +1,1 @@
-"""Asking ODE for the feature catalog and product records, and reading its answers."""
+"""Asking ODE what it holds: the feature catalog, and one set's product records."""
