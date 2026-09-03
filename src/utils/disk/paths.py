@@ -13,22 +13,31 @@ if TYPE_CHECKING:
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
-CONFIG_PATH = REPO_ROOT / "config.yaml"
+CONFIGS_ROOT = REPO_ROOT / "configs"
+RUNNER_CONFIG_PATH = CONFIGS_ROOT / "runner.yaml"
+FILTER_CONFIG_PATH = CONFIGS_ROOT / "filter.yaml"
 
 DATA_ROOT = REPO_ROOT / "data"
-METADATA_ROOT = DATA_ROOT / "metadata"
 CATALOG_ROOT = DATA_ROOT / "_catalog"
-PREDICTIONS_ROOT = DATA_ROOT / "predictions"
-ARTIFACTS_ROOT = DATA_ROOT / "artifacts"
+
+ANALYSIS_ROOT = DATA_ROOT / "analysis"
+METADATA_ROOT = ANALYSIS_ROOT / "metadata"
+ARTIFACTS_ROOT = ANALYSIS_ROOT / "artifacts"
 COVERAGE_ROOT = ARTIFACTS_ROOT / "coverage"
-PREPROCESSING_ROOT = DATA_ROOT / "preprocessing"
+STATS_ROOT = ANALYSIS_ROOT / "stats"
+SELECTION_ROOT = ANALYSIS_ROOT / "selection"
+
+BUILDING_ROOT = DATA_ROOT / "building"
+PREPROCESSING_ROOT = BUILDING_ROOT / "preprocessing"
 CRISM_ROOT = PREPROCESSING_ROOT / "crism"
 SHARAD_ROOT = PREPROCESSING_ROOT / "sharad"
 MOLA_ROOT = PREPROCESSING_ROOT / "mola"
 CTX_ROOT = PREPROCESSING_ROOT / "ctx"
 
+STATS_NAME = "stats.json"
+SELECTED_FEATURES_NAME = "features.parquet"
+SELECTED_OBSERVATIONS_NAME = "observations.parquet"
 FEATURES_CACHE_NAME = "features.jsonl"
-INSTRUMENT_SETS_CACHE_NAME = "instrument_sets.jsonl"
 SUMMARY_NAME = "summary.parquet"
 EVENTS_SUFFIX = ".events.parquet"
 SET_SUMMARY_SUFFIX = ".summary.parquet"
@@ -124,15 +133,3 @@ def features_path(cache_dir: Path = CATALOG_ROOT) -> Path:
         The path to the features JSONL file, which need not exist.
     """
     return cache_dir / FEATURES_CACHE_NAME
-
-
-def instrument_sets_path(cache_dir: Path = CATALOG_ROOT) -> Path:
-    """Return where the cached instrument set catalogue lives.
-
-    Args:
-        cache_dir: Directory holding the cached catalogue files.
-
-    Returns:
-        The path to the instrument sets JSONL file, which need not exist.
-    """
-    return cache_dir / INSTRUMENT_SETS_CACHE_NAME

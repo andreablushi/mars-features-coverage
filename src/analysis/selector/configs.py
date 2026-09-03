@@ -1,4 +1,4 @@
-"""Central configuration for the best time window search."""
+"""The thresholds the best time window search itself turns on."""
 
 from __future__ import annotations
 

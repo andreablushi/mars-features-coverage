@@ -8,8 +8,8 @@ from pathlib import Path
 
 import httpx
 
-from ode.client import ODEClient
 from utils.disk.files import atomic_path
+from utils.ode.client import ODEClient
 
 # How long to wait for the larger half of a product.
 TIMEOUT = 300.0

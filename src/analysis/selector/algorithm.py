@@ -2,66 +2,69 @@
 
 from __future__ import annotations
 
+import math
 from bisect import bisect_left
+from collections.abc import Sequence
 
+from analysis.coverage import ground
 from analysis.selector import configs
-from analysis.selector.filters import floors, redundancy, timeless
+from analysis.selector.filters import redundancy, timeless
+from analysis.selector.filters.coverage_constraints import coverage_constraints
 from analysis.selector.models.counter import Counter
-from analysis.selector.models.strategy import Constraints, Strategy
+from analysis.selector.models.filter import Constraints, Filter
 from analysis.selector.models.survey import Survey
 from analysis.selector.models.track import Track
 from analysis.selector.models.window import Window
-from analysis.selector.utils import scoring
+
+_PRICE_PER_DAY = 0.01 / configs.DAYS_PER_PERCENT
 
 
-def search(track: Track, strategy: Strategy) -> Survey | None:
+def search(track: Track, criteria: Filter) -> Survey | None:
     """Search a timeline for the window the ground is best studied over.
 
     Args:
         track: The admissible observations on one time axis.
-        strategy: The strategy read against the feature, holding what a tile is asked.
+        criteria: The filter read against the feature, holding what it is asked.
 
     Returns:
         The chosen window, or None when no window is worth keeping.
     """
-    # What the strategy asks of this tile, worked out once when it was read
-    windowed, standing = strategy.windowed[track.tile], strategy.standing[track.tile]
+    # What the filter asks of this feature, worked out once when it was read
+    windowed, standing = criteria.windowed, criteria.standing
     # What time cannot change is asked of the whole record rather than a window
     if standing:
         whole = Counter.over(track, 0, len(track.observations) - 1)
-        if floors.met(standing, whole.cells_reached) is None:
+        if coverage_constraints(standing, whole.cells_reached) is None:
             return None
     # Take the best window
-    picked = _best(track, windowed, strategy)
+    picked = _best(track, windowed, criteria)
     if picked is None:
         return None
     # Clean up the record to only what is worth keeping, and report reached
-    kept, geo_mean = redundancy.trimmed(track, picked, windowed, configs.GAIN)
+    kept, reached = redundancy.trimmed(track, picked, windowed, configs.GAIN)
     return Survey(
-        tile=track.tile,
-        area_km2=track.area_km2,
+        area_km2=track.grid.area_km2,
         start=track.observations[kept[0]].t_start,
         end=track.observations[kept[-1]].t_start,
         days=track.times[kept[-1]] - track.times[kept[0]],
-        geo_mean=geo_mean,
+        geo_mean=_scored(track, reached),
         kept=tuple(kept),
-        dropped=picked.last - picked.first + 1 - len(kept),
-        standing=timeless.kept(track, strategy.timeless),
+        standing=timeless.fresh_looks(track, criteria.timeless),
     )
 
 
-def _best(track: Track, windowed: Constraints, strategy: Strategy) -> Window | None:
+def _best(track: Track, windowed: Constraints, criteria: Filter) -> Window | None:
     """Take the window worth the most, at the price a day of waiting costs.
 
     Args:
         track: The admissible observations on one time axis.
         windowed: The cells each instrument insisted on has to reach.
-        strategy: What the window is asked for, which caps how long it runs.
+        criteria: What the window is asked for, which caps how long it runs.
 
     Returns:
         The window worth the most, or None when no window is worth keeping.
     """
-    span_days = strategy.span_days
+    span_days = criteria.span_days
     looked = _looked_before(track)
     reached = [0] * len(track.iids)
     best: Window | None = None
@@ -78,10 +81,10 @@ def _best(track: Track, windowed: Constraints, strategy: Strategy) -> Window | N
             if not fresh:
                 continue
             reached[track.owners[right]] += fresh
-            counts = floors.met(windowed, reached)
+            counts = coverage_constraints(windowed, reached)
             if counts is None:
-                continue  # the window does not hold what the strategy asks
-            paid = scoring.scored(track, counts, days)
+                continue  # the window does not hold what the filter asks
+            paid = _scored(track, counts, days)
             if paid > worth:
                 best, worth = Window(left, right, days), paid
     return best
@@ -108,3 +111,19 @@ def _looked_before(track: Track) -> list[list[int]]:
         before.sort()
         looked.append(before)
     return looked
+
+
+def _scored(track: Track, counts: Sequence[int], days: float = 0.0) -> float:
+    """Score what a window reaches, less what the days it runs for cost it.
+
+    Args:
+        track: The observations on one time axis.
+        counts: The cells each constraint reaches, one count per constraint.
+        days: How long the window runs, charged against the ground it reaches.
+
+    Returns:
+        The constraints rooted together as a share of the feature, less their days.
+    """
+    rooted = math.prod(counts) ** (1.0 / len(counts))
+    geo_mean = ground.share(rooted, track.grid.cell_km2, track.grid.area_km2)
+    return geo_mean - _PRICE_PER_DAY * days

@@ -10,8 +10,8 @@ from rich.console import Console
 import analysis.utils.settings as settings
 from analysis import planner, runner
 from analysis.console import print_interrupted, print_summary
-from analysis.coverage import summary
-from analysis.metadata import tree
+from analysis.coverage.artifacts import index
+from analysis.metadata import file_explorer
 from analysis.models.progress import CoverageSummary, DownloadSummary
 
 
@@ -28,7 +28,7 @@ def main() -> int:
     fetched, outcomes = runner.run_pipeline(choices, console)
 
     if not choices.keep_metadata:
-        removed = tree.discard_metadata(outcomes)
+        removed = file_explorer.discard_metadata(outcomes)
         if removed:
             console.print(f"discarded metadata for {removed} computed sets")
 
@@ -38,8 +38,8 @@ def main() -> int:
     print_summary(
         downloaded,
         computed,
-        summary.reindex(),
-        planner.unfinished(tree.find_sets()),
+        index.reindex(),
+        planner.unfinished(file_explorer.find_sets()),
         console,
     )
     return 1 if computed.failed or downloaded.failed else 0
@@ -49,5 +49,5 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except KeyboardInterrupt:
-        print_interrupted("jobs")
+        print_interrupted()
         raise SystemExit(130) from None

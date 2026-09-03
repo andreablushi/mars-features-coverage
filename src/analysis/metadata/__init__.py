@@ -1,1 +1,1 @@
-"""Fetching Mars ODE observation metadata, and choosing what to fetch."""
+"""Fetching Mars ODE observation metadata, and reading what is already down."""

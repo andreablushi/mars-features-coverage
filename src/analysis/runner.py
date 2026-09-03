@@ -15,15 +15,14 @@ from contextlib import closing
 from rich.console import Console
 
 from analysis import planner
-from analysis.console import describe_coverage, describe_download, render
-from analysis.coverage.measuring import run_job as compute_coverage
-from analysis.metadata import catalog, tree
-from analysis.metadata.fetching import run_job as download_set
-from analysis.metadata.selection.instruments import verify_sets
+from analysis.console import describe, render
+from analysis.coverage import compute
+from analysis.metadata import download, file_explorer
+from analysis.metadata.loaders.features import load_features
 from analysis.models.job import Job, Outcome
 from analysis.models.progress import ProgressEvent
 from analysis.models.settings import Settings
-from ode.client import ODEClient
+from utils.ode.client import ODEClient
 
 
 def run_jobs(
@@ -44,36 +43,6 @@ def run_jobs(
         yield ProgressEvent(completed=completed, outcome=future.result())
 
 
-def _measuring(
-    events: Iterator[ProgressEvent],
-    pool: ProcessPoolExecutor,
-    fetched: list[Outcome],
-    started: list[Future[Outcome]],
-    *,
-    force: bool,
-) -> Iterator[ProgressEvent]:
-    """Pass download events through, keeping each one and measuring what landed.
-
-    Args:
-        events: The download runner's progress events.
-        pool: The process pool the coverage jobs run on.
-        fetched: The download outcomes, appended to as they arrive.
-        started: The coverage futures, appended to as they are submitted.
-        force: Whether to recompute a set that is already done.
-
-    Yields:
-        Each event, unchanged.
-    """
-    for event in events:
-        fetched.append(event.outcome)
-        if not event.outcome.failed:
-            source = event.outcome.job.output_path
-            if source.stat().st_size:
-                for job in planner.coverage_plan([source], force=force).jobs:
-                    started.append(pool.submit(compute_coverage, job))
-        yield event
-
-
 def run_pipeline(
     settings: Settings, console: Console
 ) -> tuple[list[Outcome], list[Outcome]]:
@@ -89,41 +58,46 @@ def run_pipeline(
     futures: list[Future[Outcome]] = []
     fetched: list[Outcome] = []
     with ODEClient() as client:
-        refresh = settings.refresh_catalog
-        features = catalog.load_features(client, refresh=refresh)
-        verify_sets(
-            settings.instrument_sets,
-            catalog.load_instrument_sets(client, refresh=refresh),
-        )
+        features = load_features(client, refresh=settings.refresh_catalog)
         plan = planner.download_plan(
-            features,
-            settings.instrument_sets,
-            force=settings.force,
+            features, settings.instrument_sets, force=settings.force
         )
         rewriting = {job.output_path for job in plan.jobs}
-        stored = [held for held in tree.find_sets() if held not in rewriting]
+        stored = [held for held in file_explorer.find_sets() if held not in rewriting]
         backlog = planner.coverage_plan(stored, force=settings.force)
-        describe_download(plan, settings.workers, console)
-        describe_coverage(backlog, settings.workers, console)
+        describe(plan, backlog, settings, console)
         with (
-            ProcessPoolExecutor(max_workers=settings.workers) as computing,
+            ProcessPoolExecutor(max_workers=settings.workers) as measuring,
             ThreadPoolExecutor(max_workers=settings.workers) as fetching,
         ):
-            futures.extend(
-                computing.submit(compute_coverage, job) for job in backlog.jobs
-            )
-            stream = _measuring(
-                run_jobs(
+
+            def measure(job: Job) -> Future[Outcome]:
+                """Put one coverage job on the pool, sized as the run is configured."""
+                return measuring.submit(
+                    compute.compute, job, settings.grid_cells, settings.union_threads
+                )
+
+            def measured() -> Iterator[ProgressEvent]:
+                """Pass each download through, keeping it and measuring what landed."""
+                downloads = run_jobs(
                     plan.jobs,
-                    lambda job: download_set(job, client, settings.loc),
+                    lambda job: download.download(job, client, settings.loc),
                     fetching,
-                ),
-                computing,
-                fetched,
-                futures,
-                force=settings.force,
-            )
-            with closing(stream) as events:
+                )
+                for event in downloads:
+                    fetched.append(event.outcome)
+                    source = event.outcome.job.output_path
+                    if not event.outcome.failed and source.stat().st_size:
+                        futures.extend(
+                            measure(job)
+                            for job in planner.coverage_plan(
+                                [source], force=settings.force
+                            ).jobs
+                        )
+                    yield event
+
+            futures.extend(measure(job) for job in backlog.jobs)
+            with closing(measured()) as events:
                 render(events, len(plan.jobs), "download", console)
             if futures:
                 render(

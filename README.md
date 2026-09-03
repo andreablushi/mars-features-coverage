@@ -4,8 +4,8 @@ Collects observation metadata from the PDS Orbital Data Explorer
 ([ODE](https://ode.rsl.wustl.edu/mars/index.aspx)) and measures how much of each
 geological feature every instrument has covered, and when. Then reads those
 measurements back to say what a training dataset would hold: the time window
-each tile of a feature is best studied over, and the observations inside it
-worth keeping.
+each feature is best studied over, and the observations inside it worth
+keeping.
 
 ## Development Commands
 
@@ -22,8 +22,8 @@ uv run python scripts/features_coverage.py
 ```
 
 One entry point runs both halves, and takes no arguments: every choice comes
-from `config.yaml`, so the same file describes what was run and what to run
-again. Every details about each option is in `config.yaml`'s comments.
+from `configs/runner.yaml`, so the same file describes what was run and what to
+run again. Every details about each option is in `configs/runner.yaml`'s comments.
 
 ## Running the pipeline on DigitalHub
 
@@ -60,7 +60,7 @@ that image, and then starts the job. It prints the run key and returns.
 | --- | --- | --- |
 | `--project` | `mars-features-coverage` | which project to run in |
 | `--ref` | `main` | branch, tag, or commit to run |
-| `--cpu` | `workers` from `config.yaml` | cores to request |
+| `--cpu` | `workers` from `configs/runner.yaml` | cores to request |
 | `--mem` | `16Gi` | memory to request |
 | `--disk` | `64Gi` | disk to request, sized for a whole catalogue |
 
@@ -70,13 +70,12 @@ that image, and then starts the job. It prints the run key and returns.
 uv run --group digitalhub python scripts/dh_prediction_pipeline.py
 ```
 
-It measures nothing. It fetches what the run above published, sweeps every
-strategy in `src/analysis/selector/strategies/` over every tile of every measured
-feature, and publishes what each of them would keep. It takes the same
-parameters.
+It measures nothing. It fetches what the run above published, sweeps the
+filter in `configs/filter.yaml` over every measured feature, and publishes what
+it would keep. It takes the same parameters.
 
-A strategy still written as it was when it was published is read back rather
-than swept again, so only a new or edited one costs time.
+A sweep published under the filter as it is still written is read back rather
+than run again, so only an edited filter costs time.
 
 ## Downloading the results
 
@@ -92,58 +91,64 @@ With no argument everything comes down. Name one or more to bring down only
 those.
 
 ```bash
-./scripts/dh_download.sh predictions        # just what the strategies predicted
+./scripts/dh_download.sh predictions        # just what the filter predicted
 ./scripts/dh_download.sh artifacts summary  # just what the notebooks read
 ```
 
 | Name | What it holds | Where it lands |
 | --- | --- | --- |
-| `artifacts` | the coverage measurements | `data/artifacts/` |
-| `metadata` | the ODE records behind them | `data/metadata/` |
-| `predictions` | what each strategy would keep | `data/predictions/` |
-| `summary` | one row per feature and instrument set | `data/artifacts/` |
+| `artifacts` | the coverage measurements | `data/analysis/artifacts/` |
+| `metadata` | the ODE records behind them | `data/analysis/metadata/` |
+| `predictions` | what the filter would keep | `data/analysis/predictions/` |
+| `summary` | one row per feature and instrument set | `data/analysis/artifacts/` |
 
 ## Notebooks
 
-`notebooks/qualitative.ipynb` reads one feature at a
-time, whole and then tile by tile. Pick a feature, confirm, and the cells below
-fill themselves in. An instrument that reached none of the feature is still
-drawn, at zero, so a missing line always means something.
+`notebooks/qualitative.ipynb` reads one feature at a time, whole. Pick a
+feature, confirm, and the cells below fill themselves in. An instrument that
+reached none of the feature is still drawn, at zero, so a missing line always
+means something.
 
-`notebooks/quantitative.ipynb` puts every strategy
-side by side, over every tile of every measured feature rather than a sample of
-them. The sweep costs minutes, so it reads back what the prediction pipeline
-published, and sweeps on the spot only a strategy nothing was published for.
+`notebooks/quantitative.ipynb` reads what the filter would make of every
+measured feature rather than of a sample of them. The sweep costs minutes, so it
+reads back what the prediction pipeline published, and sweeps on the spot only
+when the filter has been edited since.
 
 ## Structure
 
 ```
-config.yaml           # Configures the run, local and DigitalHub
+configs/
+  runner.yaml         # Configures the run, local and DigitalHub
+  filter.yaml         # What a window has to hold for a feature to be kept
 scripts/              # Entrypoints for the pipeline, local and DigitalHub
 notebooks/            # The two notebooks that read the results
 src/
-  ode/                # The ODE client, its settings, its errors
-  utils/disk/         # Project paths, atomic writes, slugs
+  utils/              # What both halves use
+    ode/              # The ODE client, its settings, its errors
+    disk/             # Project paths, atomic writes, slugs
   analysis/           # What the coverage survey measures and the notebooks read
     console.py        # Progress bar for console prints
     planner.py        # What each half has left to do
-    runner.py         # Orchestrates the pipeline stages
+    runner.py         # Orchestrates the stages, and downloads one set's metadata
     models/           # The data model: features, instruments, settings
-    metadata/         # ODE catalogue and record fetching
+    metadata/         # fetchers/, loaders/, and what is already downloaded
+      fetchers/       # features.py asks ODE for the catalog, products.py for records
     coverage/         # Coverage measurement, geometry, and what it leaves on disk
     selector/         # The best time window search
-      strategies/     # One YAML per strategy the search can run under
-    sampling/         # The sweep over every tile, and the aggregates over it
+    sampling/         # The sweep over every feature, and the aggregates over it
     visualization/    # What the notebooks draw
-    utils/            # config.yaml, parquet, record provenance
+    utils/            # Reading the run config, parquet, record provenance
       maths/          # Scaling, formatting, and cell packing
   building/           # What a downloaded observation is turned into
     preprocessing/    # One package per instrument, and what they share
-data/
-  _catalog/           # Cached ODE catalogs
-  metadata/           # Raw ODE records
-  predictions/        # What each strategy made of the dataset, one file each
-  artifacts/
-    coverage/         # Coverage measurements
-    summary.parquet   # Every feature's summary rows together
+data/                 # Laid out as src is, each half owning what it writes
+  _catalog/           # Cached ODE catalogs, read by both halves
+  analysis/
+    metadata/         # Raw ODE records
+    artifacts/
+      coverage/       # Coverage measurements
+      summary.parquet # Every feature's summary rows together
+    predictions/      # What the filter made of the dataset
+  building/
+    preprocessing/    # One directory per instrument, holding its products
 ```

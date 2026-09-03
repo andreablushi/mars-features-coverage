@@ -1,4 +1,4 @@
-"""Every instrument's observations of one tile, merged onto one time axis."""
+"""Every instrument's observations of one feature, merged onto one time axis."""
 
 from __future__ import annotations
 
@@ -7,93 +7,59 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from analysis.coverage.results import Event, SetCoverage
+from analysis.coverage.models.coverage import Event, SetCoverage
 from analysis.selector import configs
 from analysis.selector.filters import admissible
-from analysis.selector.models.strategy import Strategy
-from analysis.selector.models.tiles import Grid
+from analysis.selector.filters.clean_window import clean_window
+from analysis.selector.models.filter import Filter
+from analysis.selector.models.grid import Grid
+from analysis.utils import mask as packing
 
 
 @dataclass(frozen=True, slots=True)
 class Track:
-    """One tile's observations, from every instrument set, in time order.
+    """One feature's observations, from every instrument set, in time order.
 
     Attributes:
-        tile: Which tile of the feature the observations were cut to.
         observations: The observations the search may pick from, oldest first.
         times: When each of them started, in days, which is what a span is measured in.
         owners: The instrument set each belongs to, as its index into labels.
-        cells: The tile's own cells each fills, in the same order, each named once.
+        cells: The feature's cells each fills, in the same order, each named once.
         labels: The name of each set, in the order owners index them.
         iids: The instrument each set belongs to, in the same order.
-        grid_cells: How many cells the tile holds.
-        area_km2: How much ground the tile covers.
-        cell_km2: How much ground one cell covers.
+        grid: The grid the feature is searched over.
         refused: The observations left off the axis, each with the set it belongs
             to and the cells it fills, oldest first.
     """
 
-    tile: int
     observations: list[Event]
     times: list[float]
     owners: list[int]
     cells: list[np.ndarray]
     labels: list[str]
     iids: list[str]
-    grid_cells: int
-    area_km2: float
-    cell_km2: float
+    grid: Grid
     refused: admissible.Held
 
 
 def build(
-    coverage: Sequence[SetCoverage], grid: Grid, strategy: Strategy
-) -> list[Track]:
-    """Merge a feature's instrument sets into one timeline per tile.
+    coverage: Sequence[SetCoverage], grid: Grid, criteria: Filter
+) -> Track | None:
+    """Merge a feature's instrument sets onto one timeline.
 
     Args:
         coverage: The feature's instrument sets, in any order.
-        grid: The feature cut into tiles.
-        strategy: The strategy read against the feature, read once.
+        grid: The grid the feature is searched over.
+        criteria: The filter read against the feature, read once.
 
     Returns:
-        One timeline per tile holding anything measurable, in grid order.
+        The timeline, or None when the feature holds nothing measurable.
     """
-    held, refused = admissible.admit_observation(coverage, grid, strategy)
-    labels = [instrument.label for instrument in coverage]
-    iids = [instrument.summary.iid for instrument in coverage]
-    return [
-        _track(tile, grid, held[tile], refused[tile], labels, iids)
-        for tile in range(len(grid.tiles))
-        if held[tile]
-    ]
-
-
-def _track(
-    tile: int,
-    grid: Grid,
-    held: admissible.Held,
-    refused: admissible.Held,
-    labels: list[str],
-    iids: list[str],
-) -> Track:
-    """Lay one tile's observations out on a single time axis.
-
-    Args:
-        tile: Which tile of the feature they were cut to.
-        grid: The feature cut into tiles.
-        held: The observations the tile keeps, in no particular order.
-        refused: The ones it turned away for being too small.
-        labels: The name of every instrument set of the feature.
-        iids: The instrument every one of them belongs to.
-
-    Returns:
-        The timeline.
-    """
+    held, refused = admissible.admit_observation(coverage, grid, criteria)
+    if not held:
+        return None
     held.sort(key=lambda item: item[0].t_start)
-    patch = grid.tiles[tile]
     return Track(
-        tile=tile,
         observations=[observation for observation, _, _ in held],
         times=[
             observation.t_start.timestamp() / configs.DAY_SECONDS
@@ -101,10 +67,34 @@ def _track(
         ],
         owners=[owner for _, owner, _ in held],
         cells=[np.asarray(cells, dtype=np.intp) for _, _, cells in held],
-        labels=labels,
-        iids=iids,
-        grid_cells=patch.cells,
-        area_km2=patch.area_km2,
-        cell_km2=grid.cell_km2,
+        labels=[instrument.label for instrument in coverage],
+        iids=[instrument.summary.iid for instrument in coverage],
+        grid=grid,
         refused=sorted(refused, key=lambda item: item[0].t_start),
     )
+
+
+def over(
+    coverage: Sequence[SetCoverage], criteria: Filter
+) -> tuple[Filter, Track | None]:
+    """Read one feature's filter and timeline off the sets it holds.
+
+    Args:
+        coverage: The feature's instrument sets, in any order.
+        criteria: Which instruments a window has to hold, and how much ground each.
+
+    Returns:
+        The filter as it was read against the feature, and the timeline it is
+        searched on, which is None where it holds nothing measurable.
+    """
+    summary = coverage[0].summary
+    inside = packing.cells_of(summary.grid_mask).tolist()
+    grid = Grid(
+        cells=summary.grid_side * summary.grid_side,
+        area_km2=len(inside) * summary.cell_km2,
+        cell_km2=summary.cell_km2,
+        inside=frozenset(inside),
+    )
+    # The one place the filter is read, which everything below takes it from
+    settled = clean_window(criteria, coverage, grid)
+    return settled, build(coverage, grid, settled)

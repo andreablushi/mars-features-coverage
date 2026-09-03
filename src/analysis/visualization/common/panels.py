@@ -14,27 +14,21 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.ticker import PercentFormatter
 
-from analysis.coverage.results import SetCoverage
+from analysis.visualization.common.models.colours import Colour
+from analysis.visualization.common.models.coverage import Coverage
 
 GREY = "#8a8a8a"
-
-# How a tile that earned a window is marked, and one the search refused.
 KEPT = "#2e7d32"
 REFUSED = "#c62828"
 
-# How wide every stacked figure is drawn.
 FIGURE_WIDTH = 11
 
-# The strip left clear under a map for the key naming what it draws.
 KEY_HEIGHT = 0.085
 KEY_DROP = 0.015
-
-# The strip left clear beside a map for the same key, set down its side.
 KEY_WIDTH = 0.78
 KEY_SIDE = 0.80
 KEY_TOP = 0.92
 
-# The windows the tiles earned, marked across the time panels.
 SURVEY_LINE = "#1a1a1a"
 SURVEY_STYLE = (0, (6, 3))
 SURVEY_WIDTH = 0.8
@@ -42,44 +36,26 @@ SURVEY_SHADE = "#9e9e9e"
 SURVEY_ALPHA = 0.18
 
 
-Colour = tuple[float, float, float]
-
-
 def colours(labels: Sequence[str]) -> dict[str, Colour]:
-    """Assign a colour to each instrument set.
-
-    Args:
-        labels: The name of each set, in the order to colour them.
-
-    Returns:
-        One colour per instrument set label.
-    """
+    """Assign a colour to each instrument set."""
     return dict(zip(labels, cycle(plt.cm.tab10.colors), strict=False))
 
 
 def board(size: tuple[float, float]) -> tuple[Figure, Axes]:
-    """Open a figure off pyplot's registry, so a thread may draw on it.
-
-    Args:
-        size: How wide and tall to draw it, in inches.
-
-    Returns:
-        The figure and the single panel on it.
-    """
+    """Open a figure off pyplot's registry, so a thread may draw on it."""
     figure = Figure(figsize=size)
     return figure, figure.subplots()
 
 
+def stacked(count: int, height: float, **shared) -> tuple[Figure, list[Axes]]:
+    """Open a figure of one panel per instrument set, stacked."""
+    figure = Figure(figsize=(FIGURE_WIDTH, height))
+    axes = figure.subplots(count, 1, squeeze=False, **shared)
+    return figure, [axis for row in axes for axis in row]
+
+
 def key_below(figure: Figure, handles: Sequence) -> None:
-    """Set a key under a map, in a strip left clear of the axis and its label.
-
-    Args:
-        figure: The finished figure, whose panel is laid out above the strip.
-        handles: What the key names, in the order it reads.
-
-    Returns:
-        None.
-    """
+    """Set a key under a map, in a strip left clear of the axis and its label."""
     figure.tight_layout(rect=(0.0, KEY_HEIGHT, 1.0, 1.0))
     figure.legend(
         handles=handles,
@@ -92,15 +68,7 @@ def key_below(figure: Figure, handles: Sequence) -> None:
 
 
 def key_beside(figure: Figure, handles: Sequence) -> None:
-    """Set a key beside a map, in a strip left clear down its right side.
-
-    Args:
-        figure: The finished figure, whose panel is laid out left of the strip.
-        handles: What the key names, in the order it reads.
-
-    Returns:
-        None.
-    """
+    """Set a key beside a map, in a strip left clear down its right side."""
     figure.tight_layout(rect=(0.0, 0.0, KEY_WIDTH, 1.0))
     figure.legend(
         handles=handles,
@@ -112,17 +80,7 @@ def key_beside(figure: Figure, handles: Sequence) -> None:
 
 
 def note(axis: Axes, text: str, colour: str = GREY, size: float = 9) -> None:
-    """Write a line across the middle of a panel that has nothing to draw.
-
-    Args:
-        axis: The panel to write on.
-        text: What the line reads.
-        colour: The colour to write it in, grey unless the panel is a dark map.
-        size: How large to write it.
-
-    Returns:
-        None.
-    """
+    """Write a line across the middle of a panel that has nothing to draw."""
     axis.text(
         0.5,
         0.5,
@@ -136,33 +94,15 @@ def note(axis: Axes, text: str, colour: str = GREY, size: float = 9) -> None:
 
 
 def tidy(axis: Axes, percent: str, grid: str) -> None:
-    """Format an axis as percentages, grid it faintly, and drop its outer frame.
-
-    Args:
-        axis: The axis to style.
-        percent: Which axis carries the coverage share, "x" or "y".
-        grid: Which axis to draw gridlines along, "x", "y", or "both".
-
-    Returns:
-        None.
-    """
-    formatter = PercentFormatter(xmax=1.0, decimals=0)
+    """Format an axis as percentages, grid it faintly, and drop its outer frame."""
     target = axis.xaxis if percent == "x" else axis.yaxis
-    target.set_major_formatter(formatter)
+    target.set_major_formatter(PercentFormatter(xmax=1.0, decimals=0))
     axis.grid(axis=grid, alpha=0.25, linewidth=0.5)
     axis.spines[["top", "right"]].set_visible(False)
 
 
 def shade(axis: Axes, open_for: Sequence[tuple[datetime, datetime]]) -> None:
-    """Mark the stretches of time the tiles' windows are open over.
-
-    Args:
-        axis: The panel to draw on, whose x axis carries time.
-        open_for: When each stretch opens and closes, earliest first.
-
-    Returns:
-        None.
-    """
+    """Mark the stretches of time the windows are open over."""
     for opened, closed in open_for:
         axis.axvspan(opened, closed, color=SURVEY_SHADE, alpha=SURVEY_ALPHA, zorder=0)
         for edge in (opened, closed):
@@ -176,18 +116,9 @@ def shade(axis: Axes, open_for: Sequence[tuple[datetime, datetime]]) -> None:
 
 
 def rendered(figure: Figure) -> widgets.Image:
-    """Turn a finished figure into a widget and release the figure.
-
-    Args:
-        figure: The finished figure, which is closed here.
-
-    Returns:
-        The figure as an image widget that can replace an earlier one.
-    """
+    """Turn a finished figure into a widget that can replace an earlier one."""
     buffer = io.BytesIO()
     figure.savefig(buffer, format="png", dpi=figure.dpi)
-    if figure.canvas.manager is not None:
-        plt.close(figure)
     return widgets.Image(
         value=buffer.getvalue(),
         format="png",
@@ -198,14 +129,7 @@ def rendered(figure: Figure) -> widgets.Image:
 def unavailable(
     message: str = "Confirm a feature with local data above to fill this in.",
 ) -> widgets.HTML:
-    """Build the grey panel shown when there is nothing to draw.
-
-    Args:
-        message: The line explaining what is missing.
-
-    Returns:
-        The rendered panel.
-    """
+    """Build the grey panel shown when there is nothing to draw."""
     return widgets.HTML(
         f"""<div style="
             background: repeating-linear-gradient(45deg,
@@ -218,14 +142,7 @@ def unavailable(
     )
 
 
-def title(coverage: Sequence[SetCoverage]) -> str:
-    """Return the feature a loaded coverage belongs to.
-
-    Args:
-        coverage: The feature's instrument sets, which all carry its name.
-
-    Returns:
-        The feature class and name, such as "Crater / Jezero".
-    """
+def title(coverage: Coverage) -> str:
+    """Return the feature class and name a loaded coverage belongs to."""
     summary = coverage[0].summary
     return f"{summary.feature_class} / {summary.feature_name}"

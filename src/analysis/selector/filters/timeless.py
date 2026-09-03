@@ -7,11 +7,11 @@ from collections.abc import Container
 from analysis.selector.models.track import Track
 
 
-def kept(track: Track, instruments: Container[str]) -> tuple[int, ...]:
-    """Keep every look a timeless instrument left on the tile, whenever it came.
+def fresh_looks(track: Track, instruments: Container[str]) -> tuple[int, ...]:
+    """Keep every look a timeless instrument left on the feature, whenever it came.
 
     Args:
-        track: The tile's admissible observations on one time axis.
+        track: The feature's admissible observations on one time axis.
         instruments: The instruments the ground answers for whenever they came.
 
     Returns:

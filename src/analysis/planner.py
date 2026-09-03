@@ -6,7 +6,6 @@ from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
 
 import utils.disk.paths as paths
-from analysis.metadata.selection.features import select_features
 from analysis.models.feature import Feature
 from analysis.models.instrument import InstrumentSet
 from analysis.models.job import Job, Plan
@@ -60,7 +59,8 @@ def download_plan(
     Returns:
         The plan describing the selection and the jobs to run.
     """
-    usable = select_features(features)
+    # Feature selection: a feature the catalogue gives no extent at all is dropped
+    usable = [feature for feature in features if not feature.is_point]
     pairs = [
         (feature, instrument_set)
         for feature in usable

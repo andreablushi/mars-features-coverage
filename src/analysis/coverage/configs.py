@@ -17,13 +17,10 @@ LINE_CLIP_MARGIN_DEG = 2.0
 
 LAEA_MIN_DENOMINATOR = 1e-12
 
-# The union is kept per sector so each insert touches a small shape. A sector
-# is not a tile of the survey: it exists only to keep the union small.
-MIN_UNION_SECTORS = 4
-MAX_UNION_SECTORS = 32
-
-# How many sectors of one feature are accumulated at once
-UNION_THREADS = 4
+# The union is kept per cell so each insert touches a small shape. A cell of
+# this grid is not a unit of the survey: it exists only to keep the union small.
+MIN_UNION_CELLS = 4
+MAX_UNION_CELLS = 32
 
 # How many observations a sector folds in before its union is rebuilt in one
 UNION_CHUNK = 64
@@ -44,11 +41,9 @@ SHARAD_ALONG_TRACK_M = 460.0
 # median of the 497,279 that do.
 FALLBACK_PIXEL_M = {"MRO/CRISM/TRDR:msp*": 180.0, "MRO/CTX/EDR": 5.4}
 
-# How wide one block of the measurement grid is, in kilometres. A CTX swath is
-# some tens of kilometres across, so a tile this wide is a few images across:
-# narrower, and a single image fills it and the share of it asked for stops
-# meaning anything; wider, and one window stretches over ground nothing looked
-# at together.
+# How wide one block of the measurement grid is, in kilometres. A feature is
+# given a block of cells for every block of ground this wide it spans, so a
+# large feature is measured on a finer grid rather than a coarser one.
 GRID_KM = 100
 
 # How wide a cell of the grid of Mars is, in kilometres, on which the features
