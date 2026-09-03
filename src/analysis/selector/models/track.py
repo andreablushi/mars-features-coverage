@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from analysis.coverage.results import Event, SetCoverage
+from analysis.coverage.models.coverage import Event, SetCoverage
 from analysis.selector import configs
 from analysis.selector.filters import admissible
 from analysis.selector.models.filter import Filter

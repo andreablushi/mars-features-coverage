@@ -1,1 +1,1 @@
-"""Data models the coverage pipeline owns."""
+"""What a coverage computation is handed, and the rows it produces."""

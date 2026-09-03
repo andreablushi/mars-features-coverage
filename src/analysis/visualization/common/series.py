@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
-from analysis.coverage.results import SetCoverage
+from analysis.coverage.models.coverage import SetCoverage
 
 
 @dataclass(frozen=True, slots=True)

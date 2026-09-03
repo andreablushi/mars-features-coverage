@@ -10,8 +10,8 @@ from shapely import wkt as reading
 from shapely.geometry.base import BaseGeometry
 
 import utils.disk.paths as paths
-from analysis.coverage.records import load_set
-from analysis.coverage.results import SetCoverage
+from analysis.coverage.models.coverage import SetCoverage
+from analysis.metadata.loaders.observations import load_observations
 from analysis.models.instrument import InstrumentSet
 from utils.disk.slugify import slugify
 
@@ -63,7 +63,7 @@ def _published(feature_class: str, name: str, set_key: str) -> dict[str, BaseGeo
         return {}
     return {
         observation.pdsid: reading.loads(observation.wkt)
-        for observation in load_set(path).observations
+        for observation in load_observations(path).observations
     }
 
 

@@ -16,10 +16,11 @@ from rich.console import Console
 
 from analysis import planner
 from analysis.console import describe_coverage, describe_download, render
-from analysis.coverage.measuring import run_job as compute_coverage
+from analysis.coverage import measuring, projecting, writing
 from analysis.metadata import file_explorer
 from analysis.metadata.fetchers.products import fetch_products
 from analysis.metadata.loaders.features import load_features
+from analysis.metadata.loaders.observations import load_observations
 from analysis.models.job import Job, Outcome
 from analysis.models.progress import ProgressEvent
 from analysis.models.settings import Settings
@@ -42,6 +43,27 @@ def download_metadata(job: Job, client: ODEClient, loc: str) -> Outcome:
         records = fetch_products(client, job.feature, job.instrument_set, loc)
         write_jsonl(job.output_path, records)
         return Outcome(job=job)
+    except Exception as exc:
+        return Outcome(job=job, error=exc)
+
+
+def compute_coverage(job: Job, grid_cells: int) -> Outcome:
+    """Measure one instrument set's coverage of its feature and write it out.
+
+    Args:
+        job: The instrument set to compute.
+        grid_cells: How many cells one block of the feature's grid holds per axis.
+
+    Returns:
+        The outcome, carrying the error when the job failed.
+    """
+    try:
+        projected = projecting.project(load_observations(job.source))
+        if not projected.observations:
+            return Outcome(job=job, discarded=projected.discarded)
+        events, summary = measuring.measure_set(projected, grid_cells)
+        writing.write_coverage(job, events, summary)
+        return Outcome(job=job, events=len(events), discarded=projected.discarded)
     except Exception as exc:
         return Outcome(job=job, error=exc)
 
@@ -69,6 +91,7 @@ def _measuring(
     pool: ProcessPoolExecutor,
     fetched: list[Outcome],
     started: list[Future[Outcome]],
+    grid_cells: int,
     *,
     force: bool,
 ) -> Iterator[ProgressEvent]:
@@ -79,6 +102,7 @@ def _measuring(
         pool: The process pool the coverage jobs run on.
         fetched: The download outcomes, appended to as they arrive.
         started: The coverage futures, appended to as they are submitted.
+        grid_cells: How many cells one block of a feature's grid holds per axis.
         force: Whether to recompute a set that is already done.
 
     Yields:
@@ -90,7 +114,7 @@ def _measuring(
             source = event.outcome.job.output_path
             if source.stat().st_size:
                 for job in planner.coverage_plan([source], force=force).jobs:
-                    started.append(pool.submit(compute_coverage, job))
+                    started.append(pool.submit(compute_coverage, job, grid_cells))
         yield event
 
 
@@ -126,7 +150,8 @@ def run_pipeline(
             ThreadPoolExecutor(max_workers=settings.workers) as fetching,
         ):
             futures.extend(
-                computing.submit(compute_coverage, job) for job in backlog.jobs
+                computing.submit(compute_coverage, job, settings.grid_cells)
+                for job in backlog.jobs
             )
             stream = _measuring(
                 run_jobs(
@@ -137,6 +162,7 @@ def run_pipeline(
                 computing,
                 fetched,
                 futures,
+                settings.grid_cells,
                 force=settings.force,
             )
             with closing(stream) as events:

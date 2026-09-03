@@ -1,1 +1,1 @@
-"""The coverage computation itself: geometry, projection, and accumulation."""
+"""Footprint geometry on Mars: the projected feature, and what is cut to it."""

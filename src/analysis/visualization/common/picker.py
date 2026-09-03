@@ -8,8 +8,8 @@ import ipywidgets as widgets
 from IPython.display import display
 
 import analysis.utils.settings as settings
-from analysis.coverage import summary
-from analysis.coverage.results import SetCoverage
+from analysis.coverage import indexing
+from analysis.coverage.models.coverage import SetCoverage
 from analysis.metadata.loaders.features import load_features
 from analysis.visualization.common import panels
 from analysis.visualization.common.areas import Areas
@@ -70,7 +70,7 @@ class FeaturePicker(Areas[Coverage]):
             self._names.setdefault(feature.feature_class, []).append(feature.name)
         for names in self._names.values():
             names.sort()
-        self._computed = summary.computed_features()
+        self._computed = indexing.computed_features()
         self.selection: tuple[str, str] | None = None
         self.coverage: Coverage = []
         self._class = _dropdown(
@@ -145,7 +145,7 @@ class FeaturePicker(Areas[Coverage]):
         feature_class, name = self._class.value, self._name.value
         self.selection = (feature_class, name)
         if self._has_data(feature_class, name):
-            self.coverage = drawn_sets(summary.load_feature(feature_class, name))
+            self.coverage = drawn_sets(indexing.load_feature(feature_class, name))
             note = widgets.HTML(
                 f"Loaded <b>{feature_class} / {name}</b>. "
                 f"The cells below have filled in."

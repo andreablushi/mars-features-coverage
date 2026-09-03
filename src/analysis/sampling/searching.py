@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from analysis.coverage.results import SetCoverage
+from analysis.coverage.models.coverage import SetCoverage
 from analysis.sampling.models.study import Study
 from analysis.selector import algorithm
 from analysis.selector.models import track as timeline

@@ -20,25 +20,18 @@ class SectorGrid:
         caps: The ground in square metres each sector could ever hold.
     """
 
-    def __init__(
-        self,
-        region: FeatureRegion,
-        shapes: Sequence[BaseGeometry],
-        sectors: int | None = None,
-    ) -> None:
+    def __init__(self, region: FeatureRegion, shapes: Sequence[BaseGeometry]) -> None:
         """Lay a sector grid over one feature and index the shapes against it.
 
         Args:
             region: The projected feature the sectors cover.
             shapes: The projected footprints to index, in the order they are walked.
-            sectors: The sectors per axis, or None to size the grid to the footprints.
 
         Returns:
             None.
         """
         min_x, min_y, max_x, max_y = region.shape.bounds
-        if sectors is None:
-            sectors = _sectors_per_axis(max_x - min_x, max_y - min_y, shapes)
+        sectors = _sectors_per_axis(max_x - min_x, max_y - min_y, shapes)
         step_x, step_y = (max_x - min_x) / sectors, (max_y - min_y) / sectors
         self._shapes = np.asarray(shapes, dtype=object)
         self._rectangles = np.asarray(
@@ -102,10 +95,9 @@ def _sectors_per_axis(
     """
     boxes = bounds(np.asarray(shapes, dtype=object))
     spans = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
-    typical = (
-        float(np.sqrt(np.median(spans[spans > 0.0]))) if (spans > 0.0).any() else 0.0
-    )
-    if typical <= 0.0:
+    # A set whose every footprint met the feature edge on has no span to size by
+    if not (spans > 0.0).any():
         return configs.MAX_UNION_SECTORS
+    typical = float(np.sqrt(np.median(spans[spans > 0.0])))
     wanted = round(math.sqrt(width * height) / typical)
     return int(min(max(wanted, configs.MIN_UNION_SECTORS), configs.MAX_UNION_SECTORS))

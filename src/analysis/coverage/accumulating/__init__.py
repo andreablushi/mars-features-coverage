@@ -1,1 +1,1 @@
-"""Accumulating one instrument set's coverage of one feature through time."""
+"""Folding one instrument set's footprints together, as ground and as cells."""

@@ -6,7 +6,7 @@ import numpy as np
 from shapely import box, get_parts, get_type_id, intersection, is_empty
 from shapely.geometry.base import BaseGeometry
 
-from analysis.coverage.utils import geodesy
+from analysis.coverage.geometry import geodesy
 
 _LINESTRING = 1
 _POLYGON = 3

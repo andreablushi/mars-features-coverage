@@ -13,7 +13,7 @@ import ipywidgets as widgets
 from matplotlib import image as reading
 from matplotlib.axes import Axes
 
-from analysis.coverage.utils import geodesy
+from analysis.coverage.geometry import geodesy
 from analysis.visualization.common import panels
 from analysis.visualization.feature.plots.placing import Box
 

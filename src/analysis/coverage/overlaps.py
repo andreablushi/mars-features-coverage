@@ -1,14 +1,4 @@
-"""The ground the features share, counted once however many of them hold it.
-
-A feature is a bounding box, and the boxes overlap: a crater sits inside a
-terra sits inside a vastitas. Adding their grounds up therefore counts the same
-ground several times, and adding up what an instrument reached of each of them
-counts its work there several times too. Both are settled here by laying every
-feature onto one grid of Mars and counting each of its cells once.
-
-The measurement costs a pass over every observation the coverage stage left, so
-it is worked out once and kept beside the index it was read from.
-"""
+"""The ground the features share, counted once however many of them hold it."""
 
 from __future__ import annotations
 
@@ -21,11 +11,10 @@ import numpy as np
 import pyarrow.parquet as pq
 
 import utils.disk.paths as paths
-from analysis.coverage import configs
-from analysis.coverage import summary as index
+from analysis.coverage import configs, indexing
+from analysis.coverage.geometry import geodesy
 from analysis.coverage.geometry.region import FeatureRegion
-from analysis.coverage.results import Summary
-from analysis.coverage.utils import geodesy
+from analysis.coverage.models.summary import Summary
 from analysis.metadata.loaders.features import load_features
 from analysis.models.feature import Feature
 from analysis.utils.maths.mask import cells_of
@@ -94,17 +83,14 @@ def measure(root: Path = paths.ARTIFACTS_ROOT) -> Overlap:
     """
     grid = _Grid(configs.OVERLAP_CELL_KM)
     rows: dict[tuple[str, str], list[Summary]] = {}
-    for row in index.catalogued_rows(root):
+    for row in indexing.catalogued_rows(root):
         rows.setdefault((row.feature_class, row.feature_name), []).append(row)
     named = {(one.feature_class, one.name): one for one in load_features()}
     iids = sorted({row.iid for held in rows.values() for row in held})
     ground = np.zeros(grid.cells, dtype=bool)
     reached = {iid: np.zeros(grid.cells, dtype=bool) for iid in iids}
     for key, held in rows.items():
-        feature = named.get(key)
-        if feature is None:
-            continue
-        placed = grid.place(feature, held[0])
+        placed = grid.place(named[key], held[0])
         if placed is None:
             continue
         cells, local = placed
@@ -115,9 +101,8 @@ def measure(root: Path = paths.ARTIFACTS_ROOT) -> Overlap:
             continue
         ground[cells[inside]] = True
         for iid, covered in _covered(root, key).items():
-            if iid in reached:
-                hit = inside & _filled(covered, side)[local]
-                reached[iid][cells[hit]] = True
+            hit = inside & _filled(covered, side)[local]
+            reached[iid][cells[hit]] = True
     return Overlap(
         cell_km2=grid.cell_km2,
         ground_km2=float(ground.sum()) * grid.cell_km2,
@@ -170,8 +155,6 @@ class _Grid:
         """
         region = FeatureRegion(feature)
         west, south, east, north = region.shape.bounds
-        if east <= west or north <= south:
-            return None
         columns, rows = self._box(feature)
         if not columns.size or not rows.size:
             return None
@@ -252,7 +235,7 @@ def _covered(root: Path, key: tuple[str, str]) -> dict[str, np.ndarray]:
     Returns:
         The cells of the feature's own grid each instrument reached, by instrument.
     """
-    directory = paths.feature_artifacts_dir(root / "coverage", *key)
+    directory = paths.feature_artifacts_dir(root / paths.COVERAGE_ROOT.name, *key)
     found: dict[str, list[np.ndarray]] = {}
     for path in sorted(directory.glob(f"*{paths.EVENTS_SUFFIX}")):
         table = pq.read_table(path, columns=["iid", "mask"])

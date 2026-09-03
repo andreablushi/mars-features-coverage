@@ -1,4 +1,4 @@
-"""What previous runs produced: the coverage artifacts, and their index."""
+"""The coverage artifacts a run left: gathering them into an index, and reading it."""
 
 from __future__ import annotations
 
@@ -10,52 +10,36 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 import utils.disk.paths as paths
-from analysis.coverage.results import Event, SetCoverage, Summary
-from analysis.coverage.schemas import EVENTS, SUMMARY
+from analysis.coverage.models.coverage import Event, SetCoverage
+from analysis.coverage.models.summary import Summary
+from analysis.coverage.writing import EVENTS, SUMMARY
 from analysis.metadata import file_explorer
 from analysis.models.instrument import InstrumentSet
 from utils.disk.files import atomic_path
 from utils.disk.paths import catalog_summary_path, feature_artifacts_dir
 
 
-def finalise_feature(feature_dir: Path) -> int:
-    """Gather one feature's instrument set summaries into a single file.
+def reindex(
+    coverage_root: Path = paths.COVERAGE_ROOT,
+    artifacts_root: Path = paths.ARTIFACTS_ROOT,
+) -> int:
+    """Rebuild the per-feature and catalogue-wide summaries from disk.
 
     Args:
-        feature_dir: The feature's artifacts directory.
-
-    Returns:
-        The number of summary rows written, or zero when nothing is finished.
-    """
-    found = sorted(feature_dir.glob(f"*{paths.SET_SUMMARY_SUFFIX}"))
-    if not found:
-        return 0
-    return _concatenate(found, feature_dir / paths.SUMMARY_NAME)
-
-
-def reindex() -> int:
-    """Rebuild the per-feature and catalogue-wide summaries from disk.
+        coverage_root: The directory holding the per-feature artifacts.
+        artifacts_root: The artifacts root the catalogue index is written to.
 
     Returns:
         How many summary rows the catalogue index holds.
     """
-    for feature_dir in sorted(paths.COVERAGE_ROOT.glob("*/*")):
-        finalise_feature(feature_dir)
-    return rebuild(paths.ARTIFACTS_ROOT, paths.COVERAGE_ROOT)
-
-
-def rebuild(artifacts_root: Path, coverage_root: Path) -> int:
-    """Concatenate every per-feature summary into the catalogue index.
-
-    Args:
-        artifacts_root: The artifacts root directory the index is written to.
-        coverage_root: The directory holding the per-feature artifacts.
-
-    Returns:
-        The number of summary rows written.
-    """
-    found = sorted(coverage_root.glob(f"*/*/{paths.SUMMARY_NAME}"))
-    return _concatenate(found, catalog_summary_path(artifacts_root))
+    for feature_dir in sorted(coverage_root.glob("*/*")):
+        found = sorted(feature_dir.glob(f"*{paths.SET_SUMMARY_SUFFIX}"))
+        if found:
+            _concatenate(found, feature_dir / paths.SUMMARY_NAME)
+    return _concatenate(
+        sorted(coverage_root.glob(f"*/*/{paths.SUMMARY_NAME}")),
+        catalog_summary_path(artifacts_root),
+    )
 
 
 def _concatenate(found: list[Path], destination: Path) -> int:

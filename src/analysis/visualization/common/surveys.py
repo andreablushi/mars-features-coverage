@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import datetime
 
-from analysis.coverage.results import SetCoverage
+from analysis.coverage.models.coverage import SetCoverage
 from analysis.sampling import searching
 from analysis.sampling.models.study import Study
 from analysis.selector import configs as filtering

@@ -10,7 +10,7 @@ from rich.console import Console
 import analysis.utils.settings as settings
 from analysis import planner, runner
 from analysis.console import print_interrupted, print_summary
-from analysis.coverage import summary
+from analysis.coverage import indexing
 from analysis.metadata import file_explorer
 from analysis.models.progress import CoverageSummary, DownloadSummary
 
@@ -38,7 +38,7 @@ def main() -> int:
     print_summary(
         downloaded,
         computed,
-        summary.reindex(),
+        indexing.reindex(),
         planner.unfinished(file_explorer.find_sets()),
         console,
     )

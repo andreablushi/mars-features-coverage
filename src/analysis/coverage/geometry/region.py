@@ -1,4 +1,4 @@
-"""The feature a coverage measurement is made against, and the union over it."""
+"""The feature a coverage measurement is made against, projected once."""
 
 from __future__ import annotations
 
@@ -15,38 +15,12 @@ from shapely import (
     transform,
     union_all,
 )
-from shapely.geometry.base import BaseGeometry
 
 from analysis.coverage import configs
-from analysis.coverage.geometry import footprints
-from analysis.coverage.utils import geodesy
+from analysis.coverage.geometry import footprints, geodesy
 from analysis.models.feature import Feature
 
 _EMPTY = Polygon()
-
-
-def _merge_owned_parts(
-    parts: np.ndarray, owners: np.ndarray, shapes: np.ndarray
-) -> None:
-    """Put each footprint's parts back together as one shape.
-
-    Args:
-        parts: The projected single-part shapes.
-        owners: The index of the footprint each part came from.
-        shapes: The per-footprint results to fill in place.
-
-    Returns:
-        None.
-    """
-    order = np.argsort(owners, kind="stable")
-    parts, owners = parts[order], owners[order]
-    wanted = np.arange(shapes.size)
-    starts = np.searchsorted(owners, wanted, side="left")
-    ends = np.searchsorted(owners, wanted, side="right")
-    counts = ends - starts
-    shapes[counts == 1] = parts[starts[counts == 1]]
-    for index in np.nonzero(counts > 1)[0]:
-        shapes[index] = union_all(parts[starts[index] : ends[index]])
 
 
 def _mend(geometry):
@@ -67,7 +41,8 @@ class FeatureRegion:
     Attributes:
         centre_lon: The projection centre longitude in degrees.
         centre_lat: The projection centre latitude in degrees.
-        area_m2: The area of the bounding box in square metres.
+        shape: The bounding box as a polygon in equal-area metres.
+        area_m2: The area of that box in square metres.
     """
 
     def __init__(self, feature: Feature) -> None:
@@ -86,10 +61,11 @@ class FeatureRegion:
         )
         lons, lats = geodesy.bbox_ring(min_lat, max_lat, west_lon, east_lon)
         x, y = geodesy.laea_forward(lons, lats, self.centre_lon, self.centre_lat)
-        shape = Polygon(np.column_stack((x, y)))
-        self._shape = shape if is_valid(shape) else _mend(shape)
-        prepare(self._shape)
-        self.area_m2 = self._shape.area
+        box = Polygon(np.column_stack((x, y)))
+        # A box wide enough to wrap the planet crosses itself once projected
+        self.shape = box if is_valid(box) else _mend(box)
+        prepare(self.shape)
+        self.area_m2 = self.shape.area
         self._tight = footprints.clip_boxes(min_lat, max_lat, west_lon, east_lon)
         self._wide = footprints.clip_boxes(
             min_lat,
@@ -98,15 +74,6 @@ class FeatureRegion:
             east_lon,
             margin_deg=configs.LINE_CLIP_MARGIN_DEG,
         )
-
-    @property
-    def shape(self) -> BaseGeometry:
-        """Return the projected feature the footprints are cut to.
-
-        Returns:
-            The bounding box as a polygon in equal-area metres.
-        """
-        return self._shape
 
     def footprint_areas(
         self, geoms: np.ndarray, swath_widths_m: np.ndarray
@@ -137,11 +104,20 @@ class FeatureRegion:
         broken = ~is_valid(projected)
         if broken.any():
             projected[broken] = _mend(projected[broken])
-        _merge_owned_parts(projected, owners, shapes)
+        # Each footprint's parts are put back together as the one shape they were
+        order = np.argsort(owners, kind="stable")
+        projected, owners = projected[order], owners[order]
+        wanted = np.arange(shapes.size)
+        starts = np.searchsorted(owners, wanted, side="left")
+        ends = np.searchsorted(owners, wanted, side="right")
+        counts = ends - starts
+        shapes[counts == 1] = projected[starts[counts == 1]]
+        for index in np.nonzero(counts > 1)[0]:
+            shapes[index] = union_all(projected[starts[index] : ends[index]])
         # Whatever reached past the feature is cut back to it
-        outside = ~covers(self._shape, shapes)
+        outside = ~covers(self.shape, shapes)
         if outside.any():
-            shapes[outside] = intersection(shapes[outside], self._shape)
+            shapes[outside] = intersection(shapes[outside], self.shape)
         return shapes
 
     def _project(self, coords: np.ndarray) -> np.ndarray:

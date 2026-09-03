@@ -15,7 +15,7 @@ from digitalhub_runtime_python import handler
 import analysis.utils.settings as settings
 import utils.disk.paths as paths
 from analysis import console
-from analysis.coverage import summary
+from analysis.coverage import indexing
 from analysis.sampling import predicting, storing, sweeping
 from analysis.selector import configs as filtering
 
@@ -45,7 +45,7 @@ def save_predictions(project):
         paths.ARTIFACTS_ROOT,
     )
 
-    named = summary.catalogued_features()
+    named = indexing.catalogued_features()
     if not named:
         raise RuntimeError("the published measurements hold no feature to search")
     # A sweep published under the filter as it is written now need not run again

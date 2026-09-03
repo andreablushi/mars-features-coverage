@@ -14,7 +14,7 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.ticker import PercentFormatter
 
-from analysis.coverage.results import SetCoverage
+from analysis.coverage.models.coverage import SetCoverage
 
 GREY = "#8a8a8a"
 

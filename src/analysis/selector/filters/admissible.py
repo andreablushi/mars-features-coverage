@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from analysis.coverage.results import Event, SetCoverage
+from analysis.coverage.models.coverage import Event, SetCoverage
 from analysis.selector.models.filter import Filter
 from analysis.selector.models.grid import Grid
 from analysis.utils.maths import mask as packing

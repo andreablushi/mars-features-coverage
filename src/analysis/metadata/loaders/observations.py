@@ -1,4 +1,4 @@
-"""Reading one instrument set's downloaded observation metadata off disk."""
+"""Loading one instrument set's downloaded observations off disk."""
 
 from __future__ import annotations
 
@@ -6,18 +6,18 @@ from itertools import chain
 from pathlib import Path
 
 import analysis.utils.provenance as provenance
-from analysis.coverage.models.observation import LoadedSet, Observation
+from analysis.models.observation import Observation, ObservationSet
 from utils.disk.files import read_jsonl
 
 
-def load_set(path: Path) -> LoadedSet[Observation]:
+def load_observations(path: Path) -> ObservationSet:
     """Read the observations stored for one feature and instrument set.
 
     Args:
         path: The JSONL file holding the set's observations.
 
     Returns:
-        The set as stored.
+        The set as stored, in chronological order.
     """
     stored = read_jsonl(path)
     first = next(stored)
@@ -44,6 +44,6 @@ def load_set(path: Path) -> LoadedSet[Observation]:
             )
         )
     observations.sort(key=lambda observation: (observation.start, observation.pdsid))
-    return LoadedSet(
+    return ObservationSet(
         feature=box, set_key=set_key, observations=observations, discarded=discarded
     )

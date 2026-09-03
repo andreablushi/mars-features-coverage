@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from concurrent.futures import ProcessPoolExecutor
 
-from analysis.coverage import summary
+from analysis.coverage import indexing
 from analysis.sampling import configs, measuring, predicting, searching, storing
 from analysis.sampling.models.dataset import DatasetStats, SearchedFeature
 from analysis.selector import configs as filtering
@@ -39,7 +39,7 @@ def read_prediction(
     if _predicted is None:
         _predicted = still_current(storing.read_prediction())
     if _predicted is None:
-        swept = sweep(summary.catalogued_features(), workers, progress)
+        swept = sweep(indexing.catalogued_features(), workers, progress)
         _predicted = predicting.prediction(swept)
     return _predicted
 
@@ -82,7 +82,7 @@ def sweep(
         One entry per feature, in the order the features came in.
     """
     searched: list[SearchedFeature | None] = [None for _ in features]
-    observations = summary.catalogued_observations()
+    observations = indexing.catalogued_observations()
     busiest_first = sorted(
         range(len(features)), key=lambda at: -observations.get(features[at], 0)
     )
@@ -107,7 +107,7 @@ def _search_feature(feature: FeatureName) -> SearchedFeature | None:
         What the search left on it, and None where it has no set on disk.
     """
     feature_class, name = feature
-    coverage = summary.load_feature(feature_class, name)
+    coverage = indexing.load_feature(feature_class, name)
     if not coverage:
         return None
     study = searching.study_feature(coverage, filtering.FILTER)

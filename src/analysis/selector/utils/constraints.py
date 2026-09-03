@@ -6,7 +6,7 @@ import dataclasses
 import math
 from collections.abc import Sequence
 
-from analysis.coverage.results import SetCoverage
+from analysis.coverage.models.coverage import SetCoverage
 from analysis.selector.models.filter import Constraints, Filter
 from analysis.selector.models.grid import Grid
 from analysis.utils.maths import ground

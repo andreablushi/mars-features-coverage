@@ -6,13 +6,13 @@ from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
-from shapely import area, covers, prepare, union_all
+from shapely import Polygon, covers, prepare, union_all
 from shapely.errors import GEOSException
 from shapely.geometry.base import BaseGeometry
 
 from analysis.coverage import configs
+from analysis.coverage.accumulating.sectors import SectorGrid
 from analysis.coverage.geometry.region import FeatureRegion
-from analysis.coverage.geometry.sectors import SectorGrid
 
 
 def _robust(operation, *shapes):
@@ -69,13 +69,14 @@ def _sector_contributions(
     Returns:
         The ground in square metres this sector saw each observation cover first.
     """
-    covered: BaseGeometry | None = None
+    covered: BaseGeometry = Polygon()
     arrived: list[BaseGeometry] = []
     share: list[tuple[int, float]] = []
     limit = cap * (1.0 - configs.SATURATION_TOLERANCE)
     for start in range(0, reaching.size, configs.UNION_CHUNK):
-        chunk = reaching[start : start + configs.UNION_CHUNK]
-        indices, pieces = grid.clip(chunk, rectangle)
+        indices, pieces = grid.clip(
+            reaching[start : start + configs.UNION_CHUNK], rectangle
+        )
         if not indices.size:
             continue
         _record_first_cover(indices, pieces, covered, share)
@@ -90,7 +91,7 @@ def _sector_contributions(
 def _record_first_cover(
     indices: np.ndarray,
     pieces: np.ndarray,
-    covered: BaseGeometry | None,
+    covered: BaseGeometry,
     share: list[tuple[int, float]],
 ) -> None:
     """Record what each footprint in one chunk newly covers.
@@ -98,7 +99,7 @@ def _record_first_cover(
     Args:
         indices: The observation index of every piece, in order.
         pieces: The footprints clipped to the sector, in the same order.
-        covered: The sector's union before this chunk, or None when it is the first.
+        covered: The sector's union before this chunk, empty for the first.
         share: The sector's contributions so far, appended to in place.
 
     Returns:
@@ -106,11 +107,6 @@ def _record_first_cover(
     """
     running = covered
     for index, piece in zip(indices, pieces, strict=True):
-        if running is None:
-            share.append((int(index), area(piece)))
-            running = piece
-            prepare(running)
-            continue
         if covers(running, piece):
             continue
         merged = _robust(union_all, [running, piece])

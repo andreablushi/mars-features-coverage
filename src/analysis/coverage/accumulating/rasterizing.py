@@ -8,27 +8,11 @@ import numpy as np
 from shapely import contains_xy, prepare
 from shapely.geometry.base import BaseGeometry
 
-import analysis.utils.settings as settings
 from analysis.coverage import configs
 from analysis.coverage.geometry.region import FeatureRegion
 from analysis.utils.maths import mask as packing
 
 _NONE = np.empty(0, dtype=np.int64)
-
-
-def grid_for(span_m: float, grid_km: int, grid_cells: int) -> int:
-    """Give a feature a grid fine enough for how much ground it covers.
-
-    Args:
-        span_m: How wide the feature's box is, in metres.
-        grid_km: How wide one block of the grid is, in kilometres.
-        grid_cells: How many cells one block holds along each axis.
-
-    Returns:
-        How many cells the grid holds along each axis.
-    """
-    span_km = max(span_m, 0.0) / 1000.0
-    return max(1, math.ceil(span_km / grid_km)) * grid_cells
 
 
 class FeatureRaster:
@@ -41,22 +25,22 @@ class FeatureRaster:
         cell_km2: How much ground one cell covers.
     """
 
-    def __init__(self, region: FeatureRegion) -> None:
+    def __init__(self, region: FeatureRegion, grid_cells: int) -> None:
         """Lay the grid over one projected feature.
+
+        A feature is given a block of cells for every block of ground it spans,
+        so a large feature is measured on a finer grid rather than a coarser one.
 
         Args:
             region: The feature the footprints were cut to.
+            grid_cells: How many cells one block of the grid holds along each axis.
 
         Returns:
             None.
         """
         west, south, east, north = region.shape.bounds
-        config = settings.load()
-        side = grid_for(
-            math.sqrt((east - west) * (north - south)),
-            configs.GRID_KM,
-            config.grid_cells,
-        )
+        span_km = math.sqrt((east - west) * (north - south)) / 1000.0
+        side = max(1, math.ceil(span_km / configs.GRID_KM)) * grid_cells
         self.side = side
         self._eastings = west + (np.arange(side) + 0.5) * (east - west) / side
         self._northings = south + (np.arange(side) + 0.5) * (north - south) / side
@@ -89,8 +73,8 @@ class FeatureRaster:
         if shape.is_empty:
             return _NONE
         west, south, east, north = shape.bounds
-        columns = _between(self._eastings, west, east)
-        rows = _between(self._northings, south, north)
+        columns = np.nonzero((self._eastings >= west) & (self._eastings <= east))[0]
+        rows = np.nonzero((self._northings >= south) & (self._northings <= north))[0]
         if columns.size and rows.size:
             eastings, northings = np.meshgrid(
                 self._eastings[columns], self._northings[rows]
@@ -107,17 +91,3 @@ class FeatureRaster:
             column = int(np.abs(self._eastings - point.x).argmin())
             return np.array([row * self.side + column])
         return _NONE
-
-
-def _between(values: np.ndarray, low: float, high: float) -> np.ndarray:
-    """Return the indices of the cell centres falling inside one span.
-
-    Args:
-        values: The cell centres along one axis, in order.
-        low: The near edge of the span.
-        high: The far edge of the span.
-
-    Returns:
-        The indices of the centres between the two, in order.
-    """
-    return np.nonzero((values >= low) & (values <= high))[0]

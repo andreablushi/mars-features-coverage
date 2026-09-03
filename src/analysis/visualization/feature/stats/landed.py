@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from analysis.coverage.results import Event
+from analysis.coverage.models.coverage import Event
 from analysis.sampling.models.study import Study
 
 
