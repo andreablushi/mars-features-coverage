@@ -97,10 +97,10 @@ those.
 
 | Name | What it holds | Where it lands |
 | --- | --- | --- |
-| `artifacts` | the coverage measurements | `data/artifacts/` |
-| `metadata` | the ODE records behind them | `data/metadata/` |
-| `predictions` | what the filter would keep | `data/predictions/` |
-| `summary` | one row per feature and instrument set | `data/artifacts/` |
+| `artifacts` | the coverage measurements | `data/analysis/artifacts/` |
+| `metadata` | the ODE records behind them | `data/analysis/metadata/` |
+| `predictions` | what the filter would keep | `data/analysis/predictions/` |
+| `summary` | one row per feature and instrument set | `data/analysis/artifacts/` |
 
 ## Notebooks
 
@@ -123,8 +123,9 @@ configs/
 scripts/              # Entrypoints for the pipeline, local and DigitalHub
 notebooks/            # The two notebooks that read the results
 src/
-  ode/                # The ODE client, its settings, its errors
-  utils/disk/         # Project paths, atomic writes, slugs
+  utils/              # What both halves use
+    ode/              # The ODE client, its settings, its errors
+    disk/             # Project paths, atomic writes, slugs
   analysis/           # What the coverage survey measures and the notebooks read
     console.py        # Progress bar for console prints
     planner.py        # What each half has left to do
@@ -139,11 +140,14 @@ src/
       maths/          # Scaling, formatting, and cell packing
   building/           # What a downloaded observation is turned into
     preprocessing/    # One package per instrument, and what they share
-data/
-  _catalog/           # Cached ODE catalogs
-  metadata/           # Raw ODE records
-  predictions/        # What the filter made of the dataset
-  artifacts/
-    coverage/         # Coverage measurements
-    summary.parquet   # Every feature's summary rows together
+data/                 # Laid out as src is, each half owning what it writes
+  _catalog/           # Cached ODE catalogs, read by both halves
+  analysis/
+    metadata/         # Raw ODE records
+    artifacts/
+      coverage/       # Coverage measurements
+      summary.parquet # Every feature's summary rows together
+    predictions/      # What the filter made of the dataset
+  building/
+    preprocessing/    # One directory per instrument, holding its products
 ```

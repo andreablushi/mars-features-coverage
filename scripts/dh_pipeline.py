@@ -50,7 +50,7 @@ def archive(source: Path, name: str) -> Path:
         shutil.make_archive(
             str(paths.DATA_ROOT / name),
             "gztar",
-            root_dir=paths.DATA_ROOT,
+            root_dir=source.parent,
             base_dir=source.name,
         )
     )
@@ -83,7 +83,7 @@ def save_artifacts(project):
         name=ARTIFACTS_NAME,
         kind="artifact",
         source=str(packed),
-        description="Coverage events and summaries; unpack under data/.",
+        description="Coverage events and summaries; unpack under data/analysis/.",
     )
 
     # Register the index on its own too, so the console can preview it.
@@ -116,7 +116,9 @@ def save_artifacts(project):
             name=METADATA_NAME,
             kind="artifact",
             source=str(packed),
-            description="The ODE records behind each measurement; unpack under data/.",
+            description=(
+                "The ODE records behind each measurement; unpack under data/analysis/."
+            ),
         )
 
     # Report a partly failed run only once everything is safely uploaded.

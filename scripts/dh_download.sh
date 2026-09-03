@@ -8,10 +8,10 @@ usage: dh_download.sh [name ...]
 Brings down what the pipelines published and unpacks it under data/.
 With no name, every one of them comes down.
 
-  artifacts    the coverage measurements       -> data/artifacts
-  metadata     the ODE records behind them     -> data/metadata
-  predictions  what the filter would keep     -> data/predictions
-  summary      one row per feature and set     -> data/artifacts
+  artifacts    the coverage measurements       -> data/analysis/artifacts
+  metadata     the ODE records behind them     -> data/analysis/metadata
+  predictions  what the filter would keep      -> data/analysis/predictions
+  summary      one row per feature and set     -> data/analysis/artifacts
 EOF
 }
 
@@ -64,10 +64,10 @@ download_and_extract() {
 
 download() {
     case "$1" in
-        artifacts) download_and_extract artifact coverage-artifacts data/artifacts ;;
-        metadata) download_and_extract artifact coverage-metadata data/metadata ;;
-        predictions) download_and_extract artifact coverage-predictions data/predictions ;;
-        summary) download_and_extract dataitem coverage-summary data/artifacts shares ;;
+        artifacts) download_and_extract artifact coverage-artifacts data/analysis/artifacts ;;
+        metadata) download_and_extract artifact coverage-metadata data/analysis/metadata ;;
+        predictions) download_and_extract artifact coverage-predictions data/analysis/predictions ;;
+        summary) download_and_extract dataitem coverage-summary data/analysis/artifacts shares ;;
         *)
             echo "nothing is published under \`$1\`" >&2
             usage >&2

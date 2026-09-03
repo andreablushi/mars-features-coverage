@@ -86,7 +86,9 @@ def save_predictions(project):
         name=PREDICTIONS_NAME,
         kind="artifact",
         source=str(packed),
-        description="What the filter would make of the dataset; unpack under data/.",
+        description=(
+            "What the filter would make of the dataset; unpack under data/analysis/."
+        ),
     )
     print("done", flush=True)
     return prediction
@@ -113,9 +115,9 @@ def _unpack(downloaded: str, into: Path) -> None:
             raise RuntimeError(f"no measurements were downloaded into {path}")
         path = found[0]
     shutil.rmtree(into, ignore_errors=True)
-    paths.DATA_ROOT.mkdir(parents=True, exist_ok=True)
+    into.parent.mkdir(parents=True, exist_ok=True)
     with tarfile.open(path) as packed:
-        packed.extractall(paths.DATA_ROOT, filter="data")
+        packed.extractall(into.parent, filter="data")
 
 
 def main() -> int:
