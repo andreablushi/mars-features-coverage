@@ -6,7 +6,7 @@ import ipywidgets as widgets
 import numpy as np
 from matplotlib.ticker import FuncFormatter, MaxNLocator
 
-from analysis.stats.feature import landing, reading
+from analysis.stats.feature import landing, read
 from analysis.visualization.common import panels, quantities, wording
 from analysis.visualization.common.models.coverage import Coverage
 
@@ -35,7 +35,7 @@ def plot(coverage: Coverage) -> widgets.Widget:
     """Draw what each instrument lands on the feature, one observation at a time."""
     if not coverage:
         return panels.unavailable()
-    looks = reading.read_feature(coverage)
+    looks = read.read_feature(coverage)
     if looks is None:
         return panels.unavailable(_NOTHING)
     drawn = landing.landed_per_set(looks)

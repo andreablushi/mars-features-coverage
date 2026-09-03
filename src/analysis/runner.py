@@ -16,8 +16,8 @@ from rich.console import Console
 
 from analysis import planner
 from analysis.console import describe, render
-from analysis.coverage import computing
-from analysis.metadata import downloading, file_explorer
+from analysis.coverage import compute
+from analysis.metadata import download, file_explorer
 from analysis.metadata.loaders.features import load_features
 from analysis.models.job import Job, Outcome
 from analysis.models.progress import ProgressEvent
@@ -74,14 +74,14 @@ def run_pipeline(
             def measure(job: Job) -> Future[Outcome]:
                 """Put one coverage job on the pool, sized as the run is configured."""
                 return measuring.submit(
-                    computing.compute, job, settings.grid_cells, settings.union_threads
+                    compute.compute, job, settings.grid_cells, settings.union_threads
                 )
 
             def measured() -> Iterator[ProgressEvent]:
                 """Pass each download through, keeping it and measuring what landed."""
                 downloads = run_jobs(
                     plan.jobs,
-                    lambda job: downloading.download(job, client, settings.loc),
+                    lambda job: download.download(job, client, settings.loc),
                     fetching,
                 )
                 for event in downloads:

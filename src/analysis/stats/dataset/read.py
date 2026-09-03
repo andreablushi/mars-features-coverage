@@ -5,10 +5,10 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from concurrent.futures import ProcessPoolExecutor
 
-from analysis.coverage.artifacts import indexing
+from analysis.coverage.artifacts import index
 from analysis.selector.models.selection import Selection
-from analysis.stats.feature import measuring
-from analysis.stats.feature import reading as feature
+from analysis.stats.feature import measure
+from analysis.stats.feature import read as feature
 from analysis.stats.models.feature import FeatureStats
 
 # Called with how many features are read and how many there are
@@ -51,10 +51,10 @@ def _measure_one_feature(picked: Selection) -> FeatureStats | None:
         What those looks leave on it, and None where it has no measured set on
         disk or holds nothing measurable.
     """
-    coverage = indexing.load_feature(
+    coverage = index.load_feature(
         picked.feature.feature_class, picked.feature.feature_name
     )
     if not coverage:
         return None
     looks = feature.place_kept_looks(coverage, picked)
-    return None if looks is None else measuring.measured_feature(looks)
+    return None if looks is None else measure.measured_feature(looks)

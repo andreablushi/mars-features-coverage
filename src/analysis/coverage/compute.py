@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from analysis.coverage.artifacts import writing
-from analysis.coverage.measuring import measuring
-from analysis.coverage.projection import projecting
+from analysis.coverage.artifacts import write
+from analysis.coverage.measurement import measure
+from analysis.coverage.projection import project
 from analysis.metadata.loaders.observations import load_observations
 from analysis.models.job import Job, Outcome
 
@@ -21,11 +21,11 @@ def compute(job: Job, grid_cells: int, union_threads: int) -> Outcome:
         The outcome, carrying the error when the job failed.
     """
     try:
-        projected = projecting.project(load_observations(job.source))
+        projected = project.project(load_observations(job.source))
         if not projected.observations:
             return Outcome(job=job, discarded=projected.discarded)
-        events, summary = measuring.measure_set(projected, grid_cells, union_threads)
-        writing.write_coverage(job, events, summary)
+        events, summary = measure.measure_set(projected, grid_cells, union_threads)
+        write.write_coverage(job, events, summary)
         return Outcome(job=job, events=len(events), discarded=projected.discarded)
     except Exception as exc:
         return Outcome(job=job, error=exc)

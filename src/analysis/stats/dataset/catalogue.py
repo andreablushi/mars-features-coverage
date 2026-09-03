@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Sequence
 
-from analysis.coverage.artifacts import indexing
-from analysis.coverage.measuring import overlaps
+from analysis.coverage.artifacts import index
+from analysis.coverage.measurement import overlaps
 from analysis.coverage.models.summary import Summary
 from analysis.metadata.loaders.features import load_features
 from analysis.stats.models.catalogue import CatalogueStats, InstrumentStats
@@ -25,7 +25,7 @@ def read_catalogue() -> CatalogueStats:
     # One row per feature carries the grid, which every set of it shares
     by_feature: dict[tuple[str, str], Summary] = {}
     by_instrument: dict[str, list[Summary]] = {}
-    for row in indexing.catalogued_rows():
+    for row in index.catalogued_rows():
         by_feature.setdefault((row.feature_class, row.feature_name), row)
         by_instrument.setdefault(row.iid, []).append(row)
     km2_by_class: dict[str, list[float]] = {}

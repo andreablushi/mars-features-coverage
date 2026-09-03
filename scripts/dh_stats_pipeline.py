@@ -15,10 +15,10 @@ from digitalhub_runtime_python import handler
 import analysis.utils.settings as settings
 import utils.disk.paths as paths
 from analysis import console
-from analysis.coverage.artifacts import indexing
-from analysis.selector import selecting
-from analysis.stats.artifacts import storing
-from analysis.stats.dataset import aggregating, reading
+from analysis.coverage.artifacts import index
+from analysis.selector import select
+from analysis.stats.artifacts import store
+from analysis.stats.dataset import aggregate, read
 
 FUNCTION_NAME = "features-stats"
 HANDLER = "scripts.dh_stats_pipeline:save_stats"
@@ -47,13 +47,13 @@ def save_stats(project):
         paths.ARTIFACTS_ROOT,
     )
 
-    named = indexing.catalogued_features()
+    named = index.catalogued_features()
     if not named:
         raise RuntimeError("the published measurements hold no feature to search")
 
     workers = settings.load().workers
     print(f"selecting from {len(named):,} features on {workers} workers", flush=True)
-    picked = selecting.select_dataset(workers, console.logged("selection"))
+    picked = select.select_dataset(workers, console.logged("selection"))
     kept = sum(1 for one in picked if one.feature.kept)
     print(f"{kept:,} of {len(picked):,} features earned a place", flush=True)
     print("uploading the selection", flush=True)
@@ -69,9 +69,9 @@ def save_stats(project):
     # The stats are read off the selection just written, so they never stand
     # for a filter the selection no longer holds
     print(f"reading what the filter left of {len(picked):,} features", flush=True)
-    storing.write_stats_file(
-        aggregating.dataset_stats(
-            reading.measure_every_feature(picked, workers, console.logged("stats")),
+    store.write_stats_file(
+        aggregate.dataset_stats(
+            read.measure_every_feature(picked, workers, console.logged("stats")),
             len(picked),
         )
     )

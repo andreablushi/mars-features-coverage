@@ -8,7 +8,7 @@ import ipywidgets as widgets
 from matplotlib.colors import to_rgba
 from matplotlib.patches import Patch
 
-from analysis.stats.feature import reading
+from analysis.stats.feature import read
 from analysis.stats.models.feature import FeatureLooks
 from analysis.visualization.common import panels
 from analysis.visualization.common.models.coverage import Coverage
@@ -31,7 +31,7 @@ def plot(coverage: Coverage) -> widgets.Widget:
     if not coverage:
         return panels.unavailable()
     summary = coverage[0].summary
-    looks = reading.read_feature(coverage)
+    looks = read.read_feature(coverage)
     grid = placing.placed(
         summary.feature_class, summary.feature_name, summary.grid_side
     )

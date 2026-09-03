@@ -9,7 +9,7 @@ import numpy as np
 
 from building.preprocessing.common.pds import images
 from building.preprocessing.crism import configs
-from building.preprocessing.crism.cleaning import (
+from building.preprocessing.crism.correction import (
     atmospheric,
     bands_calibration,
     despike,

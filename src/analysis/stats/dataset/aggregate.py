@@ -6,7 +6,7 @@ import math
 from collections.abc import Sequence
 
 from analysis.stats import configs
-from analysis.stats.feature import measuring
+from analysis.stats.feature import measure
 from analysis.stats.models.dataset import Aggregate, ClassStats, DatasetStats
 from analysis.stats.models.feature import FeatureStats
 from analysis.stats.models.spread import Spread
@@ -39,7 +39,7 @@ def dataset_stats(measured: Sequence[FeatureStats], searched: int) -> DatasetSta
         # The share of a feature every instrument at once reaches, one by one
         overlap=Spread.over(
             [
-                measuring.ground_by_instrument_count(one.overlaps).get(len(iids), 0.0)
+                measure.ground_by_instrument_count(one.overlaps).get(len(iids), 0.0)
                 / one.window.area_km2
                 for one in grounded
             ]

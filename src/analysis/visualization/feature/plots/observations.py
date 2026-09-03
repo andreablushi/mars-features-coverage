@@ -5,7 +5,7 @@ from __future__ import annotations
 import ipywidgets as widgets
 from matplotlib.lines import Line2D
 
-from analysis.stats.feature import reading, series
+from analysis.stats.feature import read, series
 from analysis.visualization.common import panels
 from analysis.visualization.common.models.coverage import Coverage
 
@@ -18,7 +18,7 @@ def plot(coverage: Coverage) -> widgets.Widget:
     """Draw one stacked panel per instrument set, over the whole feature."""
     if not coverage:
         return panels.unavailable()
-    looks = reading.read_feature(coverage)
+    looks = read.read_feature(coverage)
     open_for = looks.open_for if looks else []
     timeless = looks.criteria.timeless if looks else frozenset()
     drawn = series.coverage_over_time(coverage)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from analysis.coverage.measuring.accumulating import fine_split, union
+from analysis.coverage.measurement.accumulation import fine_split, union
 from analysis.coverage.models.coverage import Event
 from analysis.coverage.models.observation import ProjectedSet
 from analysis.coverage.models.summary import Summary

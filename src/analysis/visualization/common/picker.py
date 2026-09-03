@@ -8,7 +8,7 @@ import ipywidgets as widgets
 from IPython.display import display
 
 import analysis.utils.settings as settings
-from analysis.coverage.artifacts import indexing
+from analysis.coverage.artifacts import index
 from analysis.metadata.loaders.features import load_features
 from analysis.visualization.common import panels
 from analysis.visualization.common.models.coverage import Coverage
@@ -33,7 +33,7 @@ class FeaturePicker:
             self._names.setdefault(feature.feature_class, []).append(feature.name)
         for names in self._names.values():
             names.sort()
-        self._computed = indexing.computed_features()
+        self._computed = index.computed_features()
         self.coverage: Coverage = []
         self._areas: list[tuple[widgets.Box, Callable[[Coverage], widgets.Widget]]] = []
         self._class = widgets.Dropdown(
@@ -84,7 +84,7 @@ class FeaturePicker:
             # The config says which sets are drawn, and in what order
             config = settings.load()
             wanted = config.plot_instrument_sets
-            loaded = indexing.load_feature(feature_class, name)
+            loaded = index.load_feature(feature_class, name)
             keys = {chosen.key for chosen in wanted or ()}
             kept = (
                 list(loaded)

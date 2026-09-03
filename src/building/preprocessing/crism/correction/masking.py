@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 
 from building.preprocessing.crism import configs
-from building.preprocessing.crism.cleaning import bands_calibration
+from building.preprocessing.crism.correction import bands_calibration
 from building.preprocessing.crism.models.mask import Mask
 
 

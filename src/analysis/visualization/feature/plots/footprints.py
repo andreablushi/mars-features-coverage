@@ -5,7 +5,7 @@ from __future__ import annotations
 import ipywidgets as widgets
 from matplotlib.lines import Line2D
 
-from analysis.stats.feature import reading
+from analysis.stats.feature import read
 from analysis.stats.models.feature import FeatureLooks
 from analysis.visualization.common import panels
 from analysis.visualization.common.models.colours import Colour
@@ -36,7 +36,7 @@ def plot(coverage: Coverage) -> widgets.Widget:
     )
     if grid is None:
         return panels.unavailable(mosaic.BASEMAP_FAILED.format(reason=mosaic.NO_BOX))
-    looks = reading.read_feature(coverage)
+    looks = read.read_feature(coverage)
     box = grid.box()
     title = panels.title(coverage)
     return mosaic.fetched(

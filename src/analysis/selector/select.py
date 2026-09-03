@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor
 
-from analysis.coverage.artifacts import indexing
+from analysis.coverage.artifacts import index
 from analysis.selector.artifacts import filter_config as filtering
 from analysis.selector.artifacts import write
 from analysis.selector.models.selection import (
@@ -32,9 +32,9 @@ def select_dataset(workers: int, progress: Progress | None = None) -> list[Selec
         What the search left of each feature, in catalogue order, leaving out a
         feature holding no measured set on disk.
     """
-    features = indexing.catalogued_features()
+    features = index.catalogued_features()
     found: list[Selection | None] = [None for _ in features]
-    observations = indexing.catalogued_observations()
+    observations = index.catalogued_observations()
     busiest_first = sorted(
         range(len(features)), key=lambda at: -observations.get(features[at], 0)
     )
@@ -102,7 +102,7 @@ def _searched(feature: FeatureName) -> Selection | None:
     Returns:
         Its rows, and None where it has no measured set on disk.
     """
-    coverage = indexing.load_feature(*feature)
+    coverage = index.load_feature(*feature)
     if not coverage:
         return None
     return selected(Study.over(coverage, filtering.FILTER))

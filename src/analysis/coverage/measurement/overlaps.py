@@ -11,7 +11,7 @@ import pyarrow.parquet as pq
 
 import utils.disk.paths as paths
 from analysis.coverage import configs
-from analysis.coverage.artifacts import indexing
+from analysis.coverage.artifacts import index
 from analysis.coverage.models.grid import PlanetGrid
 from analysis.coverage.models.overlap import Overlap
 from analysis.coverage.models.summary import Summary
@@ -65,7 +65,7 @@ def measure() -> Overlap:
         down=round(2.0 * radius_km / configs.OVERLAP_CELL_KM),
     )
     rows: dict[tuple[str, str], list[Summary]] = {}
-    for row in indexing.catalogued_rows():
+    for row in index.catalogued_rows():
         rows.setdefault((row.feature_class, row.feature_name), []).append(row)
     named = {(one.feature_class, one.name): one for one in load_features()}
     ground = np.zeros(grid.cells, dtype=bool)

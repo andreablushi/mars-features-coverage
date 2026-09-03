@@ -11,7 +11,7 @@ from shapely.errors import GEOSException
 from shapely.geometry.base import BaseGeometry
 
 from analysis.coverage import configs
-from analysis.coverage.measuring.accumulating import coarse_split
+from analysis.coverage.measurement.accumulation import coarse_split
 from analysis.coverage.models.region import FeatureRegion
 
 

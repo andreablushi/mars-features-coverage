@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import ipywidgets as widgets
 
-from analysis.stats.feature import measuring, reading
+from analysis.stats.feature import measure, read
 from analysis.visualization.common import panels, quantities, tables, wording
 from analysis.visualization.common.models.coverage import Coverage
 from analysis.visualization.common.models.tables import Row
@@ -18,10 +18,10 @@ def plot(coverage: Coverage) -> widgets.Widget:
     """Summarise what the search left on the feature on show."""
     if not coverage:
         return panels.unavailable()
-    looks = reading.read_feature(coverage)
+    looks = read.read_feature(coverage)
     if looks is None:
         return panels.unavailable(_NOTHING)
-    stats = measuring.measured_feature(looks)
+    stats = measure.measured_feature(looks)
     window = looks.window
     # A window it earned always says when it opened, so only a refusal reads as none
     lasted = (
@@ -61,7 +61,7 @@ def plot(coverage: Coverage) -> widgets.Widget:
             f"Ground reached by {wording.counted(shared, 'instrument')}",
             wording.ground(km2, window.area_km2),
         )
-        for shared, km2 in measuring.ground_by_instrument_count(stats.overlaps).items()
+        for shared, km2 in measure.ground_by_instrument_count(stats.overlaps).items()
     ]
     return tables.written(
         f"{panels.title(coverage)}  -  what it holds", _HEADINGS, rows
