@@ -6,8 +6,7 @@ from collections import Counter
 from collections.abc import Mapping, Sequence
 
 from analysis.sampling.models.feature import FeatureStats, InstrumentReach
-from analysis.sampling.models.study import Study
-from analysis.selector.models.survey import Survey
+from analysis.selector.models.survey import Study
 from analysis.selector.models.track import Track
 
 
@@ -24,7 +23,7 @@ def measured_feature(study: Study) -> FeatureStats | None:
     if track is None:
         return None
     survey = study.survey
-    kept = kept_observations(survey)
+    kept = survey.taken if survey else ()
     # What each instrument left inside the window, and which of them each cell holds
     cells_by_iid: dict[str, set[int]] = {}
     observations_by_iid: dict[str, int] = {}
@@ -76,20 +75,6 @@ def measured_feature(study: Study) -> FeatureStats | None:
         },
         overlaps=dict(sorted(overlaps.items(), key=lambda ground: -ground[1])),
     )
-
-
-def kept_observations(survey: Survey | None) -> tuple[int, ...]:
-    """Name every observation the feature keeps, in time order.
-
-    Args:
-        survey: The window it earned, or None when it earned none.
-
-    Returns:
-        The window's own observations and what came from outside it, oldest first.
-    """
-    if survey is None:
-        return ()
-    return tuple(sorted(set(survey.kept) | set(survey.standing)))
 
 
 def ground_by_instrument_count(

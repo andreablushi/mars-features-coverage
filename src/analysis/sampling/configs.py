@@ -5,9 +5,6 @@ from __future__ import annotations
 # How far past the whole feature a share may read before it is thrown out.
 SHARE_CEILING = 1.01
 
-# How many processes a sweep searches on when the caller names no number.
-DEFAULT_WORKERS = 8
-
 # What separates the instruments naming one piece of shared ground in a key.
 INSTRUMENTS_JOINED = "|"
 

@@ -17,22 +17,24 @@ import utils.disk.paths as paths
 from analysis import console
 from analysis.coverage.artifacts import indexing
 from analysis.sampling import predicting, storing, sweeping
+from analysis.selector import selecting
 
 FUNCTION_NAME = "features-prediction"
 HANDLER = "scripts.dh_prediction_pipeline:save_predictions"
 
 PREDICTIONS_NAME = "coverage-predictions"
+SELECTION_NAME = "coverage-selection"
 
 
-@handler(outputs=[PREDICTIONS_NAME])
+@handler(outputs=[SELECTION_NAME, PREDICTIONS_NAME])
 def save_predictions(project):
-    """Sweep the features under the filter and publish what it predicts.
+    """Select the dataset under the filter, and publish it with what it predicts.
 
     Args:
-        project: The DigitalHub project the prediction is logged into.
+        project: The DigitalHub project both archives are logged into.
 
     Returns:
-        The uploaded archive of the prediction.
+        The uploaded archives of the selection and of the prediction.
 
     Raises:
         RuntimeError: When the published measurements hold no feature to search.
@@ -47,6 +49,22 @@ def save_predictions(project):
     named = indexing.catalogued_features()
     if not named:
         raise RuntimeError("the published measurements hold no feature to search")
+
+    workers = settings.load().workers
+    print(f"selecting from {len(named):,} features on {workers} workers", flush=True)
+    picked = selecting.select_dataset(workers, console.logged("selection"))
+    kept = sum(1 for one in picked if one.feature.kept)
+    print(f"{kept:,} of {len(picked):,} features earned a place", flush=True)
+    print("uploading the selection", flush=True)
+    selection = project.log_artifact(
+        name=SELECTION_NAME,
+        kind="artifact",
+        source=str(dh_pipeline.archive(paths.SELECTION_ROOT, SELECTION_NAME)),
+        description=(
+            "The features and observations the filter keeps; "
+            "unpack under data/analysis/."
+        ),
+    )
     # A sweep published before need not run again
     held = None
     if project.list_artifacts(name=PREDICTIONS_NAME):
@@ -61,7 +79,6 @@ def save_predictions(project):
         print("nothing was published before, sweeping the whole catalogue", flush=True)
 
     if held is None:
-        workers = settings.load().workers
         print(
             f"sweeping {len(named):,} features under the filter on {workers} workers",
             flush=True,
@@ -90,7 +107,7 @@ def save_predictions(project):
         ),
     )
     print("done", flush=True)
-    return prediction
+    return selection, prediction
 
 
 def _unpack(downloaded: str, into: Path) -> None:

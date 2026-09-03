@@ -8,7 +8,7 @@ import ipywidgets as widgets
 from matplotlib.colors import to_rgba
 from matplotlib.patches import Patch
 
-from analysis.sampling.models.study import Study
+from analysis.selector.models.survey import Study
 from analysis.visualization.common import panels, surveys
 from analysis.visualization.common.picker import Coverage
 from analysis.visualization.feature.plots import mosaic, placing

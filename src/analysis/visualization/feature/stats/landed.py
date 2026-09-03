@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from analysis.coverage.models.coverage import Event
-from analysis.sampling.models.study import Study
+from analysis.selector.models.survey import Study
 
 
 @dataclass(frozen=True, slots=True)

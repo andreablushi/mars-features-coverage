@@ -6,8 +6,7 @@ import ipywidgets as widgets
 from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
 
-from analysis.sampling import measuring
-from analysis.sampling.models.study import Study
+from analysis.selector.models.survey import Study
 from analysis.visualization.common import panels, surveys
 from analysis.visualization.common.picker import Coverage
 from analysis.visualization.feature.plots import mosaic, outlines, placing
@@ -104,13 +103,13 @@ def _traces(
     Returns:
         The colour each instrument set was drawn in, by set label.
     """
-    track = study.track
-    if track is None:
+    track, survey = study.track, study.survey
+    if track is None or survey is None:
         return {}
     shapes = outlines.read(coverage)
     colours = panels.colours(track.labels)
     drawn: dict[str, panels.Colour] = {}
-    for index in measuring.kept_observations(study.survey):
+    for index in survey.taken:
         shape = shapes.get(track.observations[index].pdsid)
         if shape is None:
             continue

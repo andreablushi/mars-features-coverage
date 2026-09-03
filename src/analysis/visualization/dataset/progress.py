@@ -7,6 +7,7 @@ import time
 import ipywidgets as widgets
 from IPython.display import display
 
+import analysis.utils.settings as settings
 from analysis.sampling import sweeping
 from analysis.sampling.models.dataset import DatasetStats
 from analysis.visualization.common import panels
@@ -80,11 +81,10 @@ class _Bar:
         return time.monotonic() - self._started
 
 
-def read(workers: int = 8) -> DatasetStats:
+def read() -> DatasetStats:
     """Read what the filter makes of the dataset, showing any sweep it runs.
 
-    Args:
-        workers: How many processes to search on at once.
+    Any sweep it has to run searches on as many processes as `runner.yaml` asks.
 
     Returns:
         The stats the filter leaves over every measured feature.
@@ -106,7 +106,7 @@ def read(workers: int = 8) -> DatasetStats:
             shown = _Bar(total)
         shown.moved(done, total)
 
-    found = sweeping.read_prediction(workers, moved)
+    found = sweeping.read_prediction(settings.load().workers, moved)
     if shown is not None:
         shown.closed()
     return found

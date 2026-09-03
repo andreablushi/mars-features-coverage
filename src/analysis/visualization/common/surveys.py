@@ -6,10 +6,10 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from analysis.coverage.models.coverage import SetCoverage
-from analysis.sampling import searching
-from analysis.sampling.models.study import Study
+from analysis.selector import selecting
 from analysis.selector.artifacts import filter_config as filtering
 from analysis.selector.models.filter import Filter
+from analysis.selector.models.survey import Study
 
 Stretch = tuple[datetime, datetime]
 
@@ -53,7 +53,7 @@ def studied(
     if key not in _found:
         if len(_found) >= STUDY_CACHE:
             _found.clear()
-        _found[key] = searching.study_feature(coverage, criteria)
+        _found[key] = selecting.study_feature(coverage, criteria)
     return _found[key]
 
 
