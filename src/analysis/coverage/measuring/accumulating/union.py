@@ -11,7 +11,7 @@ from shapely.errors import GEOSException
 from shapely.geometry.base import BaseGeometry
 
 from analysis.coverage import configs
-from analysis.coverage.measuring.accumulating import split
+from analysis.coverage.measuring.accumulating import coarse_split
 from analysis.coverage.models.region import FeatureRegion
 
 
@@ -29,12 +29,12 @@ def new_ground(
         The ground in square metres each observation covered first, as it was given.
     """
     indexed = np.asarray(shapes, dtype=object)
-    grid = split.grid_over(region, indexed)
+    grid = coarse_split.grid_over(region, indexed)
     fresh = np.zeros(len(shapes), dtype=float)
     with ThreadPoolExecutor(max_workers=threads) as pool:
         for share in pool.map(
             lambda cell: _cell_contributions(indexed, *cell),
-            split.cells(grid, region, indexed),
+            coarse_split.cells(grid, region, indexed),
         ):
             for index, added in share:
                 fresh[index] += added
@@ -63,7 +63,7 @@ def _cell_contributions(
     share: list[tuple[int, float]] = []
     limit = cap * (1.0 - configs.SATURATION_TOLERANCE)
     for start in range(0, reaching.size, configs.UNION_CHUNK):
-        indices, pieces = split.clip(
+        indices, pieces = coarse_split.clip(
             shapes, reaching[start : start + configs.UNION_CHUNK], rectangle
         )
         if not indices.size:

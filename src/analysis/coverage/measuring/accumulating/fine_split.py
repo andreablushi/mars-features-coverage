@@ -1,4 +1,4 @@
-"""Every observation as cells of its feature, so any subset can be unioned later."""
+"""Splitting a feature into the fine cells its coverage is published on, for detail."""
 
 from __future__ import annotations
 
@@ -11,7 +11,6 @@ from shapely.geometry.base import BaseGeometry
 from analysis.coverage import configs
 from analysis.coverage.models.grid import Grid
 from analysis.coverage.models.region import FeatureRegion
-from analysis.utils.maths import mask as packing
 
 _NONE = np.empty(0, dtype=np.int64)
 
@@ -20,7 +19,9 @@ def grid_over(region: FeatureRegion, grid_cells: int) -> Grid:
     """Give one feature a grid fine enough for the ground it covers.
 
     A feature is given a block of cells for every block of ground it spans, so a
-    large feature is measured on a finer grid rather than a coarser one.
+    large feature is measured on a finer grid rather than a coarser one. These
+    cells are written into the artifacts and read back by the selector, so their
+    size is the resolution every later stage reasons about the feature at.
 
     Args:
         region: The feature the footprints were cut to.
@@ -70,16 +71,3 @@ def filled(grid: Grid, shape: BaseGeometry) -> np.ndarray:
         column = int(np.abs(eastings - point.x).argmin())
         return np.array([row * grid.side + column])
     return _NONE
-
-
-def pack(grid: Grid, cells: np.ndarray) -> bytes:
-    """Pack the cells a shape fills into whichever form is smaller.
-
-    Args:
-        grid: The grid those cells belong to.
-        cells: The indices of the cells filled, in ascending order.
-
-    Returns:
-        The cells packed as a bitmap or as a list, whichever is shorter.
-    """
-    return packing.encode(cells, grid.side**2)

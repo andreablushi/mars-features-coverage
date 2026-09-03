@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import numpy as np
 
-from analysis.coverage.measuring.accumulating import rasterizing, union
+from analysis.coverage.measuring.accumulating import fine_split, union
 from analysis.coverage.models.coverage import Event
 from analysis.coverage.models.observation import ProjectedSet
 from analysis.coverage.models.summary import Summary
+from analysis.utils.maths import mask as packing
 
 
 def measure_set(
@@ -27,8 +28,8 @@ def measure_set(
     observations = projected.observations
     fresh = union.new_ground(region, [one.shape for one in observations], union_threads)
     cumulative = np.cumsum(fresh)
-    grid = rasterizing.grid_over(region, grid_cells)
-    inside = rasterizing.filled(grid, region.shape)
+    grid = fine_split.grid_over(region, grid_cells)
+    inside = fine_split.filled(grid, region.shape)
     events = [
         Event(
             feature_class=feature.feature_class,
@@ -45,7 +46,9 @@ def measure_set(
             cum_frac=float(covered) / region.area_m2,
             width_km=observation.width_km,
             pixels=observation.shape.area / 1e6 / observation.pixel_km2,
-            mask=rasterizing.pack(grid, rasterizing.filled(grid, observation.shape)),
+            mask=packing.encode(
+                fine_split.filled(grid, observation.shape), grid.side**2
+            ),
         )
         for observation, first_seen, covered in zip(
             observations, fresh, cumulative, strict=True
@@ -70,5 +73,5 @@ def measure_set(
         pixels=sum(event.pixels for event in events),
         grid_side=grid.side,
         cell_km2=grid.cell_area_m2 / 1e6,
-        grid_mask=rasterizing.pack(grid, inside),
+        grid_mask=packing.encode(inside, grid.side**2),
     )

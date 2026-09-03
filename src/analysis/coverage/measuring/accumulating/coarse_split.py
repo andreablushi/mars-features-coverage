@@ -1,4 +1,4 @@
-"""Splitting one set's footprints across a grid, so a union stays local to a cell."""
+"""Splitting a feature into cells about the size of a footprint, for speed alone."""
 
 from __future__ import annotations
 
@@ -18,7 +18,9 @@ def grid_over(region: FeatureRegion, shapes: Sequence[BaseGeometry]) -> Grid:
     """Size a grid to the footprints it will hold, and lay it over the feature.
 
     A cell is kept near the size of a typical footprint, so each insert into a
-    cell's union touches a small shape.
+    cell's union touches a small shape. These cells are scratch and never leave
+    the union: cutting the same ground more finely gives the same answer, only
+    far slower, which is what the fine split is for instead.
 
     Args:
         region: The projected feature the cells cover.
