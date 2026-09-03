@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from analysis.coverage.measuring import union
-from analysis.coverage.measuring.rasterizing import FeatureRaster
+from analysis.coverage.measuring.accumulating import union
+from analysis.coverage.measuring.accumulating.rasterizing import FeatureRaster
 from analysis.coverage.models.coverage import Event
 from analysis.coverage.models.observation import ProjectedSet
 from analysis.coverage.models.summary import Summary

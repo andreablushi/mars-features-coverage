@@ -11,7 +11,7 @@ from shapely.errors import GEOSException
 from shapely.geometry.base import BaseGeometry
 
 from analysis.coverage import configs
-from analysis.coverage.measuring.sectors import SectorGrid
+from analysis.coverage.measuring.accumulating.sectors import SectorGrid
 from analysis.coverage.projection.region import FeatureRegion
 
 
