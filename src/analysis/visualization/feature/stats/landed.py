@@ -42,10 +42,14 @@ def read(study: Study) -> list[Landed]:
     counted: list[list[float]] = [[] for _ in track.labels]
     for index, owner in enumerate(track.owners):
         counted[owner].append(
-            _pixels(track.observations[index], len(track.cells[index]), track.cell_km2)
+            _pixels(
+                track.observations[index],
+                len(track.cells[index]),
+                track.grid.cell_km2,
+            )
         )
     for observation, owner, cells in track.refused:
-        counted[owner].append(_pixels(observation, len(cells), track.cell_km2))
+        counted[owner].append(_pixels(observation, len(cells), track.grid.cell_km2))
     return [
         Landed(
             label=track.labels[owner],

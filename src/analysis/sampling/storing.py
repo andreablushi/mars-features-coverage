@@ -33,13 +33,12 @@ def prediction_path(root: Path = paths.PREDICTIONS_ROOT) -> Path:
 
 
 def write_prediction(
-    predicted: DatasetStats, digest: str, root: Path = paths.PREDICTIONS_ROOT
+    predicted: DatasetStats, root: Path = paths.PREDICTIONS_ROOT
 ) -> Path:
     """Write out what the filter made of the dataset.
 
     Args:
         predicted: The stats the sweep left.
-        digest: The fingerprint of the filter it was swept under.
         root: The directory to write it in, made when it is missing.
 
     Returns:
@@ -48,14 +47,12 @@ def write_prediction(
     path = prediction_path(root)
     with atomic_path(path) as tmp:
         tmp.write_text(
-            json.dumps(_as_json(predicted, digest), indent=1) + "\n", encoding="utf-8"
+            json.dumps(_as_json(predicted), indent=1) + "\n", encoding="utf-8"
         )
     return path
 
 
-def read_prediction(
-    root: Path = paths.PREDICTIONS_ROOT,
-) -> tuple[str, DatasetStats] | None:
+def read_prediction(root: Path = paths.PREDICTIONS_ROOT) -> DatasetStats | None:
     """Read back what a previous run made of the dataset.
 
     A file written under an older shape, or one nothing can be read from at all,
@@ -65,8 +62,7 @@ def read_prediction(
         root: The directory the file was written in.
 
     Returns:
-        The digest it was filed under and the stats it holds, or None where
-        there is nothing to read back.
+        The stats it holds, or None where there is nothing to read back.
     """
     path = prediction_path(root)
     if not path.is_file():
@@ -76,19 +72,18 @@ def read_prediction(
         shape = saved.get("shape")
         if shape != configs.PREDICTION_SHAPE:
             raise ValueError(f"shape {shape!r}, not {configs.PREDICTION_SHAPE}")
-        return (saved["digest"], _from_json(saved))
+        return _from_json(saved)
     except Exception as why:
         # A file that cannot be read leaves no answer but to sweep again
         print(f"{path.name} cannot be read back ({why}), so the sweep runs again")
         return None
 
 
-def _as_json(stats: DatasetStats, digest: str) -> dict[str, Any]:
+def _as_json(stats: DatasetStats) -> dict[str, Any]:
     """Lay the stats out as the file holds them.
 
     Args:
         stats: What the filter made of the dataset.
-        digest: The fingerprint it is filed under.
 
     Returns:
         What the file is written from.
@@ -96,7 +91,6 @@ def _as_json(stats: DatasetStats, digest: str) -> dict[str, Any]:
     held = stats.held
     return {
         "shape": configs.PREDICTION_SHAPE,
-        "digest": digest,
         "features": stats.features,
         "classes": {
             name: [held.selected, _spreads(held.taken)]

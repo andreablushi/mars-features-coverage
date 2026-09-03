@@ -17,7 +17,6 @@ import utils.disk.paths as paths
 from analysis import console
 from analysis.coverage.artifacts import indexing
 from analysis.sampling import predicting, storing, sweeping
-from analysis.selector import configs as filtering
 
 FUNCTION_NAME = "features-prediction"
 HANDLER = "scripts.dh_prediction_pipeline:save_predictions"
@@ -48,7 +47,7 @@ def save_predictions(project):
     named = indexing.catalogued_features()
     if not named:
         raise RuntimeError("the published measurements hold no feature to search")
-    # A sweep published under the filter as it is written now need not run again
+    # A sweep published before need not run again
     held = None
     if project.list_artifacts(name=PREDICTIONS_NAME):
         print("fetching the prediction published before", flush=True)
@@ -56,7 +55,7 @@ def save_predictions(project):
             project.get_artifact(PREDICTIONS_NAME).download(overwrite=True),
             paths.PREDICTIONS_ROOT,
         )
-        held = sweeping.still_current(storing.read_prediction())
+        held = storing.read_prediction()
         print(f"kept from it: {'the sweep' if held else 'nothing'}", flush=True)
     else:
         print("nothing was published before, sweeping the whole catalogue", flush=True)
@@ -71,9 +70,9 @@ def save_predictions(project):
             sweeping.sweep(named, workers, console.logged("sweep"))
         )
     else:
-        print("the filter is published as it is written, nothing to sweep", flush=True)
+        print("a sweep is published already, nothing to sweep", flush=True)
 
-    written = storing.write_prediction(held, filtering.digest())
+    written = storing.write_prediction(held)
     # A file left by an older layout names no sweep, so it is cleared
     for path in sorted(paths.PREDICTIONS_ROOT.glob("*.json")):
         if path != written:

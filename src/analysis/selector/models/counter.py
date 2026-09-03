@@ -51,7 +51,7 @@ class Counter:
         Returns:
             The counter, counting that stretch.
         """
-        counter = cls.empty(track.iids, track.grid_cells)
+        counter = cls.empty(track.iids, track.grid.cells)
         for index in range(first, last + 1):
             counter.hold(track.owners[index], track.cells[index])
         return counter

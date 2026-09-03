@@ -8,7 +8,7 @@ from datetime import datetime
 from analysis.coverage.models.coverage import SetCoverage
 from analysis.sampling import searching
 from analysis.sampling.models.study import Study
-from analysis.selector import configs as filtering
+from analysis.selector.artifacts import filter_config as filtering
 from analysis.selector.models.filter import Filter
 
 Stretch = tuple[datetime, datetime]

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from analysis.sampling import measuring
 from analysis.sampling.models.feature import FeatureStats
-from analysis.selector import configs as filtering
+from analysis.selector.artifacts import filter_config as filtering
 from analysis.selector.models.counter import Counter
 from analysis.utils.maths import ground
 from analysis.visualization.common import surveys
@@ -62,7 +62,7 @@ def best(coverage: Coverage) -> list[Shortfall]:
     whole: dict[str, float] = {}
     for owner, iid in enumerate(track.iids):
         filled = ground.share(
-            counter.cells_reached[owner], track.cell_km2, track.area_km2
+            counter.cells_reached[owner], track.grid.cell_km2, track.grid.area_km2
         )
         whole[iid] = max(whole.get(iid, 0.0), filled)
     return [

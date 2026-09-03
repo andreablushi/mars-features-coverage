@@ -3,8 +3,7 @@
 A sweep of the whole catalogue costs minutes, and every section of a notebook
 reads the same one, so the stats it leaves are held here from the first section
 that asks for them. A run of the prediction pipeline leaves its own sweep on
-disk, which is read first, and only a filter neither of them holds is searched
-again.
+disk, which is read first, and only a catalogue with none is swept again.
 """
 
 from __future__ import annotations
@@ -15,7 +14,7 @@ from concurrent.futures import ProcessPoolExecutor
 from analysis.coverage.artifacts import indexing
 from analysis.sampling import configs, measuring, predicting, searching, storing
 from analysis.sampling.models.dataset import DatasetStats, SearchedFeature
-from analysis.selector import configs as filtering
+from analysis.selector.artifacts import filter_config as filtering
 
 FeatureName = tuple[str, str]
 Progress = Callable[[int, int], None]
@@ -37,29 +36,11 @@ def read_prediction(
     """
     global _predicted
     if _predicted is None:
-        _predicted = still_current(storing.read_prediction())
+        _predicted = storing.read_prediction()
     if _predicted is None:
         swept = sweep(indexing.catalogued_features(), workers, progress)
         _predicted = predicting.prediction(swept)
     return _predicted
-
-
-def still_current(
-    published: tuple[str, DatasetStats] | None,
-) -> DatasetStats | None:
-    """Keep a published sweep only while the filter is still written as it was.
-
-    Args:
-        published: The digest the sweep was filed under and its stats, or None
-            where nothing was published.
-
-    Returns:
-        The stats when they need not be swept again, and None otherwise.
-    """
-    # A filter rewritten since it was published has to be searched again
-    if published is None or published[0] != filtering.digest():
-        return None
-    return published[1]
 
 
 def sweep(

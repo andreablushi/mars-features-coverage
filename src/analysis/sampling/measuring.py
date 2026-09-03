@@ -39,7 +39,7 @@ def measured_feature(study: Study) -> FeatureStats | None:
     for cell in sorted(iids_by_cell):
         instrument_names = tuple(sorted(iids_by_cell[cell]))
         overlaps[instrument_names] = (
-            overlaps.get(instrument_names, 0.0) + track.cell_km2
+            overlaps.get(instrument_names, 0.0) + track.grid.cell_km2
         )
     # A pixel is the same size whether or not its look was chosen, so every
     # observation offered to the feature is read and not only the ones kept
@@ -50,7 +50,7 @@ def measured_feature(study: Study) -> FeatureStats | None:
         if iid not in pixel_km2 and observation.pixels and observation.own_km2:
             pixel_km2[iid] = observation.own_km2 / observation.pixels
     return FeatureStats(
-        area_km2=track.area_km2,
+        area_km2=track.grid.area_km2,
         kept=survey is not None,
         start=survey.start if survey else None,
         end=survey.end if survey else None,
@@ -68,7 +68,7 @@ def measured_feature(study: Study) -> FeatureStats | None:
         pixel_km2=pixel_km2,
         reached={
             iid: InstrumentReach(
-                km2=len(cells_reached) * track.cell_km2,
+                km2=len(cells_reached) * track.grid.cell_km2,
                 pixels=_pixels_landed(track, kept, iid),
                 observations_taken=observations_by_iid[iid],
             )
@@ -141,6 +141,6 @@ def _pixels_landed(track: Track, kept: Sequence[int], iid: str) -> float | None:
         observation = track.observations[index]
         if observation.pixels is None or not observation.own_km2:
             return None
-        ground_km2 = len(track.cells[index]) * track.cell_km2
+        ground_km2 = len(track.cells[index]) * track.grid.cell_km2
         total += observation.pixels * ground_km2 / observation.own_km2
     return total

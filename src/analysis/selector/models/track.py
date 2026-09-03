@@ -25,9 +25,7 @@ class Track:
         cells: The feature's cells each fills, in the same order, each named once.
         labels: The name of each set, in the order owners index them.
         iids: The instrument each set belongs to, in the same order.
-        grid_cells: How many cells the feature's grid holds.
-        area_km2: How much ground the feature covers.
-        cell_km2: How much ground one cell covers.
+        grid: The grid the feature is searched over.
         refused: The observations left off the axis, each with the set it belongs
             to and the cells it fills, oldest first.
     """
@@ -38,9 +36,7 @@ class Track:
     cells: list[np.ndarray]
     labels: list[str]
     iids: list[str]
-    grid_cells: int
-    area_km2: float
-    cell_km2: float
+    grid: Grid
     refused: admissible.Held
 
 
@@ -71,8 +67,6 @@ def build(
         cells=[np.asarray(cells, dtype=np.intp) for _, _, cells in held],
         labels=[instrument.label for instrument in coverage],
         iids=[instrument.summary.iid for instrument in coverage],
-        grid_cells=grid.cells,
-        area_km2=grid.area_km2,
-        cell_km2=grid.cell_km2,
+        grid=grid,
         refused=sorted(refused, key=lambda item: item[0].t_start),
     )

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import math
 from bisect import bisect_left
+from collections.abc import Sequence
 
 from analysis.selector import configs
 from analysis.selector.filters import redundancy, timeless
@@ -12,7 +14,9 @@ from analysis.selector.models.filter import Constraints, Filter
 from analysis.selector.models.survey import Survey
 from analysis.selector.models.track import Track
 from analysis.selector.models.window import Window
-from analysis.selector.utils import scoring
+from analysis.utils.maths import ground
+
+_PRICE_PER_DAY = 0.01 / configs.DAYS_PER_PERCENT
 
 
 def search(track: Track, criteria: Filter) -> Survey | None:
@@ -37,13 +41,13 @@ def search(track: Track, criteria: Filter) -> Survey | None:
     if picked is None:
         return None
     # Clean up the record to only what is worth keeping, and report reached
-    kept, geo_mean = redundancy.trimmed(track, picked, windowed, configs.GAIN)
+    kept, reached = redundancy.trimmed(track, picked, windowed, configs.GAIN)
     return Survey(
-        area_km2=track.area_km2,
+        area_km2=track.grid.area_km2,
         start=track.observations[kept[0]].t_start,
         end=track.observations[kept[-1]].t_start,
         days=track.times[kept[-1]] - track.times[kept[0]],
-        geo_mean=geo_mean,
+        geo_mean=_scored(track, reached),
         kept=tuple(kept),
         dropped=picked.last - picked.first + 1 - len(kept),
         standing=timeless.fresh_looks(track, criteria.timeless),
@@ -81,7 +85,7 @@ def _best(track: Track, windowed: Constraints, criteria: Filter) -> Window | Non
             counts = coverage_constraints(windowed, reached)
             if counts is None:
                 continue  # the window does not hold what the filter asks
-            paid = scoring.scored(track, counts, days)
+            paid = _scored(track, counts, days)
             if paid > worth:
                 best, worth = Window(left, right, days), paid
     return best
@@ -108,3 +112,19 @@ def _looked_before(track: Track) -> list[list[int]]:
         before.sort()
         looked.append(before)
     return looked
+
+
+def _scored(track: Track, counts: Sequence[int], days: float = 0.0) -> float:
+    """Score what a window reaches, less what the days it runs for cost it.
+
+    Args:
+        track: The observations on one time axis.
+        counts: The cells each constraint reaches, one count per constraint.
+        days: How long the window runs, charged against the ground it reaches.
+
+    Returns:
+        The constraints rooted together as a share of the feature, less their days.
+    """
+    rooted = math.prod(counts) ** (1.0 / len(counts))
+    geo_mean = ground.share(rooted, track.grid.cell_km2, track.grid.area_km2)
+    return geo_mean - _PRICE_PER_DAY * days
