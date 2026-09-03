@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -70,6 +71,7 @@ def load(path: Path = paths.RUNNER_CONFIG_PATH) -> Settings:
             f"loc should be one of {download_configs.LOC_MODES}, found {loc!r}"
         )
     plotted = _setting(config, "plot_instruments", list, required=False)
+    workers = _setting(config, "workers", int)
     return Settings(
         grid_cells=_setting(config, "grid_cells", int),
         instrument_sets=tuple(
@@ -82,5 +84,7 @@ def load(path: Path = paths.RUNNER_CONFIG_PATH) -> Settings:
         keep_metadata=_setting(config, "keep_metadata", bool),
         force=_setting(config, "force", bool),
         refresh_catalog=_setting(config, "refresh_catalog", bool),
-        workers=_setting(config, "workers", int),
+        workers=workers,
+        # The coverage jobs run side by side, so each takes a share of the machine
+        union_threads=max(1, (os.process_cpu_count() or 1) // workers),
     )

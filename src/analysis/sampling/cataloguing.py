@@ -21,7 +21,7 @@ def read_catalogue() -> CatalogueStats:
     """
     catalogued = load_features()
     # What the features hold once, since their boxes overlap one another
-    shared = overlaps.read()
+    shared = overlaps.overlaps()
     # One row per feature carries the grid, which every set of it shares
     by_feature: dict[tuple[str, str], Summary] = {}
     by_instrument: dict[str, list[Summary]] = {}

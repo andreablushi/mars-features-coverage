@@ -9,13 +9,16 @@ from analysis.models.job import Job
 from analysis.models.observation import ObservationSet
 
 
-def compute(job: Job, loaded: ObservationSet, grid_cells: int) -> tuple[int, int]:
+def compute(
+    job: Job, loaded: ObservationSet, grid_cells: int, union_threads: int
+) -> tuple[int, int]:
     """Measure one instrument set's coverage of its feature and write it out.
 
     Args:
         job: The instrument set being computed, naming both destinations.
         loaded: The set's stored observations, in chronological order.
         grid_cells: How many cells one block of the feature's grid holds per axis.
+        union_threads: How many of the feature's cells to accumulate at once.
 
     Returns:
         How many observation rows were written, and how many records were discarded.
@@ -23,6 +26,6 @@ def compute(job: Job, loaded: ObservationSet, grid_cells: int) -> tuple[int, int
     projected = projecting.project(loaded)
     if not projected.observations:
         return 0, projected.discarded
-    events, summary = measuring.measure_set(projected, grid_cells)
+    events, summary = measuring.measure_set(projected, grid_cells, union_threads)
     writing.write_coverage(job, events, summary)
     return len(events), projected.discarded

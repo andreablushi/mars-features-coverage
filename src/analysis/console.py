@@ -40,12 +40,15 @@ def describe_download(plan: Plan, workers: int, console: Console) -> None:
     )
 
 
-def describe_coverage(plan: Plan, workers: int, console: Console) -> None:
+def describe_coverage(
+    plan: Plan, workers: int, union_threads: int, console: Console
+) -> None:
     """Print the initial state of the coverage plan.
 
     Args:
         plan: The plan produced by the coverage planner.
         workers: The effective worker count.
+        union_threads: How many threads each of those workers accumulates on.
         console: The console to print on.
 
     Returns:
@@ -54,7 +57,7 @@ def describe_coverage(plan: Plan, workers: int, console: Console) -> None:
     console.print(
         f"coverage: {plan.feature_count} features, {plan.set_count} instrument sets, "
         f"{len(plan.jobs)} to compute, {plan.skipped_existing} already done, "
-        f"{workers} workers"
+        f"{workers} workers x {union_threads} threads"
     )
 
 

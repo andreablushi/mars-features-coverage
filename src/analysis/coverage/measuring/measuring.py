@@ -4,30 +4,31 @@ from __future__ import annotations
 
 import numpy as np
 
-from analysis.coverage.measuring.accumulating import union
-from analysis.coverage.measuring.accumulating.rasterizing import FeatureRaster
+from analysis.coverage.measuring.accumulating import rasterizing, union
 from analysis.coverage.models.coverage import Event
 from analysis.coverage.models.observation import ProjectedSet
 from analysis.coverage.models.summary import Summary
 
 
 def measure_set(
-    projected: ProjectedSet, grid_cells: int
+    projected: ProjectedSet, grid_cells: int, union_threads: int
 ) -> tuple[list[Event], Summary]:
     """Measure how one instrument set covers one feature over time.
 
     Args:
         projected: The set's ground on the feature, in chronological order.
         grid_cells: How many cells one block of the feature's grid holds per axis.
+        union_threads: How many of the feature's cells to accumulate at once.
 
     Returns:
         One row per observation and the single row describing the set.
     """
     feature, region = projected.feature, projected.region
     observations = projected.observations
-    fresh = union.new_ground(region, [one.shape for one in observations])
+    fresh = union.new_ground(region, [one.shape for one in observations], union_threads)
     cumulative = np.cumsum(fresh)
-    raster = FeatureRaster(region, grid_cells)
+    grid = rasterizing.grid_over(region, grid_cells)
+    inside = rasterizing.filled(grid, region.shape)
     events = [
         Event(
             feature_class=feature.feature_class,
@@ -44,7 +45,7 @@ def measure_set(
             cum_frac=float(covered) / region.area_m2,
             width_km=observation.width_km,
             pixels=observation.shape.area / 1e6 / observation.pixel_km2,
-            mask=raster.burn(observation.shape),
+            mask=rasterizing.pack(grid, rasterizing.filled(grid, observation.shape)),
         )
         for observation, first_seen, covered in zip(
             observations, fresh, cumulative, strict=True
@@ -65,9 +66,9 @@ def measure_set(
         t_first=first,
         t_last=last,
         span_days=(last - first).total_seconds() / 86400.0,
-        mask_cells=raster.cells,
+        mask_cells=int(inside.size),
         pixels=sum(event.pixels for event in events),
-        grid_side=raster.side,
-        cell_km2=raster.cell_km2,
-        grid_mask=raster.mask,
+        grid_side=grid.side,
+        cell_km2=grid.cell_area_m2 / 1e6,
+        grid_mask=rasterizing.pack(grid, inside),
     )

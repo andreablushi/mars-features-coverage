@@ -47,19 +47,20 @@ def download_metadata(job: Job, client: ODEClient, loc: str) -> Outcome:
         return Outcome(job=job, error=exc)
 
 
-def compute_coverage(job: Job, grid_cells: int) -> Outcome:
+def compute_coverage(job: Job, grid_cells: int, union_threads: int) -> Outcome:
     """Measure one instrument set's coverage of its feature and write it out.
 
     Args:
         job: The instrument set to compute.
         grid_cells: How many cells one block of the feature's grid holds per axis.
+        union_threads: How many of the feature's cells to accumulate at once.
 
     Returns:
         The outcome, carrying the error when the job failed.
     """
     try:
         events, discarded = computing.compute(
-            job, load_observations(job.source), grid_cells
+            job, load_observations(job.source), grid_cells, union_threads
         )
         return Outcome(job=job, events=events, discarded=discarded)
     except Exception as exc:
@@ -89,7 +90,7 @@ def _measuring(
     pool: ProcessPoolExecutor,
     fetched: list[Outcome],
     started: list[Future[Outcome]],
-    grid_cells: int,
+    settings: Settings,
     *,
     force: bool,
 ) -> Iterator[ProgressEvent]:
@@ -100,7 +101,7 @@ def _measuring(
         pool: The process pool the coverage jobs run on.
         fetched: The download outcomes, appended to as they arrive.
         started: The coverage futures, appended to as they are submitted.
-        grid_cells: How many cells one block of a feature's grid holds per axis.
+        settings: The settled choices for the run, which size every coverage job.
         force: Whether to recompute a set that is already done.
 
     Yields:
@@ -112,7 +113,14 @@ def _measuring(
             source = event.outcome.job.output_path
             if source.stat().st_size:
                 for job in planner.coverage_plan([source], force=force).jobs:
-                    started.append(pool.submit(compute_coverage, job, grid_cells))
+                    started.append(
+                        pool.submit(
+                            compute_coverage,
+                            job,
+                            settings.grid_cells,
+                            settings.union_threads,
+                        )
+                    )
         yield event
 
 
@@ -142,13 +150,15 @@ def run_pipeline(
         stored = [held for held in file_explorer.find_sets() if held not in rewriting]
         backlog = planner.coverage_plan(stored, force=settings.force)
         describe_download(plan, settings.workers, console)
-        describe_coverage(backlog, settings.workers, console)
+        describe_coverage(backlog, settings.workers, settings.union_threads, console)
         with (
             ProcessPoolExecutor(max_workers=settings.workers) as computing,
             ThreadPoolExecutor(max_workers=settings.workers) as fetching,
         ):
             futures.extend(
-                computing.submit(compute_coverage, job, settings.grid_cells)
+                computing.submit(
+                    compute_coverage, job, settings.grid_cells, settings.union_threads
+                )
                 for job in backlog.jobs
             )
             stream = _measuring(
@@ -160,7 +170,7 @@ def run_pipeline(
                 computing,
                 fetched,
                 futures,
-                settings.grid_cells,
+                settings,
                 force=settings.force,
             )
             with closing(stream) as events:

@@ -1,4 +1,4 @@
-"""How much new ground each observation covers, accumulated sector by sector."""
+"""How much new ground each observation covers, accumulated cell by cell."""
 
 from __future__ import annotations
 
@@ -11,77 +11,70 @@ from shapely.errors import GEOSException
 from shapely.geometry.base import BaseGeometry
 
 from analysis.coverage import configs
-from analysis.coverage.measuring.accumulating.sectors import SectorGrid
+from analysis.coverage.measuring.accumulating import split
 from analysis.coverage.models.region import FeatureRegion
 
 
-def _robust(operation, *shapes):
-    """Run an overlay, retrying on a fine grid when exact arithmetic fails.
-
-    Args:
-        operation: The shapely overlay to run.
-        shapes: Its operands.
-
-    Returns:
-        The overlay's result.
-    """
-    try:
-        return operation(*shapes)
-    except GEOSException:
-        return operation(*shapes, grid_size=configs.SNAP_GRID_M)
-
-
-def new_ground(region: FeatureRegion, shapes: Sequence[BaseGeometry]) -> np.ndarray:
+def new_ground(
+    region: FeatureRegion, shapes: Sequence[BaseGeometry], threads: int
+) -> np.ndarray:
     """Measure the new ground every observation covers.
 
     Args:
         region: The projected feature the footprints are cut to.
         shapes: The projected footprints, in chronological order.
+        threads: How many cells to accumulate at once, this job's share of the machine.
 
     Returns:
         The ground in square metres each observation covered first, as it was given.
     """
-    grid = SectorGrid(region, shapes)
+    indexed = np.asarray(shapes, dtype=object)
+    grid = split.grid_over(region, indexed)
     fresh = np.zeros(len(shapes), dtype=float)
-    with ThreadPoolExecutor(max_workers=configs.UNION_THREADS) as pool:
+    with ThreadPoolExecutor(max_workers=threads) as pool:
         for share in pool.map(
-            lambda sector: _sector_contributions(grid, *sector), grid
+            lambda cell: _cell_contributions(indexed, *cell),
+            split.cells(grid, region, indexed),
         ):
             for index, added in share:
                 fresh[index] += added
     return fresh
 
 
-def _sector_contributions(
-    grid: SectorGrid,
+def _cell_contributions(
+    shapes: np.ndarray,
     rectangle: BaseGeometry,
     cap: float,
     reaching: np.ndarray,
 ) -> list[tuple[int, float]]:
-    """Accumulate one sector and report what it contributes to each observation.
+    """Accumulate one cell and report what it contributes to each observation.
 
     Args:
-        grid: The sector grid, used to cut a chunk down to this sector.
-        rectangle: The sector being accumulated.
-        cap: The ground in square metres the sector could ever hold.
+        shapes: Every projected footprint, indexed by the reaching indices.
+        rectangle: The cell being accumulated.
+        cap: The ground in square metres the cell could ever hold.
         reaching: The indices of the observations reaching it, in order.
 
     Returns:
-        The ground in square metres this sector saw each observation cover first.
+        The ground in square metres this cell saw each observation cover first.
     """
     covered: BaseGeometry = Polygon()
     arrived: list[BaseGeometry] = []
     share: list[tuple[int, float]] = []
     limit = cap * (1.0 - configs.SATURATION_TOLERANCE)
     for start in range(0, reaching.size, configs.UNION_CHUNK):
-        indices, pieces = grid.clip(
-            reaching[start : start + configs.UNION_CHUNK], rectangle
+        indices, pieces = split.clip(
+            shapes, reaching[start : start + configs.UNION_CHUNK], rectangle
         )
         if not indices.size:
             continue
         _record_first_cover(indices, pieces, covered, share)
         arrived.extend(pieces)
-        covered = _robust(union_all, arrived)
+        try:
+            covered = union_all(arrived)
+        except GEOSException:
+            # Exact arithmetic can fail on an overlay, which a fine grid settles
+            covered = union_all(arrived, grid_size=configs.SNAP_GRID_M)
         prepare(covered)
         if covered.area >= limit:
             break
@@ -98,9 +91,9 @@ def _record_first_cover(
 
     Args:
         indices: The observation index of every piece, in order.
-        pieces: The footprints clipped to the sector, in the same order.
-        covered: The sector's union before this chunk, empty for the first.
-        share: The sector's contributions so far, appended to in place.
+        pieces: The footprints clipped to the cell, in the same order.
+        covered: The cell's union before this chunk, empty for the first.
+        share: The cell's contributions so far, appended to in place.
 
     Returns:
         None.
@@ -115,7 +108,11 @@ def _record_first_cover(
             continue
         if covers(running, piece):
             continue
-        merged = _robust(union_all, [running, piece])
+        try:
+            merged = union_all([running, piece])
+        except GEOSException:
+            # Exact arithmetic can fail on an overlay, which a fine grid settles
+            merged = union_all([running, piece], grid_size=configs.SNAP_GRID_M)
         added = merged.area - running.area
         if added <= running.area * configs.SATURATION_TOLERANCE:
             continue

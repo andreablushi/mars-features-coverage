@@ -22,6 +22,8 @@ class Settings:
         refresh_catalog: Whether to re-fetch the ODE feature catalogue rather than
         read the cache.
         workers: How many jobs each half runs at once.
+        union_threads: How many threads one coverage job accumulates on, which is
+        the share of the machine one worker gets rather than a setting of its own.
     """
 
     grid_cells: int
@@ -32,3 +34,4 @@ class Settings:
     force: bool
     refresh_catalog: bool
     workers: int
+    union_threads: int

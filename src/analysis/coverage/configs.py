@@ -17,13 +17,10 @@ LINE_CLIP_MARGIN_DEG = 2.0
 
 LAEA_MIN_DENOMINATOR = 1e-12
 
-# The union is kept per sector so each insert touches a small shape. A sector
-# is not a unit of the survey: it exists only to keep the union small.
-MIN_UNION_SECTORS = 4
-MAX_UNION_SECTORS = 32
-
-# How many sectors of one feature are accumulated at once
-UNION_THREADS = 4
+# The union is kept per cell so each insert touches a small shape. A cell of
+# this grid is not a unit of the survey: it exists only to keep the union small.
+MIN_UNION_CELLS = 4
+MAX_UNION_CELLS = 32
 
 # How many observations a sector folds in before its union is rebuilt in one
 UNION_CHUNK = 64
