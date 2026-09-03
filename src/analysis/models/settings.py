@@ -19,7 +19,8 @@ class Settings:
         keep_metadata: Whether to keep a set's JSONL once its coverage is computed.
         force: Whether to redo finished work rather than skip it, which covers
         both halves at once: a set is downloaded again and measured again.
-        refresh_catalog: Whether to re-fetch the ODE catalogues, not read the cache.
+        refresh_catalog: Whether to re-fetch the ODE feature catalogue rather than
+        read the cache.
         workers: How many jobs each half runs at once.
     """
 

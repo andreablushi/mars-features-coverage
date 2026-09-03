@@ -17,13 +17,33 @@ from rich.console import Console
 from analysis import planner
 from analysis.console import describe_coverage, describe_download, render
 from analysis.coverage.measuring import run_job as compute_coverage
-from analysis.metadata import catalog, tree
-from analysis.metadata.fetching import run_job as download_set
-from analysis.metadata.selection.instruments import verify_sets
+from analysis.metadata import file_explorer
+from analysis.metadata.fetchers import query
+from analysis.metadata.loaders.catalog import load_features
 from analysis.models.job import Job, Outcome
 from analysis.models.progress import ProgressEvent
 from analysis.models.settings import Settings
+from utils.disk.files import write_jsonl
 from utils.ode.client import ODEClient
+
+
+def download_metadata(job: Job, client: ODEClient, loc: str) -> Outcome:
+    """Download one instrument set's metadata and write it out.
+
+    Args:
+        job: The feature and instrument set to download.
+        client: The shared ODE client.
+        loc: Which products a feature box returns.
+
+    Returns:
+        The outcome, carrying the error when the job failed.
+    """
+    try:
+        records = query.fetch_products(client, job.feature, job.instrument_set, loc)
+        write_jsonl(job.output_path, records)
+        return Outcome(job=job)
+    except Exception as exc:
+        return Outcome(job=job, error=exc)
 
 
 def run_jobs(
@@ -90,18 +110,14 @@ def run_pipeline(
     fetched: list[Outcome] = []
     with ODEClient() as client:
         refresh = settings.refresh_catalog
-        features = catalog.load_features(client, refresh=refresh)
-        verify_sets(
-            settings.instrument_sets,
-            catalog.load_instrument_sets(client, refresh=refresh),
-        )
+        features = load_features(client, refresh=refresh)
         plan = planner.download_plan(
             features,
             settings.instrument_sets,
             force=settings.force,
         )
         rewriting = {job.output_path for job in plan.jobs}
-        stored = [held for held in tree.find_sets() if held not in rewriting]
+        stored = [held for held in file_explorer.find_sets() if held not in rewriting]
         backlog = planner.coverage_plan(stored, force=settings.force)
         describe_download(plan, settings.workers, console)
         describe_coverage(backlog, settings.workers, console)
@@ -115,7 +131,7 @@ def run_pipeline(
             stream = _measuring(
                 run_jobs(
                     plan.jobs,
-                    lambda job: download_set(job, client, settings.loc),
+                    lambda job: download_metadata(job, client, settings.loc),
                     fetching,
                 ),
                 computing,

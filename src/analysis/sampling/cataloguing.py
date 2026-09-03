@@ -7,7 +7,7 @@ from collections.abc import Sequence
 
 from analysis.coverage import overlaps, summary
 from analysis.coverage.results import Summary
-from analysis.metadata.catalog import read_features
+from analysis.metadata.loaders.catalog import load_features
 from analysis.sampling.models.catalogue import CatalogueStats, InstrumentStats
 from analysis.sampling.models.spread import Spread
 
@@ -18,7 +18,7 @@ def read_catalogue() -> CatalogueStats:
     Returns:
         What it holds, and nothing at all when no feature was measured.
     """
-    catalogued = read_features()
+    catalogued = load_features()
     # What the features hold once, since their boxes overlap one another
     shared = overlaps.read()
     # One row per feature carries the grid, which every set of it shares

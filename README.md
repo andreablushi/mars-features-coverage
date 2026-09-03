@@ -129,9 +129,9 @@ src/
   analysis/           # What the coverage survey measures and the notebooks read
     console.py        # Progress bar for console prints
     planner.py        # What each half has left to do
-    runner.py         # Orchestrates the pipeline stages
+    runner.py         # Orchestrates the stages, and downloads one set's metadata
     models/           # The data model: features, instruments, settings
-    metadata/         # ODE catalogue and record fetching
+    metadata/         # fetchers/, loaders/, and what is already downloaded
     coverage/         # Coverage measurement, geometry, and what it leaves on disk
     selector/         # The best time window search
     sampling/         # The sweep over every feature, and the aggregates over it

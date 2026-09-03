@@ -6,7 +6,7 @@ from collections.abc import Iterator
 from typing import Any, TypeAlias
 
 import analysis.utils.provenance as provenance
-from analysis.metadata.api.response import as_items
+from analysis.metadata.fetchers.response import as_items
 from analysis.models.feature import Feature
 from analysis.models.instrument import InstrumentSet
 from utils.ode import configs

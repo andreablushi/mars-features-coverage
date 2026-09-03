@@ -9,7 +9,7 @@ import numpy as np
 
 from analysis.coverage.geometry.region import FeatureRegion
 from analysis.coverage.utils import geodesy
-from analysis.metadata import catalog
+from analysis.metadata.loaders import catalog
 from analysis.models.feature import Feature
 from utils.disk.slugify import slugify
 
@@ -193,5 +193,5 @@ def _catalogue() -> dict[tuple[str, str], Feature]:
     """
     return {
         (slugify(feature.feature_class), slugify(feature.name)): feature
-        for feature in catalog.read_features()
+        for feature in catalog.load_features()
     }

@@ -35,7 +35,6 @@ CTX_ROOT = PREPROCESSING_ROOT / "ctx"
 
 PREDICTION_NAME = "prediction.json"
 FEATURES_CACHE_NAME = "features.jsonl"
-INSTRUMENT_SETS_CACHE_NAME = "instrument_sets.jsonl"
 SUMMARY_NAME = "summary.parquet"
 EVENTS_SUFFIX = ".events.parquet"
 SET_SUMMARY_SUFFIX = ".summary.parquet"
@@ -131,15 +130,3 @@ def features_path(cache_dir: Path = CATALOG_ROOT) -> Path:
         The path to the features JSONL file, which need not exist.
     """
     return cache_dir / FEATURES_CACHE_NAME
-
-
-def instrument_sets_path(cache_dir: Path = CATALOG_ROOT) -> Path:
-    """Return where the cached instrument set catalogue lives.
-
-    Args:
-        cache_dir: Directory holding the cached catalogue files.
-
-    Returns:
-        The path to the instrument sets JSONL file, which need not exist.
-    """
-    return cache_dir / INSTRUMENT_SETS_CACHE_NAME

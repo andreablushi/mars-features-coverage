@@ -26,7 +26,7 @@ from analysis.coverage import summary as index
 from analysis.coverage.geometry.region import FeatureRegion
 from analysis.coverage.results import Summary
 from analysis.coverage.utils import geodesy
-from analysis.metadata.catalog import read_features
+from analysis.metadata.loaders.catalog import load_features
 from analysis.models.feature import Feature
 from analysis.utils.maths.mask import cells_of
 from utils.disk.files import atomic_path
@@ -96,7 +96,7 @@ def measure(root: Path = paths.ARTIFACTS_ROOT) -> Overlap:
     rows: dict[tuple[str, str], list[Summary]] = {}
     for row in index.catalogued_rows(root):
         rows.setdefault((row.feature_class, row.feature_name), []).append(row)
-    named = {(one.feature_class, one.name): one for one in read_features()}
+    named = {(one.feature_class, one.name): one for one in load_features()}
     iids = sorted({row.iid for held in rows.values() for row in held})
     ground = np.zeros(grid.cells, dtype=bool)
     reached = {iid: np.zeros(grid.cells, dtype=bool) for iid in iids}

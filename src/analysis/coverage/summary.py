@@ -12,7 +12,7 @@ import pyarrow.parquet as pq
 import utils.disk.paths as paths
 from analysis.coverage.results import Event, SetCoverage, Summary
 from analysis.coverage.schemas import EVENTS, SUMMARY
-from analysis.metadata import tree
+from analysis.metadata import file_explorer
 from analysis.models.instrument import InstrumentSet
 from utils.disk.files import atomic_path
 from utils.disk.paths import catalog_summary_path, feature_artifacts_dir
@@ -259,7 +259,7 @@ def _unobserved(
                 iid=absent.iid,
                 pt=absent.pt,
             ),
-            pending=tree.has_metadata(directory, absent),
+            pending=file_explorer.has_metadata(directory, absent),
         )
         for absent in missing
     ]
