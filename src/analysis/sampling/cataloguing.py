@@ -5,7 +5,8 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Sequence
 
-from analysis.coverage import indexing, overlaps
+from analysis.coverage.artifacts import indexing
+from analysis.coverage.measuring import overlaps
 from analysis.coverage.models.summary import Summary
 from analysis.metadata.loaders.features import load_features
 from analysis.sampling.models.catalogue import CatalogueStats, InstrumentStats

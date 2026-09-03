@@ -7,8 +7,8 @@ from functools import lru_cache
 
 import numpy as np
 
-from analysis.coverage.geometry import geodesy
-from analysis.coverage.geometry.region import FeatureRegion
+from analysis.coverage.projection.geometry import geodesy
+from analysis.coverage.projection.region import FeatureRegion
 from analysis.metadata.loaders.features import load_features
 from analysis.models.feature import Feature
 from utils.disk.slugify import slugify

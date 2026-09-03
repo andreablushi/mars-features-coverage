@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from concurrent.futures import ProcessPoolExecutor
 
-from analysis.coverage import indexing
+from analysis.coverage.artifacts import indexing
 from analysis.sampling import configs, measuring, predicting, searching, storing
 from analysis.sampling.models.dataset import DatasetStats, SearchedFeature
 from analysis.selector import configs as filtering

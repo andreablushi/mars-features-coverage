@@ -17,7 +17,7 @@ from shapely import (
 )
 
 from analysis.coverage import configs
-from analysis.coverage.geometry import footprints, geodesy
+from analysis.coverage.projection.geometry import footprints, geodesy
 from analysis.models.feature import Feature
 
 _EMPTY = Polygon()

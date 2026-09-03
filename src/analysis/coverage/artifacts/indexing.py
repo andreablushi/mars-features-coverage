@@ -10,9 +10,9 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 import utils.disk.paths as paths
+from analysis.coverage.artifacts.writing import EVENTS, SUMMARY
 from analysis.coverage.models.coverage import Event, SetCoverage
 from analysis.coverage.models.summary import Summary
-from analysis.coverage.writing import EVENTS, SUMMARY
 from analysis.metadata import file_explorer
 from analysis.models.instrument import InstrumentSet
 from utils.disk.files import atomic_path

@@ -6,13 +6,13 @@ from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
-from shapely import Polygon, covers, prepare, union_all
+from shapely import Polygon, area, covers, prepare, union_all
 from shapely.errors import GEOSException
 from shapely.geometry.base import BaseGeometry
 
 from analysis.coverage import configs
-from analysis.coverage.accumulating.sectors import SectorGrid
-from analysis.coverage.geometry.region import FeatureRegion
+from analysis.coverage.measuring.sectors import SectorGrid
+from analysis.coverage.projection.region import FeatureRegion
 
 
 def _robust(operation, *shapes):
@@ -107,6 +107,12 @@ def _record_first_cover(
     """
     running = covered
     for index, piece in zip(indices, pieces, strict=True):
+        # The first piece is its own union, which unioning it would round
+        if running.is_empty:
+            share.append((int(index), area(piece)))
+            running = piece
+            prepare(running)
+            continue
         if covers(running, piece):
             continue
         merged = _robust(union_all, [running, piece])

@@ -16,7 +16,7 @@ from rich.console import Console
 
 from analysis import planner
 from analysis.console import describe_coverage, describe_download, render
-from analysis.coverage import measuring, projecting, writing
+from analysis.coverage import computing
 from analysis.metadata import file_explorer
 from analysis.metadata.fetchers.products import fetch_products
 from analysis.metadata.loaders.features import load_features
@@ -58,12 +58,10 @@ def compute_coverage(job: Job, grid_cells: int) -> Outcome:
         The outcome, carrying the error when the job failed.
     """
     try:
-        projected = projecting.project(load_observations(job.source))
-        if not projected.observations:
-            return Outcome(job=job, discarded=projected.discarded)
-        events, summary = measuring.measure_set(projected, grid_cells)
-        writing.write_coverage(job, events, summary)
-        return Outcome(job=job, events=len(events), discarded=projected.discarded)
+        events, discarded = computing.compute(
+            job, load_observations(job.source), grid_cells
+        )
+        return Outcome(job=job, events=events, discarded=discarded)
     except Exception as exc:
         return Outcome(job=job, error=exc)
 

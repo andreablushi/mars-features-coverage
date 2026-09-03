@@ -9,7 +9,7 @@ from shapely import contains_xy, prepare
 from shapely.geometry.base import BaseGeometry
 
 from analysis.coverage import configs
-from analysis.coverage.geometry.region import FeatureRegion
+from analysis.coverage.projection.region import FeatureRegion
 from analysis.utils.maths import mask as packing
 
 _NONE = np.empty(0, dtype=np.int64)

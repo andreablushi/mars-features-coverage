@@ -7,9 +7,9 @@ from collections.abc import Sequence
 import numpy as np
 from shapely import from_wkt
 
-from analysis.coverage.geometry import footprints, geodesy, sizing
-from analysis.coverage.geometry.region import FeatureRegion
 from analysis.coverage.models.observation import ProjectedObservation, ProjectedSet
+from analysis.coverage.projection.geometry import footprints, geodesy, sizing
+from analysis.coverage.projection.region import FeatureRegion
 from analysis.models.observation import Observation, ObservationSet
 
 

@@ -15,7 +15,7 @@ from digitalhub_runtime_python import handler
 import analysis.utils.settings as settings
 import utils.disk.paths as paths
 from analysis import console
-from analysis.coverage import indexing
+from analysis.coverage.artifacts import indexing
 from analysis.sampling import predicting, storing, sweeping
 from analysis.selector import configs as filtering
 

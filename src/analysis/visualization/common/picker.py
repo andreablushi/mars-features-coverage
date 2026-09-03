@@ -8,7 +8,7 @@ import ipywidgets as widgets
 from IPython.display import display
 
 import analysis.utils.settings as settings
-from analysis.coverage import indexing
+from analysis.coverage.artifacts import indexing
 from analysis.coverage.models.coverage import SetCoverage
 from analysis.metadata.loaders.features import load_features
 from analysis.visualization.common import panels

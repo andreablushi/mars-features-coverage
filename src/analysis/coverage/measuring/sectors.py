@@ -10,7 +10,7 @@ from shapely import STRtree, area, bounds, box, intersection, is_empty
 from shapely.geometry.base import BaseGeometry
 
 from analysis.coverage import configs
-from analysis.coverage.geometry.region import FeatureRegion
+from analysis.coverage.projection.region import FeatureRegion
 
 
 class SectorGrid:

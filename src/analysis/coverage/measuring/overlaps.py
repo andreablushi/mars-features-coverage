@@ -11,10 +11,11 @@ import numpy as np
 import pyarrow.parquet as pq
 
 import utils.disk.paths as paths
-from analysis.coverage import configs, indexing
-from analysis.coverage.geometry import geodesy
-from analysis.coverage.geometry.region import FeatureRegion
+from analysis.coverage import configs
+from analysis.coverage.artifacts import indexing
 from analysis.coverage.models.summary import Summary
+from analysis.coverage.projection.geometry import geodesy
+from analysis.coverage.projection.region import FeatureRegion
 from analysis.metadata.loaders.features import load_features
 from analysis.models.feature import Feature
 from analysis.utils.maths.mask import cells_of
