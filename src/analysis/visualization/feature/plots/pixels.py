@@ -95,7 +95,21 @@ def _panel(axis: Axes, one: Landed, colour) -> None:
     # The axis reaches the bar even where every look fell short of it
     top = max(float(counts.max()), one.bar) if counts.size else 0.0
     if top > 0.0:
-        tallest = _looks(axis, counts, colour, top)
+        # A stem stands where the looks landed, as tall as there are of them
+        counted, edges = np.histogram(counts, bins=BINS, range=(0.0, top))
+        middles = (edges[:-1] + edges[1:]) / 2.0
+        standing = counted > 0
+        at, high = middles[standing], counted[standing]
+        axis.vlines(at, 0.0, high, color=colour, alpha=STEM_ALPHA, linewidth=STEM_WIDTH)
+        axis.scatter(
+            at,
+            high,
+            s=POINT_SIZE,
+            alpha=POINT_ALPHA,
+            color=colour,
+            edgecolors="none",
+            zorder=3,
+        )
         if one.bar > 0.0:
             axis.axvline(
                 one.bar,
@@ -104,9 +118,17 @@ def _panel(axis: Axes, one: Landed, colour) -> None:
                 linewidth=BAR_WIDTH,
                 zorder=3,
             )
-        _reading(axis, one, counts)
+        unit = _TRACES if one.iid == wording.SOUNDER else _PIXELS
+        axis.set_title(
+            f"{counts.size:,} observations  -  "
+            f"middle one lands {quantities.compact(float(np.median(counts)))} {unit}"
+            f"  -  asked for {quantities.compact(one.bar)} {unit}",
+            fontsize=8,
+            color=panels.GREY,
+            loc="left",
+        )
         axis.set_xlim(0.0, top * MARGIN)
-        axis.set_ylim(0.0, tallest * HEADROOM)
+        axis.set_ylim(0.0, int(counted.max()) * HEADROOM)
         axis.xaxis.set_major_formatter(
             FuncFormatter(lambda counted, _: quantities.compact(counted))
         )
@@ -118,54 +140,3 @@ def _panel(axis: Axes, one: Landed, colour) -> None:
     axis.tick_params(labelsize=8)
     axis.grid(axis="both", alpha=0.25, linewidth=0.5)
     axis.spines[["top", "right"]].set_visible(False)
-
-
-def _looks(axis: Axes, counts: np.ndarray, colour, top: float) -> int:
-    """Stand a stem where the looks landed, as tall as there are of them.
-
-    Args:
-        axis: The panel to draw on.
-        counts: The pixels each of the set's observations landed.
-        colour: The colour the set is drawn in.
-        top: How far the axis runs, which the counting is spread over.
-
-    Returns:
-        How many observations the busiest place along the axis holds.
-    """
-    counted, edges = np.histogram(counts, bins=BINS, range=(0.0, top))
-    middles = (edges[:-1] + edges[1:]) / 2.0
-    standing = counted > 0
-    at, high = middles[standing], counted[standing]
-    axis.vlines(at, 0.0, high, color=colour, alpha=STEM_ALPHA, linewidth=STEM_WIDTH)
-    axis.scatter(
-        at,
-        high,
-        s=POINT_SIZE,
-        alpha=POINT_ALPHA,
-        color=colour,
-        edgecolors="none",
-        zorder=3,
-    )
-    return int(counted.max())
-
-
-def _reading(axis: Axes, one: Landed, counts: np.ndarray) -> None:
-    """Say what the panel holds, in the units the instrument counts in.
-
-    Args:
-        axis: The panel to write on.
-        one: The instrument set the panel draws.
-        counts: The pixels each of its observations landed.
-
-    Returns:
-        None.
-    """
-    unit = _TRACES if one.iid == wording.SOUNDER else _PIXELS
-    axis.set_title(
-        f"{counts.size:,} observations  -  "
-        f"middle one lands {quantities.compact(float(np.median(counts)))} {unit}  -  "
-        f"asked for {quantities.compact(one.bar)} {unit}",
-        fontsize=8,
-        color=panels.GREY,
-        loc="left",
-    )

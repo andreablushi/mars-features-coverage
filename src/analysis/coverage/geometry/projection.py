@@ -102,26 +102,15 @@ def _track_widths(observations: Sequence[Observation]) -> list[float | None]:
     for position, observation in enumerate(observations):
         if not observation.is_track or observation.duration_s <= 0.0:
             continue
-        length = _track_length(observation.wkt)
+        # A track is published as lines, whose ground lengths add up to its own
+        length = 0.0
+        parts, _ = footprints.single_parts(
+            np.asarray([from_wkt(observation.wkt)], dtype=object)
+        )
+        for part in parts:
+            if part.geom_type == "LineString":
+                coords = np.asarray(part.coords)
+                length += geodesy.haversine_length(coords[:, 0], coords[:, 1])
         if length > 0.0:
             widths[position] = swath.track_width(length, observation.duration_s)
     return widths
-
-
-def _track_length(wkt: str) -> float:
-    """Return the full ground length of a track footprint.
-
-    Args:
-        wkt: The footprint as well-known text.
-
-    Returns:
-        The summed length in metres.
-    """
-    total = 0.0
-    parts, _ = footprints.single_parts(np.asarray([from_wkt(wkt)], dtype=object))
-    for part in parts:
-        if part.geom_type != "LineString":
-            continue
-        coords = np.asarray(part.coords)
-        total += geodesy.haversine_length(coords[:, 0], coords[:, 1])
-    return total

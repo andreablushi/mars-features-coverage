@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from itertools import chain
 from pathlib import Path
-from typing import Any
 
 import analysis.utils.provenance as provenance
 from analysis.coverage.models.observation import LoadedSet, Observation
@@ -26,38 +25,25 @@ def load_set(path: Path) -> LoadedSet[Observation]:
     observations: list[Observation] = []
     discarded = 0
     for item in chain([first], stored):
-        observation = _observation(item)
-        if observation is None:
+        # A record with no footprint or no start time cannot be placed at all
+        wkt, start = item.get("Footprint_C0_geometry"), item.get("UTC_start_time")
+        if not wkt or not start:
             discarded += 1
-        else:
-            observations.append(observation)
+            continue
+        stop, scale = item.get("UTC_stop_time"), item.get("Map_scale")
+        observations.append(
+            Observation(
+                pdsid=item["pdsid"],
+                ihid=item["ihid"],
+                iid=item["iid"],
+                pt=item["pt"],
+                start=provenance.as_utc(start),
+                stop=provenance.as_utc(stop) if stop else None,
+                wkt=wkt,
+                map_scale_m=float(scale) if scale else None,
+            )
+        )
     observations.sort(key=lambda observation: (observation.start, observation.pdsid))
     return LoadedSet(
         feature=box, set_key=set_key, observations=observations, discarded=discarded
-    )
-
-
-def _observation(item: dict[str, Any]) -> Observation | None:
-    """Build an observation from a stored record.
-
-    Args:
-        item: One stored observation record.
-
-    Returns:
-        The observation, or None when it carries no footprint or no start time.
-    """
-    wkt = item.get("Footprint_C0_geometry")
-    start, stop = item.get("UTC_start_time"), item.get("UTC_stop_time")
-    scale = item.get("Map_scale")
-    if not wkt or not start:
-        return None
-    return Observation(
-        pdsid=item["pdsid"],
-        ihid=item["ihid"],
-        iid=item["iid"],
-        pt=item["pt"],
-        start=provenance.as_utc(start),
-        stop=provenance.as_utc(stop) if stop else None,
-        wkt=wkt,
-        map_scale_m=float(scale) if scale else None,
     )

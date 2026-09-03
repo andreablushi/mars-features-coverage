@@ -76,8 +76,15 @@ def render(
         None.
     """
     console = console or Console()
+    # A platform log takes plain flushed lines, since no cursor can be moved there
     if os.environ.get(PLAIN_LOG_ENV):
-        _log(events, total, description)
+        step = _step(total)
+        for event in events:
+            outcome = event.outcome
+            if outcome.failed:
+                print(f"error {outcome.label}: {outcome.error}", flush=True)
+            if event.completed % step == 0 or event.completed == total:
+                _reached(description, event.completed, total, outcome.label)
         return
     with Progress(
         BarColumn(bar_width=None),
@@ -117,26 +124,6 @@ def logged(description: str) -> Callable[[int, int], None]:
             _reached(description, done, total)
 
     return moved
-
-
-def _log(events: Iterable[ProgressEvent], total: int, description: str) -> None:
-    """Print which job a stage has reached, every so many jobs.
-
-    Args:
-        events: The progress events produced by a runner.
-        total: The number of units in the run.
-        description: The label for the stage.
-
-    Returns:
-        None.
-    """
-    step = _step(total)
-    for event in events:
-        outcome = event.outcome
-        if outcome.failed:
-            print(f"error {outcome.label}: {outcome.error}", flush=True)
-        if event.completed % step == 0 or event.completed == total:
-            _reached(description, event.completed, total, outcome.label)
 
 
 def _step(total: int) -> int:

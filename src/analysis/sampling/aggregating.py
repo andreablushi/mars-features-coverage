@@ -15,24 +15,22 @@ def aggregate_features(
     """Read a run of features as one.
 
     Args:
-        searched: The features the search ran over, in any order.
+        searched: The features the search left something readable on, in any order.
         iids: The instruments to report on, in the order to report them.
 
     Returns:
-        What they hold between them, leaving out any feature reading more ground
-        than it holds.
+        What they hold between them.
     """
-    read = [feature for feature in searched if plausible(feature)]
-    kept = [feature for feature in read if feature.kept]
+    kept = [feature for feature in searched if feature.kept]
     # Two features may share ground, so their overlaps are added as an upper bound
     overlaps: dict[tuple[str, ...], float] = {}
     for feature in kept:
         for instrument_names, km2 in feature.overlaps.items():
             overlaps[instrument_names] = overlaps.get(instrument_names, 0.0) + km2
     return Aggregate(
-        searched=len(read),
+        searched=len(searched),
         kept=len(kept),
-        area_km2=sum(feature.area_km2 for feature in read),
+        area_km2=sum(feature.area_km2 for feature in searched),
         kept_km2=sum(feature.area_km2 for feature in kept),
         days=Spread.over([feature.days for feature in kept]),
         geo_mean=Spread.over([feature.geo_mean for feature in kept]),
@@ -43,7 +41,6 @@ def aggregate_features(
                     if iid in feature.reached
                     else 0.0
                     for feature in kept
-                    if feature.area_km2
                 ]
             )
             for iid in iids
@@ -53,7 +50,11 @@ def aggregate_features(
         # A pixel is the same size wherever it falls, so every searched feature says
         pixel_km2={
             iid: Spread.over(
-                [feature.pixel_km2[iid] for feature in read if iid in feature.pixel_km2]
+                [
+                    feature.pixel_km2[iid]
+                    for feature in searched
+                    if iid in feature.pixel_km2
+                ]
             )
             for iid in iids
         },
@@ -70,8 +71,6 @@ def plausible(feature: FeatureStats) -> bool:
     Returns:
         Whether every share it reports sits inside the ceiling.
     """
-    if not feature.area_km2:
-        return True
     shares = [reach.km2 / feature.area_km2 for reach in feature.reached.values()]
     shares.append(sum(feature.overlaps.values()) / feature.area_km2)
     shares.append(feature.geo_mean)

@@ -7,7 +7,6 @@ from collections.abc import Sequence
 
 from analysis.sampling import aggregating, measuring
 from analysis.sampling.models.dataset import ClassStats, DatasetStats, SearchedFeature
-from analysis.sampling.models.feature import FeatureStats
 from analysis.sampling.models.spread import Spread
 
 
@@ -21,11 +20,18 @@ def prediction(searched: Sequence[SearchedFeature]) -> DatasetStats:
         What the filter would make of them.
     """
     iids = list(dict.fromkeys(iid for one in searched for iid in one.iids))
-    measured = _measured(searched)
-    grounded = [one for one in measured if one.kept and one.area_km2]
+    # Read once here, since a feature claiming more ground than it holds is no
+    # more readable per class than it is in all
+    kept = [
+        one
+        for one in searched
+        if one.stats is not None and aggregating.plausible(one.stats)
+    ]
+    measured = [one.stats for one in kept]
+    grounded = [one for one in measured if one.kept]
     return DatasetStats(
         features=len(searched),
-        classes=_per_class(searched, iids),
+        classes=_per_class(kept, iids),
         held=aggregating.aggregate_features(measured, iids),
         widths=Spread.over([math.sqrt(one.area_km2) for one in measured]),
         offered={
@@ -44,22 +50,6 @@ def prediction(searched: Sequence[SearchedFeature]) -> DatasetStats:
     )
 
 
-def _measured(features: Sequence[SearchedFeature]) -> list[FeatureStats]:
-    """Keep every feature the search really left something readable on.
-
-    Args:
-        features: What the sweep left of every feature searched.
-
-    Returns:
-        What the search left on each of them, in the order they were swept.
-    """
-    return [
-        one.stats
-        for one in features
-        if one.stats is not None and aggregating.plausible(one.stats)
-    ]
-
-
 def _per_class(
     features: Sequence[SearchedFeature], iids: Sequence[str]
 ) -> dict[str, ClassStats]:
@@ -69,7 +59,7 @@ def _per_class(
     outright would otherwise drag the class down to nothing.
 
     Args:
-        features: What the sweep left of every feature searched.
+        features: The features the sweep left something readable on.
         iids: The instruments to report on, in the order to report them.
 
     Returns:
@@ -79,9 +69,7 @@ def _per_class(
     selected: dict[str, int] = {}
     for feature in features:
         stats = feature.stats
-        if stats is None or not aggregating.plausible(stats):
-            continue
-        if not stats.area_km2 or not stats.kept:
+        if stats is None or not stats.kept:
             continue
         feature_class = feature.feature_class
         counts = taken.setdefault(feature_class, {iid: [] for iid in iids})

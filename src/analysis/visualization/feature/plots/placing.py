@@ -136,7 +136,15 @@ class Placed:
         Returns:
             The box, held open to a minimum span so a thin feature still reads.
         """
-        return _around(*self.outline())
+        lon, lat = self.outline()
+        centre_lat = float((lat.min() + lat.max()) / 2.0)
+        south, north = _floored(float(lat.min()), float(lat.max()), MIN_SPAN_DEG)
+        west, east = _floored(
+            float(lon.min()),
+            float(lon.max()),
+            MIN_SPAN_DEG / geodesy.longitude_stretch(centre_lat),
+        )
+        return Box(west, south, east, north)
 
 
 def placed(feature_class: str, name: str, side: int) -> Placed | None:
@@ -157,26 +165,6 @@ def placed(feature_class: str, name: str, side: int) -> Placed | None:
     # A feature wrapping the planet has no lon/lat box a plate carree crop can cover
     lon, _ = grid.outline()
     return grid if lon.max() - lon.min() <= HALF_TURN_DEG else None
-
-
-def _around(lon: np.ndarray, lat: np.ndarray) -> Box:
-    """Return the lon/lat box holding one traced ring.
-
-    Args:
-        lon: The ring longitudes.
-        lat: The ring latitudes.
-
-    Returns:
-        The box, held open to a minimum span so a thin feature still reads.
-    """
-    centre_lat = float((lat.min() + lat.max()) / 2.0)
-    south, north = _floored(float(lat.min()), float(lat.max()), MIN_SPAN_DEG)
-    west, east = _floored(
-        float(lon.min()),
-        float(lon.max()),
-        MIN_SPAN_DEG / geodesy.longitude_stretch(centre_lat),
-    )
-    return Box(west, south, east, north)
 
 
 def _floored(low: float, high: float, minimum: float) -> tuple[float, float]:

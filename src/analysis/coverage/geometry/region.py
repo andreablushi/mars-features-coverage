@@ -138,17 +138,7 @@ class FeatureRegion:
         if broken.any():
             projected[broken] = _mend(projected[broken])
         _merge_owned_parts(projected, owners, shapes)
-        return self._clip_to_feature(shapes)
-
-    def _clip_to_feature(self, shapes: np.ndarray) -> np.ndarray:
-        """Cut projected footprints back to the feature they belong to.
-
-        Args:
-            shapes: The projected footprints.
-
-        Returns:
-            The footprints, each within the feature.
-        """
+        # Whatever reached past the feature is cut back to it
         outside = ~covers(self._shape, shapes)
         if outside.any():
             shapes[outside] = intersection(shapes[outside], self._shape)

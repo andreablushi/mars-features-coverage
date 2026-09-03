@@ -42,7 +42,14 @@ def plot(coverage: Coverage) -> widgets.Widget:
     )
     last = max(one.last for one in drawn)
     for one in drawn:
-        times, fractions = _points(one, last)
+        if one.observed:
+            times = [one.times[0]] + list(one.times)
+            fractions = [0.0] + list(one.running)
+            if times[-1] < last:
+                times.append(last)
+                fractions.append(fractions[-1])
+        else:
+            times, fractions = [one.first, last], [0.0, 0.0]
         running.plot(
             times,
             fractions,
@@ -66,26 +73,6 @@ def plot(coverage: Coverage) -> widgets.Widget:
     _totals(bars, drawn, colours)
     figure.tight_layout()
     return panels.rendered(figure)
-
-
-def _points(one: Series, last) -> tuple[list, list[float]]:
-    """Return one instrument set's running coverage, rooted at zero.
-
-    Args:
-        one: What the set observed.
-        last: When the latest observation on the panel was taken.
-
-    Returns:
-        The times and the share covered by then, in chronological order.
-    """
-    if not one.observed:
-        return [one.first, last], [0.0, 0.0]
-    times = [one.times[0]] + list(one.times)
-    fractions = [0.0] + list(one.running)
-    if times[-1] < last:
-        times.append(last)
-        fractions.append(fractions[-1])
-    return times, fractions
 
 
 def _totals(axis, drawn: Sequence[Series], colours: dict) -> None:

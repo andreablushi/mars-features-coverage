@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from analysis.selector.models.filter import Filter
-from analysis.selector.models.grid import Grid
 from analysis.selector.models.survey import Survey
 from analysis.selector.models.track import Track
 
@@ -16,13 +15,11 @@ class Study:
 
     Attributes:
         criteria: What the feature was asked for.
-        grid: The grid it was searched over.
         track: Its admissible observations on one time axis, or None where it
             holds nothing measurable.
         survey: The window it earned, or None where it earned none.
     """
 
     criteria: Filter
-    grid: Grid
     track: Track | None
     survey: Survey | None

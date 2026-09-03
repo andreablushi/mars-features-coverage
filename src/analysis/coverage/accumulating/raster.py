@@ -100,23 +100,13 @@ class FeatureRaster:
             if inside.any():
                 down, crosswise = np.nonzero(inside)
                 return rows[down] * self.side + columns[crosswise]
+        # A footprint holding no cell centre is given the one cell it sits in
         if shape.area >= self._cell_area * configs.MIN_CELL_SHARE:
-            return self._nearest(shape)
+            point = shape.representative_point()
+            row = int(np.abs(self._northings - point.y).argmin())
+            column = int(np.abs(self._eastings - point.x).argmin())
+            return np.array([row * self.side + column])
         return _NONE
-
-    def _nearest(self, shape: BaseGeometry) -> np.ndarray:
-        """Give a footprint holding no cell centre the one cell it sits in.
-
-        Args:
-            shape: The projected shape being burned.
-
-        Returns:
-            The one cell it sits in.
-        """
-        point = shape.representative_point()
-        row = int(np.abs(self._northings - point.y).argmin())
-        column = int(np.abs(self._eastings - point.x).argmin())
-        return np.array([row * self.side + column])
 
 
 def _between(values: np.ndarray, low: float, high: float) -> np.ndarray:

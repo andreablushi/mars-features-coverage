@@ -34,7 +34,22 @@ def studied(
         What the search found over it.
     """
     # The relaxed reading of the filter is a search of its own, so it is keyed apart
-    key = (criteria.unfloored, _key(coverage))
+    first = coverage[0].summary
+    key = (
+        criteria.unfloored,
+        first.feature_class,
+        first.feature_name,
+        tuple(
+            (
+                instrument.summary.set_key,
+                instrument.summary.n_obs,
+                instrument.summary.t_last,
+                instrument.summary.covered_km2,
+                instrument.summary.mask_cells,
+            )
+            for instrument in coverage
+        ),
+    )
     if key not in _found:
         if len(_found) >= STUDY_CACHE:
             _found.clear()
@@ -54,26 +69,3 @@ def open_for(study: Study) -> list[Stretch]:
     if study.survey is None:
         return []
     return [(study.survey.start, study.survey.end)]
-
-
-def _key(coverage: Sequence[SetCoverage]) -> tuple:
-    """Name what a search was run over, so the same run is recognised.
-
-    Args:
-        coverage: The feature's instrument sets, in the order they are drawn.
-
-    Returns:
-        The feature and what each set holds, as one hashable value.
-    """
-    first = coverage[0].summary
-    measured = tuple(
-        (
-            instrument.summary.set_key,
-            instrument.summary.n_obs,
-            instrument.summary.t_last,
-            instrument.summary.covered_km2,
-            instrument.summary.mask_cells,
-        )
-        for instrument in coverage
-    )
-    return (first.feature_class, first.feature_name, measured)

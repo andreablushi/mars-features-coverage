@@ -20,9 +20,62 @@ def measured_feature(study: Study) -> FeatureStats | None:
     Returns:
         What it holds, or None where it held nothing to search at all.
     """
-    if study.track is None:
+    track = study.track
+    if track is None:
         return None
-    return _feature(study.track, study.survey)
+    survey = study.survey
+    kept = kept_observations(survey)
+    # What each instrument left inside the window, and which of them each cell holds
+    cells_by_iid: dict[str, set[int]] = {}
+    observations_by_iid: dict[str, int] = {}
+    iids_by_cell: dict[int, set[str]] = {}
+    for index in kept:
+        iid = track.iids[track.owners[index]]
+        cells_by_iid.setdefault(iid, set()).update(track.cells[index])
+        observations_by_iid[iid] = observations_by_iid.get(iid, 0) + 1
+        for cell in track.cells[index].tolist():
+            iids_by_cell.setdefault(cell, set()).add(iid)
+    overlaps: dict[tuple[str, ...], float] = {}
+    for cell in sorted(iids_by_cell):
+        instrument_names = tuple(sorted(iids_by_cell[cell]))
+        overlaps[instrument_names] = (
+            overlaps.get(instrument_names, 0.0) + track.cell_km2
+        )
+    # A pixel is the same size whether or not its look was chosen, so every
+    # observation offered to the feature is read and not only the ones kept
+    pixel_km2: dict[str, float] = {}
+    for index, owner in enumerate(track.owners):
+        iid = track.iids[owner]
+        observation = track.observations[index]
+        if iid not in pixel_km2 and observation.pixels and observation.own_km2:
+            pixel_km2[iid] = observation.own_km2 / observation.pixels
+    return FeatureStats(
+        area_km2=track.area_km2,
+        kept=survey is not None,
+        start=survey.start if survey else None,
+        end=survey.end if survey else None,
+        days=survey.days if survey else 0.0,
+        geo_mean=survey.geo_mean if survey else 0.0,
+        taken=len(kept),
+        dropped=survey.dropped if survey else 0,
+        refused=sum(
+            1
+            for observation, _, _ in track.refused
+            if survey and survey.start <= observation.t_start <= survey.end
+        ),
+        turned_away=len(track.refused),
+        offered=dict(Counter(track.iids[owner] for owner in track.owners)),
+        pixel_km2=pixel_km2,
+        reached={
+            iid: InstrumentReach(
+                km2=len(cells_reached) * track.cell_km2,
+                pixels=_pixels_landed(track, kept, iid),
+                observations_taken=observations_by_iid[iid],
+            )
+            for iid, cells_reached in cells_by_iid.items()
+        },
+        overlaps=dict(sorted(overlaps.items(), key=lambda ground: -ground[1])),
+    )
 
 
 def kept_observations(survey: Survey | None) -> tuple[int, ...]:
@@ -70,62 +123,6 @@ def instruments_searched(study: Study) -> list[str]:
     return list(dict.fromkeys(study.track.iids))
 
 
-def _feature(track: Track, survey: Survey | None) -> FeatureStats:
-    """Read one feature.
-
-    Args:
-        track: Its admissible observations on one time axis.
-        survey: The window it earned, or None when it earned none.
-
-    Returns:
-        The feature.
-    """
-    kept = kept_observations(survey)
-    # What each instrument left inside the window, and which of them each cell holds
-    cells_by_iid: dict[str, set[int]] = {}
-    observations_by_iid: dict[str, int] = {}
-    iids_by_cell: dict[int, set[str]] = {}
-    for index in kept:
-        iid = track.iids[track.owners[index]]
-        cells_by_iid.setdefault(iid, set()).update(track.cells[index])
-        observations_by_iid[iid] = observations_by_iid.get(iid, 0) + 1
-        for cell in track.cells[index].tolist():
-            iids_by_cell.setdefault(cell, set()).add(iid)
-    overlaps: dict[tuple[str, ...], float] = {}
-    for cell in sorted(iids_by_cell):
-        instrument_names = tuple(sorted(iids_by_cell[cell]))
-        overlaps[instrument_names] = (
-            overlaps.get(instrument_names, 0.0) + track.cell_km2
-        )
-    return FeatureStats(
-        area_km2=track.area_km2,
-        kept=survey is not None,
-        start=survey.start if survey else None,
-        end=survey.end if survey else None,
-        days=survey.days if survey else 0.0,
-        geo_mean=survey.geo_mean if survey else 0.0,
-        taken=len(kept),
-        dropped=survey.dropped if survey else 0,
-        refused=sum(
-            1
-            for observation, _, _ in track.refused
-            if survey and survey.start <= observation.t_start <= survey.end
-        ),
-        turned_away=len(track.refused),
-        offered=dict(Counter(track.iids[owner] for owner in track.owners)),
-        pixel_km2=_ground_one_pixel_covers(track),
-        reached={
-            iid: InstrumentReach(
-                km2=len(cells_reached) * track.cell_km2,
-                pixels=_pixels_landed(track, kept, iid),
-                observations_taken=observations_by_iid[iid],
-            )
-            for iid, cells_reached in cells_by_iid.items()
-        },
-        overlaps=dict(sorted(overlaps.items(), key=lambda ground: -ground[1])),
-    )
-
-
 def _pixels_landed(track: Track, kept: Sequence[int], iid: str) -> float | None:
     """Add up the pixels one instrument landed on the feature inside its window.
 
@@ -147,27 +144,3 @@ def _pixels_landed(track: Track, kept: Sequence[int], iid: str) -> float | None:
         ground_km2 = len(track.cells[index]) * track.cell_km2
         total += observation.pixels * ground_km2 / observation.own_km2
     return total
-
-
-def _ground_one_pixel_covers(track: Track) -> dict[str, float]:
-    """Read the ground one pixel of each instrument covers, off its observations.
-
-    Every observation offered to the feature is read, not only the ones a window
-    kept, since a pixel is the same size whether or not its look was chosen.
-
-    Args:
-        track: The feature's admissible observations on one time axis.
-
-    Returns:
-        The ground one pixel covers, by instrument, leaving out any instrument
-        none of whose observations says.
-    """
-    found: dict[str, float] = {}
-    for index, owner in enumerate(track.owners):
-        iid = track.iids[owner]
-        if iid in found:
-            continue
-        observation = track.observations[index]
-        if observation.pixels and observation.own_km2:
-            found[iid] = observation.own_km2 / observation.pixels
-    return found

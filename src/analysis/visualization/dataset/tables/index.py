@@ -66,7 +66,9 @@ def instruments(stats: CatalogueStats) -> widgets.Widget:
                     instrument.per_feature, lambda counted: f"{counted:,.0f}"
                 ),
                 _ground(instrument.union_km2),
-                _share(instrument.union_km2, stats.union_km2),
+                f"{instrument.union_km2 / stats.union_km2:.1%}"
+                if instrument.union_km2 and stats.union_km2
+                else wording.UNCOUNTED,
                 instrument.first.date().isoformat(),
                 instrument.last.date().isoformat(),
             )
@@ -108,16 +110,3 @@ def _ground(km2: float) -> str:
         The ground, or that it was never measured.
     """
     return quantities.area(km2) if km2 else wording.UNCOUNTED
-
-
-def _share(km2: float, of_km2: float) -> str:
-    """Write what share one amount of ground is of another.
-
-    Args:
-        km2: The ground reached.
-        of_km2: The ground there was to reach.
-
-    Returns:
-        The share, or that it was never measured.
-    """
-    return f"{km2 / of_km2:.1%}" if km2 and of_km2 else wording.UNCOUNTED

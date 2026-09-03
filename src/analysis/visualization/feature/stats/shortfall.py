@@ -9,7 +9,6 @@ from analysis.sampling.models.feature import FeatureStats
 from analysis.selector import configs as filtering
 from analysis.selector import relaxing
 from analysis.selector.models.counter import Counter
-from analysis.selector.models.track import Track
 from analysis.utils.maths import ground
 from analysis.visualization.common import surveys
 from analysis.visualization.common.picker import Coverage
@@ -48,9 +47,17 @@ def best(coverage: Coverage) -> list[Shortfall]:
     track = surveys.studied(coverage, criteria).track
     if track is None:
         return []
-    relaxed = surveys.studied(coverage, relaxing.unfloored(criteria))
-    stats = measuring.measured_feature(relaxed)
-    whole = _whole(track)
+    stats = measuring.measured_feature(
+        surveys.studied(coverage, relaxing.unfloored(criteria))
+    )
+    # The most each instrument reaches, counting a cell once however often it flew
+    counter = Counter.over(track, 0, len(track.observations) - 1)
+    whole: dict[str, float] = {}
+    for owner, iid in enumerate(track.iids):
+        filled = ground.share(
+            counter.cells_reached[owner], track.cell_km2, track.area_km2
+        )
+        whole[iid] = max(whole.get(iid, 0.0), filled)
     return [
         Shortfall(
             iid=iid,
@@ -64,25 +71,6 @@ def best(coverage: Coverage) -> list[Shortfall]:
     ]
 
 
-def _whole(track: Track) -> dict[str, float]:
-    """Read the most of a feature each instrument reaches over its whole record.
-
-    Args:
-        track: The feature's admissible observations on one time axis.
-
-    Returns:
-        The share each of them reaches, counting a cell once however often it flew.
-    """
-    counter = Counter.over(track, 0, len(track.observations) - 1)
-    reached: dict[str, float] = {}
-    for owner, iid in enumerate(track.iids):
-        filled = ground.share(
-            counter.cells_reached[owner], track.cell_km2, track.area_km2
-        )
-        reached[iid] = max(reached.get(iid, 0.0), filled)
-    return reached
-
-
 def _reached(stats: FeatureStats | None, iid: str) -> float:
     """Read what one instrument left on a feature the unfloored search kept.
 
@@ -93,7 +81,7 @@ def _reached(stats: FeatureStats | None, iid: str) -> float:
     Returns:
         The share of the feature it reaches there, and nought where it reaches none.
     """
-    if stats is None or not stats.kept or not stats.area_km2:
+    if stats is None or not stats.kept:
         return 0.0
     reach = stats.reached.get(iid)
     return reach.km2 / stats.area_km2 if reach else 0.0

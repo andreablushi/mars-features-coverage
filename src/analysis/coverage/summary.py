@@ -99,10 +99,9 @@ def catalogued_features(root: Path = paths.ARTIFACTS_ROOT) -> list[tuple[str, st
     Returns:
         The class and name of each feature, once each and in order.
     """
-    path = catalog_summary_path(root)
-    if not path.exists():
+    table = _index(root)
+    if table is None:
         return []
-    table = _summary_table(path)
     named = zip(
         table.column("feature_class").to_pylist(),
         table.column("feature_name").to_pylist(),
@@ -122,10 +121,9 @@ def catalogued_observations(
     Returns:
         How many observations each feature holds in all, by class and name.
     """
-    path = catalog_summary_path(root)
-    if not path.exists():
+    table = _index(root)
+    if table is None:
         return {}
-    table = _summary_table(path)
     counted: dict[tuple[str, str], int] = {}
     for feature_class, name, observations in zip(
         table.column("feature_class").to_pylist(),
@@ -148,10 +146,8 @@ def catalogued_rows(root: Path = paths.ARTIFACTS_ROOT) -> list[Summary]:
     Returns:
         One row per feature and instrument set measured, in index order.
     """
-    path = catalog_summary_path(root)
-    if not path.exists():
-        return []
-    return [Summary(**row) for row in _summary_table(path).to_pylist()]
+    table = _index(root)
+    return [] if table is None else [Summary(**row) for row in table.to_pylist()]
 
 
 def catalogued_sets(root: Path = paths.ARTIFACTS_ROOT) -> list[str]:
@@ -163,10 +159,10 @@ def catalogued_sets(root: Path = paths.ARTIFACTS_ROOT) -> list[str]:
     Returns:
         The identifier of each set, in the order the index first mentions it.
     """
-    path = catalog_summary_path(root)
-    if not path.exists():
+    table = _index(root)
+    if table is None:
         return []
-    return list(dict.fromkeys(_summary_table(path).column("set_key").to_pylist()))
+    return list(dict.fromkeys(table.column("set_key").to_pylist()))
 
 
 def load_feature(
@@ -187,11 +183,23 @@ def load_feature(
         One entry per instrument set, widest coverage first, then busiest.
     """
     directory = feature_artifacts_dir(root, feature_class, name)
-    measured = [
-        instrument
-        for path in sorted(directory.glob(f"*{paths.EVENTS_SUFFIX}"))
-        if (instrument := _load_set(path))
-    ]
+    measured: list[SetCoverage] = []
+    for events in sorted(directory.glob(f"*{paths.EVENTS_SUFFIX}")):
+        # A set whose summary never landed was never finished, so it is passed over
+        one = events.with_name(
+            events.name.replace(paths.EVENTS_SUFFIX, paths.SET_SUMMARY_SUFFIX)
+        )
+        if not one.exists():
+            continue
+        measured.append(
+            SetCoverage(
+                events=[
+                    Event(**row)
+                    for row in pq.read_table(events, schema=EVENTS).to_pylist()
+                ],
+                summary=Summary(**pq.read_table(one, schema=SUMMARY).to_pylist()[0]),
+            )
+        )
     return sorted(
         measured + _unobserved(measured, catalogued_sets(artifacts_root), directory),
         key=lambda instrument: (
@@ -201,37 +209,17 @@ def load_feature(
     )
 
 
-def _summary_table(path: Path) -> pa.Table:
-    """Read a summary file under the current schema.
+def _index(root: Path) -> pa.Table | None:
+    """Read the catalogue index, under the current schema.
 
     Args:
-        path: The summary parquet file.
+        root: The artifacts root directory holding it.
 
     Returns:
-        The table, under the current schema.
+        The index, or None when no run has left one.
     """
-    return pq.read_table(path, schema=SUMMARY)
-
-
-def _load_set(events_path: Path) -> SetCoverage | None:
-    """Read one instrument set's events and summary.
-
-    Args:
-        events_path: The set's events parquet file.
-
-    Returns:
-        The set's coverage, or None when its summary is missing.
-    """
-    summary_path = events_path.with_name(
-        events_path.name.replace(paths.EVENTS_SUFFIX, paths.SET_SUMMARY_SUFFIX)
-    )
-    if not summary_path.exists():
-        return None
-    summary = _summary_table(summary_path).to_pylist()
-    events = pq.read_table(events_path, schema=EVENTS).to_pylist()
-    return SetCoverage(
-        events=[Event(**row) for row in events], summary=Summary(**summary[0])
-    )
+    path = catalog_summary_path(root)
+    return pq.read_table(path, schema=SUMMARY) if path.exists() else None
 
 
 def _unobserved(

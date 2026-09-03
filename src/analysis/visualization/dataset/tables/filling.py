@@ -50,7 +50,8 @@ def filling(read: DatasetStats) -> widgets.Widget:
         The table as a widget.
     """
     feature_km = read.widths.middle if read.widths.counted else 0.0
-    across = _km(feature_km) if feature_km else wording.UNCOUNTED
+    # To a tenth below ten kilometres and whole above it
+    across = f"{feature_km:,.0f} km" if feature_km >= 10.0 else f"{feature_km:,.1f} km"
     return tables.written(
         f"What it takes to fill a feature {across} across",
         _FILLING,
@@ -118,11 +119,16 @@ def _lands(read: DatasetStats, iid: str) -> Row:
     """
     asked = filtering.FILTER.admits.get(iid)
 
+    # A sounder counts traces, not picture elements, so its pixels go unmarked
+    unit = "" if iid == wording.SOUNDER else " px"
+
     def counted(measured: Spread | None) -> str:
         """Write a pixel count read off many features, in the instrument's own units."""
         if measured is None or not measured.counted:
             return wording.UNCOUNTED
-        return wording.spread(measured, lambda pixels: _written(pixels, iid))
+        return wording.spread(
+            measured, lambda pixels: f"{quantities.compact(pixels)}{unit}"
+        )
 
     return (
         iid,
@@ -131,29 +137,3 @@ def _lands(read: DatasetStats, iid: str) -> Row:
         counted(read.held.pixels_per_look.get(iid)),
         f"{asked:,.0f}" if asked else wording.NOTHING,
     )
-
-
-def _written(counted: float, iid: str) -> str:
-    """Write one pixel count in the units the instrument measures in.
-
-    Args:
-        counted: The pixels.
-        iid: The instrument, whose pixels are traces where it is the sounder.
-
-    Returns:
-        The count, unmarked for a sounder since its pixels are traces.
-    """
-    written = quantities.compact(counted)
-    return written if iid == wording.SOUNDER else f"{written} px"
-
-
-def _km(width_km: float) -> str:
-    """Write a width in kilometres.
-
-    Args:
-        width_km: The width.
-
-    Returns:
-        The width, to a tenth below ten kilometres and whole above it.
-    """
-    return f"{width_km:,.0f} km" if width_km >= 10.0 else f"{width_km:,.1f} km"

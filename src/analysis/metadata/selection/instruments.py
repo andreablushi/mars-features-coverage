@@ -7,24 +7,6 @@ from collections.abc import Sequence
 from analysis.models.instrument import InstrumentSet, InstrumentSetInfo
 
 
-def _fault(info: InstrumentSetInfo | None) -> str | None:
-    """Return why a set cannot be measured, or None when it can.
-
-    Args:
-        info: The catalogue entry for the set, or None when ODE has no such set.
-
-    Returns:
-        The reason the set is unusable, or None.
-    """
-    if info is None:
-        return "ODE holds no such instrument host, instrument and product type"
-    if not info.valid_footprints:
-        return "ODE publishes no footprints for it"
-    if not info.valid_observation_times:
-        return "ODE publishes no acquisition times for it"
-    return None
-
-
 def verify_sets(
     requested: Sequence[InstrumentSet], catalogued: Sequence[InstrumentSetInfo]
 ) -> None:
@@ -41,15 +23,18 @@ def verify_sets(
         ValueError: When any requested set cannot carry a coverage measurement.
     """
     known = {(info.ihid, info.iid, info.pt): info for info in catalogued}
-    faults = [
-        f"  {instrument_set.key}: {fault}"
-        for instrument_set in requested
-        if (
-            fault := _fault(
-                known.get((instrument_set.ihid, instrument_set.iid, instrument_set.pt))
-            )
-        )
-    ]
+    faults: list[str] = []
+    for instrument_set in requested:
+        info = known.get((instrument_set.ihid, instrument_set.iid, instrument_set.pt))
+        if info is None:
+            fault = "ODE holds no such instrument host, instrument and product type"
+        elif not info.valid_footprints:
+            fault = "ODE publishes no footprints for it"
+        elif not info.valid_observation_times:
+            fault = "ODE publishes no acquisition times for it"
+        else:
+            continue
+        faults.append(f"  {instrument_set.key}: {fault}")
     if faults:
         listed = "\n".join(faults)
         raise ValueError(

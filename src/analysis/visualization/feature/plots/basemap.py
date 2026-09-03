@@ -5,8 +5,6 @@ from __future__ import annotations
 from html import escape
 
 import ipywidgets as widgets
-import numpy as np
-from matplotlib.axes import Axes
 from matplotlib.colors import to_rgba
 from matplotlib.patches import Patch
 
@@ -78,7 +76,11 @@ def figure(
     """
     drawn, axis = panels.board(MAP_FIGURE_SIZE)
     mosaic.draw(axis, box, image)
-    _feature(axis, grid, study.survey is not None)
+    # The feature is shaded and outlined by what the search made of it
+    colour = panels.KEPT if study.survey is not None else panels.REFUSED
+    lon, lat = grid.outline()
+    axis.fill(lon, lat, color=colour, alpha=FEATURE_FILL, zorder=2)
+    axis.plot(lon, lat, color=colour, linewidth=FEATURE_WIDTH, zorder=3)
     axis.set_title(title, fontsize=12, loc="left")
     axis.set_xlabel("Longitude")
     axis.set_ylabel("Latitude")
@@ -104,6 +106,12 @@ def _report(coverage: Coverage, study: Study, box: Box) -> widgets.HTML:
     Returns:
         The report.
     """
+    survey = study.survey
+    verdict = (
+        f"{survey.start:%Y-%m-%d} to {survey.end:%Y-%m-%d}, {survey.days:,.0f} days"
+        if survey
+        else "no window worth keeping"
+    )
     summary = coverage[0].summary
     body = escape(
         "\n".join(
@@ -117,40 +125,7 @@ def _report(coverage: Coverage, study: Study, box: Box) -> widgets.HTML:
         f"{summary.feature_area_km2:,.1f} km2 bounding box, "
         f"{box.south:.3f} to {box.north:.3f} lat, "
         f"{box.west:.3f} to {box.east:.3f} lon<br>"
-        f"{_verdict(study)}"
+        f"{verdict}"
         f"<pre style='margin: 8px 0 0; line-height: 1.4'>{body}</pre>",
         layout=widgets.Layout(flex=f"0 0 {REPORT_WIDTH}"),
     )
-
-
-def _verdict(study: Study) -> str:
-    """Say what the search made of the feature.
-
-    Args:
-        study: What it found over it.
-
-    Returns:
-        The window it earned, or that it earned none.
-    """
-    if study.survey is None:
-        return "no window worth keeping"
-    survey = study.survey
-    return f"{survey.start:%Y-%m-%d} to {survey.end:%Y-%m-%d}, {survey.days:,.0f} days"
-
-
-def _feature(axis: Axes, grid: Placed, kept: bool) -> None:
-    """Shade and outline the feature, marked by what the search made of it.
-
-    Args:
-        axis: The panel to draw on.
-        grid: Where the feature's grid falls on the mosaic.
-        kept: Whether it earned a window worth keeping.
-
-    Returns:
-        None.
-    """
-    colour = panels.KEPT if kept else panels.REFUSED
-    lon, lat = grid.outline()
-    ring = np.column_stack([lon, lat])
-    axis.fill(ring[:, 0], ring[:, 1], color=colour, alpha=FEATURE_FILL, zorder=2)
-    axis.plot(ring[:, 0], ring[:, 1], color=colour, linewidth=FEATURE_WIDTH, zorder=3)

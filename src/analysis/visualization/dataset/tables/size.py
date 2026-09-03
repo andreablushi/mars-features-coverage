@@ -30,23 +30,14 @@ def final(read: DatasetStats) -> widgets.Widget:
             f"{held.kept / held.searched:.1%}" if held.searched else wording.NOTHING,
         ),
     ]
-    rows.extend(
-        (f"{iid} observations offered", _offered(read, iid)) for iid in read.iids
-    )
+    for iid in read.iids:
+        measured = read.offered.get(iid)
+        rows.append(
+            (
+                f"{iid} observations offered",
+                f"{measured.mean * measured.counted:,.0f}"
+                if measured and measured.counted
+                else wording.NOTHING,
+            )
+        )
     return tables.written("The dataset the filter would leave", _HEADINGS, rows)
-
-
-def _offered(read: DatasetStats, iid: str) -> str:
-    """Write how many observations one instrument landed on the features searched.
-
-    Args:
-        read: What the filter made of the features swept.
-        iid: The instrument to write.
-
-    Returns:
-        The count over every feature searched, or that it landed none.
-    """
-    measured = read.offered.get(iid)
-    if measured is None or not measured.counted:
-        return wording.NOTHING
-    return f"{measured.mean * measured.counted:,.0f}"
