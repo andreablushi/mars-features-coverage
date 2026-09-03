@@ -3,24 +3,42 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
+
+import numpy as np
+from shapely import from_wkt
 
 from analysis.coverage import configs
+from analysis.coverage.projection.geometry import footprints, geodesy
+from analysis.models.observation import Observation
 
 
-def track_width(track_length_m: float, duration_s: float) -> float:
-    """Solve one track's swath width from the speed its ground trace implies.
+def track_widths(observations: Sequence[Observation]) -> list[float | None]:
+    """Derive a swath width for every ground track among the observations.
 
     Args:
-        track_length_m: The ground length of the track in metres, above zero.
-        duration_s: The elapsed observation time in seconds, above zero.
+        observations: The observations to inspect.
 
     Returns:
-        The cross-track width in metres.
+        One width in metres per observation, and None where the footprint has area.
     """
-    speed = track_length_m / duration_s
-    radius = (configs.MARS_GM * configs.MARS_RADIUS_M**2 / speed**2) ** (1.0 / 3.0)
-    altitude = radius - configs.MARS_RADIUS_M
-    return 2.0 * math.sqrt(configs.SHARAD_WAVELENGTH_M * altitude / 2.0)
+    widths: list[float | None] = [None] * len(observations)
+    for position, observation in enumerate(observations):
+        if not observation.is_track or observation.duration_s <= 0.0:
+            continue
+        # A track is published as lines, whose ground lengths add up to its own
+        parts, _ = footprints.single_parts(
+            np.asarray([from_wkt(observation.wkt)], dtype=object)
+        )
+        length = sum(
+            geodesy.haversine_length(*np.asarray(part.coords).T) for part in parts
+        )
+        # The speed that trace implies fixes the altitude, and so the swath
+        speed = length / observation.duration_s
+        radius = (configs.MARS_GM * configs.MARS_RADIUS_M**2 / speed**2) ** (1.0 / 3.0)
+        altitude = radius - configs.MARS_RADIUS_M
+        widths[position] = 2.0 * math.sqrt(configs.SHARAD_WAVELENGTH_M * altitude / 2.0)
+    return widths
 
 
 def ground_pixel_km2(

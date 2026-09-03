@@ -72,18 +72,6 @@ def bbox_centre(
     return float(normalise_longitude(centre_lon)), (min_lat + max_lat) / 2.0
 
 
-def _samples(span_deg: float) -> int:
-    """Return how many samples an edge needs to stay under the segment step.
-
-    Args:
-        span_deg: The angular length of the edge in degrees.
-
-    Returns:
-        The sample count, never fewer than two.
-    """
-    return max(2, math.ceil(abs(span_deg) / configs.MAX_SEGMENT_DEG) + 1)
-
-
 def bbox_ring(
     min_lat: float, max_lat: float, west_lon: float, east_lon: float
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -100,8 +88,10 @@ def bbox_ring(
     """
     span = longitude_span(west_lon, east_lon)
     east = west_lon + span
-    along = np.linspace(west_lon, east, _samples(span))
-    up = np.linspace(min_lat, max_lat, _samples(max_lat - min_lat))
+    step = configs.MAX_SEGMENT_DEG
+    rise = max_lat - min_lat
+    along = np.linspace(west_lon, east, max(2, math.ceil(span / step) + 1))
+    up = np.linspace(min_lat, max_lat, max(2, math.ceil(rise / step) + 1))
     lons = np.concatenate(
         [along, np.full(up.size, east), along[::-1], np.full(up.size, west_lon)]
     )

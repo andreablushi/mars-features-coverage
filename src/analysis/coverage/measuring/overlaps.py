@@ -14,8 +14,7 @@ import utils.disk.paths as paths
 from analysis.coverage import configs
 from analysis.coverage.artifacts import indexing
 from analysis.coverage.models.summary import Summary
-from analysis.coverage.projection.geometry import geodesy
-from analysis.coverage.projection.region import FeatureRegion
+from analysis.coverage.projection.geometry import footprints, geodesy
 from analysis.metadata.loaders.features import load_features
 from analysis.models.feature import Feature
 from analysis.utils.maths.mask import cells_of
@@ -154,7 +153,7 @@ class _Grid:
             The planet's cells whose centre falls inside the feature's own grid,
             and the cell of that grid each of them lands in, or None for none.
         """
-        region = FeatureRegion(feature)
+        region = footprints.feature_region(feature)
         west, south, east, north = region.shape.bounds
         columns, rows = self._box(feature)
         if not columns.size or not rows.size:

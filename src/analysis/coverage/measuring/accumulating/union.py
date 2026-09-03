@@ -12,7 +12,7 @@ from shapely.geometry.base import BaseGeometry
 
 from analysis.coverage import configs
 from analysis.coverage.measuring.accumulating.sectors import SectorGrid
-from analysis.coverage.projection.region import FeatureRegion
+from analysis.coverage.models.region import FeatureRegion
 
 
 def _robust(operation, *shapes):

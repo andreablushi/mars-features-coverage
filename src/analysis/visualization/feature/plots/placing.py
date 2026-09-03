@@ -7,8 +7,7 @@ from functools import lru_cache
 
 import numpy as np
 
-from analysis.coverage.projection.geometry import geodesy
-from analysis.coverage.projection.region import FeatureRegion
+from analysis.coverage.projection.geometry import footprints, geodesy
 from analysis.metadata.loaders.features import load_features
 from analysis.models.feature import Feature
 from utils.disk.slugify import slugify
@@ -75,7 +74,7 @@ class Placed:
         Returns:
             None.
         """
-        region = FeatureRegion(feature)
+        region = footprints.feature_region(feature)
         west, south, east, north = region.shape.bounds
         self._centre = (region.centre_lon, region.centre_lat)
         self._west, self._south = west, south

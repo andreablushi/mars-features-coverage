@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-
 import numpy as np
 from shapely import from_wkt
 
 from analysis.coverage.models.observation import ProjectedObservation, ProjectedSet
-from analysis.coverage.projection.geometry import footprints, geodesy, sizing
-from analysis.coverage.projection.region import FeatureRegion
-from analysis.models.observation import Observation, ObservationSet
+from analysis.coverage.projection.geometry import footprints, sizing
+from analysis.models.observation import ObservationSet
 
 
 def project(loaded: ObservationSet) -> ProjectedSet:
@@ -22,9 +19,10 @@ def project(loaded: ObservationSet) -> ProjectedSet:
     Returns:
         The observations that landed on the feature, and the region they were cut to.
     """
-    region = FeatureRegion(loaded.feature)
-    widths = _track_widths(loaded.observations)
-    shapes = region.footprint_areas(
+    region = footprints.feature_region(loaded.feature)
+    widths = sizing.track_widths(loaded.observations)
+    shapes = footprints.projected_footprints(
+        region,
         from_wkt(
             np.asarray(
                 [observation.wkt for observation in loaded.observations], dtype=object
@@ -63,30 +61,3 @@ def project(loaded: ObservationSet) -> ProjectedSet:
         observations=projected,
         discarded=loaded.discarded + missed,
     )
-
-
-def _track_widths(observations: Sequence[Observation]) -> list[float | None]:
-    """Derive a swath width for every ground track among the observations.
-
-    Args:
-        observations: The observations to inspect.
-
-    Returns:
-        One width in metres per observation, and None where the footprint has area.
-    """
-    widths: list[float | None] = [None] * len(observations)
-    for position, observation in enumerate(observations):
-        if not observation.is_track or observation.duration_s <= 0.0:
-            continue
-        # A track is published as lines, whose ground lengths add up to its own
-        length = 0.0
-        parts, _ = footprints.single_parts(
-            np.asarray([from_wkt(observation.wkt)], dtype=object)
-        )
-        for part in parts:
-            if part.geom_type == "LineString":
-                coords = np.asarray(part.coords)
-                length += geodesy.haversine_length(coords[:, 0], coords[:, 1])
-        if length > 0.0:
-            widths[position] = sizing.track_width(length, observation.duration_s)
-    return widths
