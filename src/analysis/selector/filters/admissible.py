@@ -33,7 +33,11 @@ def admit_observation(
     for owner, instrument in enumerate(coverage):
         for observation in instrument.events:
             spread, pixels = observation.own_km2, observation.pixels
-            cells = grid.held_cells(packing.cells_of(observation.mask).tolist())
+            cells = [
+                cell
+                for cell in packing.cells_of(observation.mask).tolist()
+                if cell in grid.inside
+            ]
             if not cells:
                 continue
             landed = (

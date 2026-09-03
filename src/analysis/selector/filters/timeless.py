@@ -7,7 +7,7 @@ from collections.abc import Container
 from analysis.selector.models.track import Track
 
 
-def kept(track: Track, instruments: Container[str]) -> tuple[int, ...]:
+def fresh_looks(track: Track, instruments: Container[str]) -> tuple[int, ...]:
     """Keep every look a timeless instrument left on the feature, whenever it came.
 
     Args:

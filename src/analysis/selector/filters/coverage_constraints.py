@@ -1,4 +1,4 @@
-"""Which constraints a window meets, and how much ground answers each of them."""
+"""Which coverage constraints a window meets, and how much ground answers each."""
 
 from __future__ import annotations
 
@@ -7,7 +7,9 @@ from collections.abc import Sequence
 from analysis.selector.models.filter import Constraints
 
 
-def met(constraints: Constraints, cells_reached: Sequence[int]) -> list[int] | None:
+def coverage_constraints(
+    constraints: Constraints, cells_reached: Sequence[int]
+) -> list[int] | None:
     """Take what each constraint reaches, or refuse them all when one goes unmet.
 
     Args:

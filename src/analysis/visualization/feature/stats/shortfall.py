@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass
 
 from analysis.sampling import measuring
 from analysis.sampling.models.feature import FeatureStats
 from analysis.selector import configs as filtering
-from analysis.selector import relaxing
 from analysis.selector.models.counter import Counter
 from analysis.utils.maths import ground
 from analysis.visualization.common import surveys
@@ -47,9 +47,16 @@ def best(coverage: Coverage) -> list[Shortfall]:
     track = surveys.studied(coverage, criteria).track
     if track is None:
         return []
-    stats = measuring.measured_feature(
-        surveys.studied(coverage, relaxing.unfloored(criteria))
+    # The filter read as asking for a look and no ground, so a feature the search
+    # refused still shows the window it came closest with
+    unfloored = dataclasses.replace(
+        criteria,
+        unfloored=True,
+        constraints=tuple(
+            dict.fromkeys(constraint, 0.0) for constraint in criteria.constraints
+        ),
     )
+    stats = measuring.measured_feature(surveys.studied(coverage, unfloored))
     # The most each instrument reaches, counting a cell once however often it flew
     counter = Counter.over(track, 0, len(track.observations) - 1)
     whole: dict[str, float] = {}

@@ -5,7 +5,8 @@ from __future__ import annotations
 from bisect import bisect_left
 
 from analysis.selector import configs
-from analysis.selector.filters import floors, redundancy, timeless
+from analysis.selector.filters import redundancy, timeless
+from analysis.selector.filters.coverage_constraints import coverage_constraints
 from analysis.selector.models.counter import Counter
 from analysis.selector.models.filter import Constraints, Filter
 from analysis.selector.models.survey import Survey
@@ -29,7 +30,7 @@ def search(track: Track, criteria: Filter) -> Survey | None:
     # What time cannot change is asked of the whole record rather than a window
     if standing:
         whole = Counter.over(track, 0, len(track.observations) - 1)
-        if floors.met(standing, whole.cells_reached) is None:
+        if coverage_constraints(standing, whole.cells_reached) is None:
             return None
     # Take the best window
     picked = _best(track, windowed, criteria)
@@ -45,7 +46,7 @@ def search(track: Track, criteria: Filter) -> Survey | None:
         geo_mean=geo_mean,
         kept=tuple(kept),
         dropped=picked.last - picked.first + 1 - len(kept),
-        standing=timeless.kept(track, criteria.timeless),
+        standing=timeless.fresh_looks(track, criteria.timeless),
     )
 
 
@@ -77,7 +78,7 @@ def _best(track: Track, windowed: Constraints, criteria: Filter) -> Window | Non
             if not fresh:
                 continue
             reached[track.owners[right]] += fresh
-            counts = floors.met(windowed, reached)
+            counts = coverage_constraints(windowed, reached)
             if counts is None:
                 continue  # the window does not hold what the filter asks
             paid = scoring.scored(track, counts, days)

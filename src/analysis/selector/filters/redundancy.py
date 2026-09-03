@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from analysis.selector.filters import floors
+from analysis.selector.filters.coverage_constraints import coverage_constraints
 from analysis.selector.models.counter import Counter
 from analysis.selector.models.filter import Constraints
 from analysis.selector.models.track import Track
@@ -30,7 +30,8 @@ def trimmed(
     kept = list(range(window.first, window.last + 1))
     # Count what the window holds in cells
     counter = Counter.over(track, window.first, window.last)
-    geo_mean = scoring.scored(track, floors.met(constraints, counter.cells_reached))
+    reached = coverage_constraints(constraints, counter.cells_reached)
+    geo_mean = scoring.scored(track, reached)
     # Try to drop each observation, oldest first, and keep the rest
     for index in list(kept):
         score = _without(track, counter, constraints, index, gain)
@@ -61,7 +62,7 @@ def _without(
     if int(np.count_nonzero(filled[cells] == 1)) >= gain:
         return None
     counter.release(owner, cells)
-    counts = floors.met(constraints, counter.cells_reached)
+    counts = coverage_constraints(constraints, counter.cells_reached)
     if counts is None:
         counter.hold(owner, cells)
         return None
