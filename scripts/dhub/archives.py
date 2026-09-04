@@ -30,9 +30,14 @@ def logged(project, root: Path, name: str, description: str):
         )
     )
     print(f"uploading {name}, {packed.stat().st_size / 1e6:.0f} MB", flush=True)
-    return project.log_artifact(
-        name=name, kind="artifact", source=str(packed), description=description
-    )
+    try:
+        return project.log_artifact(
+            name=name, kind="artifact", source=str(packed), description=description
+        )
+    finally:
+        # The platform holds the archive now, so the job keeps neither the file
+        # nor the pages it left charged against the memory the job is given
+        packed.unlink(missing_ok=True)
 
 
 def unpacked(downloaded: str, into: Path) -> None:

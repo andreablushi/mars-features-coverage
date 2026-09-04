@@ -30,7 +30,7 @@ except ModuleNotFoundError:
         return lambda called: called
 
 
-SURVEY_HANDLER = "scripts.analysis_pipeline:run_survey"
+PIPELINE_HANDLER = "scripts.analysis_pipeline:run_pipeline"
 STATS_HANDLER = "scripts.analysis_pipeline:run_stats"
 
 _PUBLISHED = configs.load().publishes
@@ -91,25 +91,26 @@ def stats(workers: int | None = None) -> None:
     )
 
 
-@handler(outputs=[_COVERAGE, _SUMMARY])
-def run_survey(project, force: bool = False, workers: int | None = None):
-    """Measure the coverage on DigitalHub and publish everything it left on disk.
+@handler(outputs=[_COVERAGE, _SUMMARY, _SELECTION, _STATS])
+def run_pipeline(project, force: bool = False, workers: int | None = None):
+    """Run every stage on DigitalHub and publish everything each one left on disk.
 
     Args:
-        project: The DigitalHub project the artifacts are logged into.
+        project: The DigitalHub project the archives are logged into.
         force: Whether to redo finished work rather than skip it.
-        workers: How many jobs each half runs at once, as the job was sized.
+        workers: How many jobs each stage runs at once, as the job was sized.
 
     Returns:
-        The uploaded archive of the measurements, then the catalogue index as a table.
+        The measurements and the catalogue index, then the selection and the stats.
 
     Raises:
-        RuntimeError: When either half of the pipeline reported a failure.
+        RuntimeError: When the measuring stage reported a failure, which leaves
+            the coverage too incomplete to select a dataset from.
     """
     os.environ[console.PLAIN_LOG_ENV] = "1"
     print("measuring coverage", flush=True)
     failed = survey(force, workers)
-    artifacts = archives.logged(
+    coverage = archives.logged(
         project,
         paths.COVERAGE_ROOT,
         _COVERAGE,
@@ -135,11 +136,14 @@ def run_survey(project, force: bool = False, workers: int | None = None):
             _METADATA,
             "The ODE records behind each measurement; unpack under data/analysis/.",
         )
-    # Report a partly failed run only once everything is safely uploaded
+    # Report a partly failed measurement only once everything is safely uploaded,
+    # and never select a dataset from coverage that is missing what failed
     if failed:
-        raise RuntimeError("the run had failures; the artifacts hold what finished")
+        raise RuntimeError("the run had failures; the archives hold what finished")
+    stats(workers)
+    selection, published = _published_selection(project)
     print("done", flush=True)
-    return artifacts, summary
+    return coverage, summary, selection, published
 
 
 @handler(outputs=[_SELECTION, _STATS])
@@ -164,20 +168,35 @@ def run_stats(project, workers: int | None = None):
     if not index.catalogued_features():
         raise RuntimeError("the published measurements hold no feature to search")
     stats(workers)
-    selection = archives.logged(
-        project,
-        paths.SELECTION_ROOT,
-        _SELECTION,
-        "The features and observations the filter keeps; unpack under data/analysis/.",
-    )
-    published = archives.logged(
-        project,
-        paths.STATS_ROOT,
-        _STATS,
-        "What the filter left of the dataset; unpack under data/analysis/.",
-    )
+    selection, published = _published_selection(project)
     print("done", flush=True)
     return selection, published
+
+
+def _published_selection(project):
+    """Publish what the filter keeps of the features, and what it left of them.
+
+    Args:
+        project: The DigitalHub project both archives are logged into.
+
+    Returns:
+        The uploaded archive of the selection, then the one of the stats.
+    """
+    return (
+        archives.logged(
+            project,
+            paths.SELECTION_ROOT,
+            _SELECTION,
+            "The features and observations the filter keeps; "
+            "unpack under data/analysis/.",
+        ),
+        archives.logged(
+            project,
+            paths.STATS_ROOT,
+            _STATS,
+            "What the filter left of the dataset; unpack under data/analysis/.",
+        ),
+    )
 
 
 def main() -> int:
@@ -206,9 +225,9 @@ def main() -> int:
         from dhub import submit
 
         if arguments.only_stats:
-            return submit.submitted("selection", STATS_HANDLER, arguments.ref)
+            return submit.submitted("stats", STATS_HANDLER, arguments.ref)
         return submit.submitted(
-            "coverage", SURVEY_HANDLER, arguments.ref, force=arguments.force
+            "pipeline", PIPELINE_HANDLER, arguments.ref, force=arguments.force
         )
     failed = 0 if arguments.only_stats else survey(arguments.force)
     stats()
