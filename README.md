@@ -49,9 +49,11 @@ uv run --group digitalhub python scripts/analysis_pipeline.py --dh
 uv run --group digitalhub python scripts/analysis_pipeline.py --dh --only-stats
 ```
 
-The first form measures the coverage and publishes it. The second reads that
-published measurement back and publishes only the selection and the stats, so
-re-running the filter costs nothing but the search.
+The first form runs every stage in one job and publishes all of it: the
+measurements, the catalogue index, the records behind them, and the selection
+and stats the filter left. The second reads a published measurement back and
+publishes only the selection and the stats, so re-running an edited filter costs
+nothing but the search.
 
 Everything a submission needs, from the project name to the memory a job asks
 for, is in `configs/digitalhub.yaml`. The pip requirements are taken straight
