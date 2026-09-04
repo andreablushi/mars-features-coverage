@@ -90,12 +90,19 @@ class Plan:
     Attributes:
         jobs: The products that still need building.
         frames: The local frame of every feature the build covers.
-        feature_count: How many features it covers.
         skipped_existing: Products left alone because every crop of them is
             already written.
     """
 
     jobs: tuple[Job, ...]
     frames: tuple[FeatureFrame, ...] = ()
-    feature_count: int = 0
     skipped_existing: int = 0
+
+    @property
+    def feature_count(self) -> int:
+        """Return how many features the build covers.
+
+        Returns:
+            One per frame it holds.
+        """
+        return len(self.frames)

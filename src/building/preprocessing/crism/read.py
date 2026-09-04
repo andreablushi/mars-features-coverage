@@ -16,7 +16,7 @@ from building.preprocessing.crism.correction import (
     despike,
     destripe,
     masking,
-    merge_detectors,
+    merge,
     ratio,
 )
 from building.preprocessing.crism.models.observation import CrismObservation, Detector
@@ -120,4 +120,4 @@ def read_sample(identifier: str) -> CrismSample:
         FileNotFoundError: When any file the observation needs is missing.
         ValueError: When a window keeps no band of a cube.
     """
-    return merge_detectors.merge_detectors(clean(identifier))
+    return merge.merge_detectors(clean(identifier))

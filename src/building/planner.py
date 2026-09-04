@@ -95,7 +95,6 @@ def build_plan(
         # The heaviest first, so a long job is never the one left running alone.
         jobs=tuple(sorted(jobs, key=lambda job: -len(job.frames))),
         frames=tuple(built.values()),
-        feature_count=len(built),
         skipped_existing=skipped,
     )
 

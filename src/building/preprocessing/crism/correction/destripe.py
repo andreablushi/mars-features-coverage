@@ -45,9 +45,14 @@ def remove_spike_columns(
     # Where each caught cell of the block sits in the cube it was taken from.
     at_column, at_band = np.nonzero(caught)
     levelled = cube.copy()
-    levelled[:, np.flatnonzero(columns)[at_column], np.flatnonzero(bands)[at_band]] = (
-        medfilt1(block, size)[:, at_column, at_band]
-    )
+    if at_column.size:
+        # Only a column holding a caught cell is worth smoothing, and a scan
+        # whose detector read straight holds none at all.
+        live = np.unique(at_column)
+        smoothed = medfilt1(block[:, live], size)
+        levelled[
+            :, np.flatnonzero(columns)[at_column], np.flatnonzero(bands)[at_band]
+        ] = smoothed[:, np.searchsorted(live, at_column), at_band]
 
     everywhere = np.zeros(cube.shape[1:], dtype=bool)
     everywhere[np.ix_(columns, bands)] = caught

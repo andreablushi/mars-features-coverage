@@ -27,8 +27,12 @@ def ratio_colmed(pixspec: np.ndarray, rem: np.ndarray) -> np.ndarray:
             That column's spectra, divided through.
         """
         column = pixspec[:, idx, :]
-        normed = column / np.median(column[~rem[:, idx]], axis=0)
-        normed[rem[:, idx]] = 0
+        live = ~rem[:, idx]
+        normed = np.zeros_like(column)
+        # A column holding no measurement at all has nothing to ratio against,
+        # and every spectrum of it is refused anyway.
+        if live.any():
+            normed[live] = column[live] / np.median(column[live], axis=0)
         return normed
 
     return np.stack([medcol(i) for i in range(pixspec.shape[1])], axis=1)

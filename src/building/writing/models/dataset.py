@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from building.metadata.models.feature import FeatureFrame
 from building.metadata.models.observation import ObservationRecord
@@ -122,7 +122,7 @@ class Dataset:
         """
         return len(self.records)
 
-    def __getitem__(self, at: int) -> Any:
+    def __getitem__(self, at: int) -> xarray.Dataset:
         """Return one crop by position, so the dataset reads as a sequence.
 
         Args:
