@@ -42,13 +42,12 @@ def remove_spike_columns(
     )
     caught = apart > limit
 
-    smoothed = medfilt1(block, size)
+    # Where each caught cell of the block sits in the cube it was taken from.
+    at_column, at_band = np.nonzero(caught)
     levelled = cube.copy()
-    inner = levelled[:, columns]
-    replaced = inner[:, :, bands]
-    replaced[:, caught] = smoothed[:, caught]
-    inner[:, :, bands] = replaced
-    levelled[:, columns] = inner
+    levelled[:, np.flatnonzero(columns)[at_column], np.flatnonzero(bands)[at_band]] = (
+        medfilt1(block, size)[:, at_column, at_band]
+    )
 
     everywhere = np.zeros(cube.shape[1:], dtype=bool)
     everywhere[np.ix_(columns, bands)] = caught

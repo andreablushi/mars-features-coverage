@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pyarrow as pa
 import pyarrow.parquet as pq
 
 import utils.disk.paths as paths
@@ -26,16 +27,13 @@ def read_feature_frames(
     Raises:
         FileNotFoundError: When no frames have been written there.
     """
-    path = root / paths.FEATURE_FRAMES_NAME
-    if not path.is_file():
-        raise FileNotFoundError(f"no feature frames were written in {root}")
-    return {
-        (frame.feature_class, frame.feature_name): frame
-        for frame in (
-            FeatureFrame(**row)
-            for row in pq.read_table(path, schema=FRAMES).to_pylist()
-        )
-    }
+    held = _rows(
+        root / paths.FEATURE_FRAMES_NAME,
+        FRAMES,
+        FeatureFrame,
+        f"no feature frames were written in {root}",
+    )
+    return {(frame.feature_class, frame.feature_name): frame for frame in held}
 
 
 def read_observation_records(
@@ -52,17 +50,37 @@ def read_observation_records(
     Raises:
         FileNotFoundError: When no records have been written there.
     """
-    path = root / paths.OBSERVATION_RECORDS_NAME
+    return _rows(
+        root / paths.OBSERVATION_RECORDS_NAME,
+        RECORDS,
+        ObservationRecord,
+        f"no observation records were written in {root}",
+    )
+
+
+def _rows[Row](
+    path: Path, schema: pa.Schema, model: type[Row], missing: str
+) -> list[Row]:
+    """Read one written file back into the rows it holds.
+
+    Args:
+        path: The file to read.
+        schema: The schema it was written under.
+        model: The row model to read each row into.
+        missing: What to say where nothing has been written.
+
+    Returns:
+        One row model per row, in the order they were written.
+
+    Raises:
+        FileNotFoundError: When nothing has been written there.
+    """
     if not path.is_file():
-        raise FileNotFoundError(f"no observation records were written in {root}")
+        raise FileNotFoundError(missing)
+    # A field the model holds as a tuple is written as a list, so it is read
+    # back as the tuple it was and not as the list parquet hands over.
+    listed = [field.name for field in schema if pa.types.is_list(field.type)]
     return [
-        ObservationRecord(
-            **{
-                **row,
-                "axes": tuple(row["axes"]),
-                "shape": tuple(row["shape"]),
-                "ground_sample_m": tuple(row["ground_sample_m"]),
-            }
-        )
-        for row in pq.read_table(path, schema=RECORDS).to_pylist()
+        model(**{**row, **{name: tuple(row[name]) for name in listed}})
+        for row in pq.read_table(path, schema=schema).to_pylist()
     ]

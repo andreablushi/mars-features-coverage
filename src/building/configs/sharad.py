@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import re
 
-from building.common.layout import Layout
+from building.common.layout import DELAY, GROUND, Layout
 from building.common.naming import Naming
 from building.common.product_cache import ProductCache
-from building.metadata.models import observation as observation_axes
 from utils.disk import paths
 
 # The two products one track is published as.
@@ -30,7 +29,7 @@ NAMING = Naming(
 LAYOUT = Layout(
     instrument="SHARAD",
     dims=("delay", "trace"),
-    axes=(observation_axes.DELAY, observation_axes.GROUND),
+    axes=(DELAY, GROUND),
     measurement="power",
 )
 

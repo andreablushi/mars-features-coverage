@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import re
 
-from building.common.layout import Layout
+from building.common.layout import GROUND, Layout
 from building.common.naming import Naming
 from building.common.product_cache import ProductCache
-from building.metadata.models import observation as observation_axes
 from utils.disk import paths
 
 # The two planes of one tile that are read, the height and how it was measured.
@@ -29,7 +28,7 @@ NAMING = Naming(
 LAYOUT = Layout(
     instrument="MOLA",
     dims=("line", "sample"),
-    axes=(observation_axes.GROUND, observation_axes.GROUND),
+    axes=(GROUND, GROUND),
     measurement="topography",
 )
 

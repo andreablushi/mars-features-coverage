@@ -75,7 +75,7 @@ def ground_sample_m(placement: Placement, frame: FeatureFrame) -> tuple[float, .
         return slice(start, start + kept)
 
     steps: list[float] = []
-    for axis in range(len(placement.shape)):
+    for axis in range(placement.ground_axes):
         if placement.separable:
             thinned = Placement(
                 placement.north[stride(placement.north.size, axis == 0)],

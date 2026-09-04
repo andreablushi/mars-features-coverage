@@ -62,18 +62,13 @@ class Client:
         return found
 
     def collect(
-        self,
-        product_id: str,
-        destination: dict[str, Path],
-        timeout: float = TIMEOUT,
-        **params: str,
+        self, product_id: str, destination: dict[str, Path], **params: str
     ) -> None:
         """Download whichever halves of one ODE product are not on disk yet.
 
         Args:
             product_id: The product to fetch.
             destination: Where each of its halves belongs, keyed by suffix.
-            timeout: How long to wait on each transfer.
             params: What names the product to ODE, such as the instrument host,
                 the instrument and the product type.
 
@@ -84,7 +79,7 @@ class Client:
             FileNotFoundError: When ODE offers no download for a missing half.
         """
         if any(not path.exists() for path in destination.values()):
-            self.bring(destination, self.offers(product_id, **params), timeout)
+            self.bring(destination, self.offers(product_id, **params))
 
     @staticmethod
     def published(entry: dict) -> dict[str, str]:
@@ -130,7 +125,7 @@ class Client:
             self.stream(urls[suffix], path, timeout)
 
     @staticmethod
-    def stream(url: str, path: Path, timeout: float = TIMEOUT) -> None:
+    def stream(url: str, path: Path, timeout: float) -> None:
         """Stream one file to disk, leaving nothing behind if it fails.
 
         Args:

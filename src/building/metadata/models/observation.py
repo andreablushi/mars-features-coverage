@@ -5,12 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-# What an axis of a value array holds. A ground axis is the one a placement
-# places; the others are the instrument's own and are sampled in their own unit.
-GROUND = "ground"
-WAVELENGTH = "wavelength"
-DELAY = "delay"
-
 
 @dataclass(frozen=True, slots=True)
 class ObservationRecord:

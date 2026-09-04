@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import re
 
-from building.common.layout import Layout
+from building.common.layout import GROUND, Layout
 from building.common.naming import Naming
 from building.common.product_cache import ProductCache
-from building.metadata.models import observation as observation_axes
 from utils.disk import paths
 
 # The two products one scan is downloaded as, the pixels and what places them.
@@ -31,7 +30,7 @@ NAMING = Naming(
 LAYOUT = Layout(
     instrument="CTX",
     dims=("line", "sample"),
-    axes=(observation_axes.GROUND, observation_axes.GROUND),
+    axes=(GROUND, GROUND),
     measurement="image",
 )
 

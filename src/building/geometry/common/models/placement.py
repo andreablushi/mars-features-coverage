@@ -33,13 +33,11 @@ class Placement:
     separable: bool
 
     @property
-    def shape(self) -> tuple[int, ...]:
-        """Return the shape of the ground the placement covers.
+    def ground_axes(self) -> int:
+        """Return how many axes of ground the placement places.
 
         Returns:
-            The lines and samples a separable grid crosses to, and otherwise
-            the shape the offsets are already held in.
+            The two a separable grid crosses, and otherwise the axes the
+            offsets are already held over.
         """
-        if self.separable:
-            return (self.north.size, self.east.size)
-        return tuple(self.north.shape)
+        return 2 if self.separable else self.north.ndim
