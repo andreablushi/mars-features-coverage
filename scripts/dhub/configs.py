@@ -1,0 +1,55 @@
+"""Reading `configs/digitalhub.yaml`, the one file a platform run is settled from."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
+
+import yaml
+
+import utils.disk.paths as paths
+
+
+@dataclass(frozen=True, slots=True)
+class Platform:
+    """What a run submitted to DigitalHub is given, and what it publishes.
+
+    Attributes:
+        project: The project every run and every published archive belongs to.
+        repository: The repository the platform clones to build the image.
+        source_root: Where that clone lands on the job.
+        python_version: The interpreter the image is built on.
+        image_extras: What the platform itself asks for, beyond the pipeline.
+        cpu: The cores a job asks for, or None to ask for one per worker.
+        memory: The memory a job asks for.
+        disk: The disk a job asks for.
+        functions: The function each half is registered as, by half.
+        publishes: What each half publishes, by the name a download asks for.
+    """
+
+    project: str
+    repository: str
+    source_root: str
+    python_version: str
+    image_extras: list[str]
+    cpu: str | None
+    memory: str
+    disk: str
+    functions: dict[str, str]
+    publishes: dict[str, str]
+
+
+@lru_cache(maxsize=1)
+def load(path: Path = paths.PLATFORM_CONFIG_PATH) -> Platform:
+    """Settle what a platform run is given, reading the config file once.
+
+    Args:
+        path: The config file, which carries every setting a run is submitted with.
+
+    Returns:
+        The settled choices for the submission.
+    """
+    config = yaml.safe_load(path.read_text(encoding="utf-8"))
+    cpu = config["cpu"]
+    return Platform(**config | {"cpu": None if cpu is None else str(cpu)})

@@ -23,12 +23,12 @@ def reindex() -> int:
     Returns:
         How many summary rows the catalogue index holds.
     """
-    for feature_dir in sorted(paths.COVERAGE_ROOT.glob("*/*")):
+    for feature_dir in sorted(paths.FEATURES_ROOT.glob("*/*")):
         found = sorted(feature_dir.glob(f"*{paths.SET_SUMMARY_SUFFIX}"))
         if found:
             _concatenate(found, feature_dir / paths.SUMMARY_NAME)
     return _concatenate(
-        sorted(paths.COVERAGE_ROOT.glob(f"*/*/{paths.SUMMARY_NAME}")),
+        sorted(paths.FEATURES_ROOT.glob(f"*/*/{paths.SUMMARY_NAME}")),
         paths.catalog_summary_path(),
     )
 
@@ -41,7 +41,7 @@ def computed_features() -> set[tuple[str, str]]:
     """
     return {
         (path.parent.parent.name, path.parent.name)
-        for path in paths.COVERAGE_ROOT.glob(f"*/*/*{paths.EVENTS_SUFFIX}")
+        for path in paths.FEATURES_ROOT.glob(f"*/*/*{paths.EVENTS_SUFFIX}")
     }
 
 
@@ -102,7 +102,7 @@ def load_feature(feature_class: str, name: str) -> list[SetCoverage]:
     Returns:
         One entry per instrument set, widest coverage first, then busiest.
     """
-    directory = paths.feature_artifacts_dir(paths.COVERAGE_ROOT, feature_class, name)
+    directory = paths.feature_coverage_dir(paths.FEATURES_ROOT, feature_class, name)
     measured: list[SetCoverage] = []
     for events in sorted(directory.glob(f"*{paths.EVENTS_SUFFIX}")):
         # A set whose summary never landed was never finished, so it is passed over

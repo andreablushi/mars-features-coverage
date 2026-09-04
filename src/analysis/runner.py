@@ -44,13 +44,15 @@ def run_jobs(
 
 
 def run_pipeline(
-    settings: Settings, console: Console
+    settings: Settings, console: Console, force: bool = False
 ) -> tuple[list[Outcome], list[Outcome]]:
     """Download every set still missing and measure every set not yet measured.
 
     Args:
         settings: The settled choices for the run.
         console: The console to render on.
+        force: Whether to redo finished work rather than skip it, which covers
+            both halves at once: a set is downloaded again and measured again.
 
     Returns:
         Every finished download outcome, then every finished coverage outcome.
@@ -59,12 +61,10 @@ def run_pipeline(
     fetched: list[Outcome] = []
     with ODEClient() as client:
         features = load_features(client, refresh=settings.refresh_catalog)
-        plan = planner.download_plan(
-            features, settings.instrument_sets, force=settings.force
-        )
+        plan = planner.download_plan(features, settings.instrument_sets, force=force)
         rewriting = {job.output_path for job in plan.jobs}
         stored = [held for held in file_explorer.find_sets() if held not in rewriting]
-        backlog = planner.coverage_plan(stored, force=settings.force)
+        backlog = planner.coverage_plan(stored, force=force)
         describe(plan, backlog, settings, console)
         with (
             ProcessPoolExecutor(max_workers=settings.workers) as measuring,
@@ -90,9 +90,7 @@ def run_pipeline(
                     if not event.outcome.failed and source.stat().st_size:
                         futures.extend(
                             measure(job)
-                            for job in planner.coverage_plan(
-                                [source], force=settings.force
-                            ).jobs
+                            for job in planner.coverage_plan([source], force=force).jobs
                         )
                     yield event
 

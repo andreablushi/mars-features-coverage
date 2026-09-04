@@ -3,12 +3,6 @@
 # Jobs at once in each half: download threads, then coverage processes.
 workers: 16
 
-# Keep each set's metadata once computed. Off makes the artifacts final.
-keep_metadata: true
-
-# Redo finished work in both halves: download again, and measure again.
-force: false
-
 # Re-fetch the ODE feature catalogue instead of the cache.
 refresh_catalog: false
 

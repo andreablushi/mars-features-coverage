@@ -1,4 +1,4 @@
-"""Reading `configs/filter.yaml`, the one file the filter itself is written in."""
+"""Reading the window filter config, the one file the filter itself is written in."""
 
 from __future__ import annotations
 

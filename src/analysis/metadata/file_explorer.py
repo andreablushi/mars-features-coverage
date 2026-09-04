@@ -1,13 +1,11 @@
-"""What the downloaded metadata tree holds, and what to drop from it."""
+"""What the downloaded metadata tree holds."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from pathlib import Path
 
 import utils.disk.paths as paths
 from analysis.models.instrument import InstrumentSet
-from analysis.models.job import Outcome
 
 
 def find_sets(root: Path = paths.METADATA_ROOT) -> list[Path]:
@@ -40,20 +38,3 @@ def has_metadata(
         path.stat().st_size > 0
         for path in directory.glob(f"{instrument_set.slug}*.jsonl")
     )
-
-
-def discard_metadata(outcomes: Sequence[Outcome]) -> int:
-    """Delete the metadata of every set whose coverage is now on disk.
-
-    Args:
-        outcomes: Every finished coverage job.
-
-    Returns:
-        How many metadata files were removed.
-    """
-    removed = 0
-    for outcome in outcomes:
-        if not outcome.failed and outcome.job.summary_path.exists():
-            outcome.job.source.unlink(missing_ok=True)
-            removed += 1
-    return removed
