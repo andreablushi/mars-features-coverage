@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 
 from building.metadata.models.feature import FeatureFrame
@@ -96,6 +96,6 @@ class Plan:
     """
 
     jobs: tuple[Job, ...]
-    frames: tuple[FeatureFrame, ...] = field(default_factory=tuple)
+    frames: tuple[FeatureFrame, ...] = ()
     feature_count: int = 0
     skipped_existing: int = 0

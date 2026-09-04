@@ -57,8 +57,7 @@ def run_build(
             ProcessPoolExecutor(max_workers=settings.workers) as building,
             ThreadPoolExecutor(max_workers=settings.workers) as fetching,
         ):
-            waiting = threading.Semaphore(settings.ready)
-            held = _built(plan.jobs, ode, fetching, building, root, waiting)
+            held = _built(plan.jobs, ode, fetching, building, root, settings.ready)
             with closing(held) as outcomes:
                 collected = printing.render(
                     outcomes, len(plan.jobs), "building", console
@@ -73,7 +72,7 @@ def _built(
     fetching: ThreadPoolExecutor,
     building: ProcessPoolExecutor,
     root: Path,
-    waiting: threading.Semaphore,
+    ready: int,
 ) -> Iterator[Outcome]:
     """Fetch every product and build it the moment it lands, in whatever order.
 
@@ -94,12 +93,34 @@ def _built(
         fetching: The threads the downloads run on.
         building: The processes the builds run on.
         root: The dataset's own root directory.
-        waiting: The places a downloaded product may wait in to be built.
+        ready: How many downloaded products may wait at once to be built.
 
     Yields:
         One outcome per job, in the order they finish.
     """
     finished: queue.Queue[Outcome] = queue.Queue()
+    waiting = threading.Semaphore(ready)
+
+    def fetched(job: Job) -> Outcome:
+        """Take a place on disk for one product and bring it down into it.
+
+        The place is taken before the download rather than after, so the room a
+        product is about to need is never given away to another one, and it is
+        given back once the product has been built.
+
+        Args:
+            job: The product to fetch.
+
+        Returns:
+            The outcome, holding nothing when the product came down and the
+            error that stopped it otherwise.
+        """
+        waiting.acquire()
+        try:
+            INSTRUMENTS[job.instrument].fetch(job.identifier, ode)
+            return Outcome(job)
+        except Exception as error:  # noqa: BLE001
+            return Outcome(job, error=error)
 
     def built(job: Job, done: Future[Outcome]) -> None:
         """Put what one job's build left on the queue, and give its place back.
@@ -144,35 +165,9 @@ def _built(
         waiting.release()
 
     for job in jobs:
-        fetching.submit(_fetch, job, ode, waiting).add_done_callback(
-            partial(landed, job)
-        )
+        fetching.submit(fetched, job).add_done_callback(partial(landed, job))
     for _ in jobs:
         yield finished.get()
-
-
-def _fetch(job: Job, ode: transport.Client, waiting: threading.Semaphore) -> Outcome:
-    """Take a place on disk for one product and bring it down into it.
-
-    The place is taken before the download rather than after, so the room a
-    product is about to need is never given away to another one.
-
-    Args:
-        job: The product to fetch.
-        ode: The client it is asked through.
-        waiting: The places a downloaded product may wait in to be built, one of
-            which is taken here and given back once the product has been built.
-
-    Returns:
-        The outcome, holding nothing when the product came down and the error
-        that stopped it otherwise.
-    """
-    waiting.acquire()
-    try:
-        INSTRUMENTS[job.instrument].fetch(job.identifier, ode)
-        return Outcome(job)
-    except Exception as error:  # noqa: BLE001
-        return Outcome(job, error=error)
 
 
 def _indexed(plan: Plan, collected: Sequence[Outcome], root: Path) -> None:
