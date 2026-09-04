@@ -16,9 +16,6 @@ class Settings:
         instrument_sets: The instrument sets to download for every feature.
         plot_instrument_sets: The sets the figures draw, or None for every one held.
         loc: "f" for every footprint overlapping the box, "o" for only those inside.
-        keep_metadata: Whether to keep a set's JSONL once its coverage is computed.
-        force: Whether to redo finished work rather than skip it, which covers
-        both halves at once: a set is downloaded again and measured again.
         refresh_catalog: Whether to re-fetch the ODE feature catalogue rather than
         read the cache.
         workers: How many jobs each half runs at once.
@@ -30,8 +27,6 @@ class Settings:
     instrument_sets: tuple[InstrumentSet, ...]
     plot_instrument_sets: tuple[InstrumentSet, ...] | None
     loc: str
-    keep_metadata: bool
-    force: bool
     refresh_catalog: bool
     workers: int
     union_threads: int

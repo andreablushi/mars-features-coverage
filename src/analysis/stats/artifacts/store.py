@@ -70,7 +70,6 @@ def _as_json(stats: DatasetStats) -> dict[str, Any]:
     held = stats.held
     return {
         "shape": configs.STATS_SHAPE,
-        "features": stats.features,
         "classes": {
             name: [held.selected, _spreads(held.taken)]
             for name, held in stats.classes.items()
@@ -79,19 +78,11 @@ def _as_json(stats: DatasetStats) -> dict[str, Any]:
         "held": {
             "searched": held.searched,
             "kept": held.kept,
-            "area_km2": held.area_km2,
             "days": _spread(held.days),
-            "geo_mean": _spread(held.geo_mean),
             "reached": _spreads(held.reached),
-            "landed": _spreads(held.landed),
             "per_look": _spreads(held.pixels_per_look),
             "pixel_km2": _spreads(held.pixel_km2),
-            "overlaps": {
-                configs.INSTRUMENTS_JOINED.join(names): km2
-                for names, km2 in held.overlaps.items()
-            },
         },
-        "widths": _spread(stats.widths),
         "offered": _spreads(stats.offered),
         "overlap": _spread(stats.overlap),
     }
@@ -109,7 +100,6 @@ def _from_json(saved: Mapping[str, Any]) -> DatasetStats:
     """
     held = saved["held"]
     return DatasetStats(
-        features=saved["features"],
         classes={
             name: ClassStats(int(selected), _spreads_back(taken))
             for name, (selected, taken) in saved["classes"].items()
@@ -117,19 +107,11 @@ def _from_json(saved: Mapping[str, Any]) -> DatasetStats:
         held=Aggregate(
             searched=held["searched"],
             kept=held["kept"],
-            area_km2=held["area_km2"],
             days=_read(held["days"]),
-            geo_mean=_read(held["geo_mean"]),
             reached=_spreads_back(held["reached"]),
-            landed=_spreads_back(held["landed"]),
             pixels_per_look=_spreads_back(held["per_look"]),
             pixel_km2=_spreads_back(held["pixel_km2"]),
-            overlaps={
-                tuple(names.split(configs.INSTRUMENTS_JOINED)): km2
-                for names, km2 in held["overlaps"].items()
-            },
         ),
-        widths=_read(saved["widths"]),
         offered=_spreads_back(saved["offered"]),
         overlap=_read(saved["overlap"]),
         iids=saved["iids"],

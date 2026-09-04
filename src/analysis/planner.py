@@ -84,7 +84,7 @@ def download_plan(
 
 def coverage_plan(
     sources: Sequence[Path],
-    coverage_root: Path = paths.COVERAGE_ROOT,
+    features_root: Path = paths.FEATURES_ROOT,
     *,
     force: bool = False,
 ) -> Plan:
@@ -92,7 +92,7 @@ def coverage_plan(
 
     Args:
         sources: The instrument set metadata files discovered on disk.
-        coverage_root: The coverage artifacts root directory.
+        features_root: The per-feature coverage root directory.
         force: When True, recompute sets that are already done.
 
     Returns:
@@ -100,10 +100,10 @@ def coverage_plan(
     """
     jobs, skipped = _outstanding(
         sorted(sources, key=lambda path: -path.stat().st_size),
-        lambda source: set_summary_path(coverage_root, source),
+        lambda source: set_summary_path(features_root, source),
         lambda source, output: Job(
             source=source,
-            events_path=events_path(coverage_root, source),
+            events_path=events_path(features_root, source),
             summary_path=output,
         ),
         force=force,
@@ -117,20 +117,20 @@ def coverage_plan(
 
 
 def unfinished(
-    sources: Sequence[Path], coverage_root: Path = paths.COVERAGE_ROOT
+    sources: Sequence[Path], features_root: Path = paths.FEATURES_ROOT
 ) -> tuple[Path, ...]:
     """Return the instrument sets that still have no coverage artifact.
 
     Args:
         sources: The instrument set metadata files discovered on disk.
-        coverage_root: The coverage artifacts root directory.
+        features_root: The per-feature coverage root directory.
 
     Returns:
         The metadata files with no summary beside them, in discovery order.
     """
     sources_left, _ = _outstanding(
         sources,
-        lambda source: set_summary_path(coverage_root, source),
+        lambda source: set_summary_path(features_root, source),
         lambda source, _output: source,
         force=False,
     )

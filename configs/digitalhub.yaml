@@ -1,0 +1,36 @@
+# What a run submitted to DigitalHub is given, and what it publishes.
+
+# The project every run and every published archive belongs to.
+project: mars-multisensor-features
+
+# The repository the platform clones, and where that clone lands on the job.
+repository: https://github.com/andreablushi/mars-multisensor-features
+source_root: /shared
+
+# The image a job is built on. The extras are what the platform itself asks
+# for: registering a table samples it with pandas, which the pipeline never needs.
+python_version: PYTHON3_13
+image_extras:
+  - digitalhub>=0.15.6,<0.16
+  - pandas
+
+# What the platform gives a job. The cores size the pools inside it too, so
+# leave cpu blank to run the workers the analysis runner config asks for.
+cpu:
+memory: 16Gi
+disk: 64Gi
+
+# The function each half is registered as, keyed by what it publishes. The
+# project scopes them already, so a name says what it does and carries no prefix.
+functions:
+  coverage: measure-coverage
+  selection: select-features
+
+# What each half publishes, which is what dh_download.sh brings back down.
+publishes:
+  coverage: coverage
+  catalog: catalog
+  metadata: metadata
+  selection: selection
+  stats: stats
+  summary: summary

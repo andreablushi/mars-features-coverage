@@ -14,16 +14,17 @@ if TYPE_CHECKING:
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 CONFIGS_ROOT = REPO_ROOT / "configs"
-RUNNER_CONFIG_PATH = CONFIGS_ROOT / "runner.yaml"
-FILTER_CONFIG_PATH = CONFIGS_ROOT / "filter.yaml"
+RUNNER_CONFIG_PATH = CONFIGS_ROOT / "analysis_runner.yaml"
+FILTER_CONFIG_PATH = CONFIGS_ROOT / "window_filter.yaml"
+PLATFORM_CONFIG_PATH = CONFIGS_ROOT / "digitalhub.yaml"
 
 DATA_ROOT = REPO_ROOT / "data"
 CATALOG_ROOT = DATA_ROOT / "_catalog"
 
 ANALYSIS_ROOT = DATA_ROOT / "analysis"
 METADATA_ROOT = ANALYSIS_ROOT / "metadata"
-ARTIFACTS_ROOT = ANALYSIS_ROOT / "artifacts"
-COVERAGE_ROOT = ARTIFACTS_ROOT / "coverage"
+COVERAGE_ROOT = ANALYSIS_ROOT / "coverage"
+FEATURES_ROOT = COVERAGE_ROOT / "features"
 STATS_ROOT = ANALYSIS_ROOT / "stats"
 SELECTION_ROOT = ANALYSIS_ROOT / "selection"
 
@@ -58,7 +59,7 @@ def metadata_file(root: Path, feature: Feature, instrument_set: InstrumentSet) -
     return directory / f"{instrument_set.slug}.jsonl"
 
 
-def feature_artifacts_dir(root: Path, feature_class: str, name: str) -> Path:
+def feature_coverage_dir(root: Path, feature_class: str, name: str) -> Path:
     """Return where one feature's artifacts live, from its catalogue names.
 
     Args:
@@ -89,7 +90,7 @@ def events_path(root: Path, source: Path) -> Path:
     """Return the per-observation events file for one instrument set.
 
     Args:
-        root: The coverage artifacts root directory.
+        root: The per-feature coverage root directory.
         source: The instrument set's metadata JSONL file.
 
     Returns:
@@ -102,7 +103,7 @@ def set_summary_path(root: Path, source: Path) -> Path:
     """Return the summary file for one instrument set.
 
     Args:
-        root: The coverage artifacts root directory.
+        root: The per-feature coverage root directory.
         source: The instrument set's metadata JSONL file.
 
     Returns:
@@ -111,11 +112,11 @@ def set_summary_path(root: Path, source: Path) -> Path:
     return _mirrored(root, source.parent) / f"{source.stem}{SET_SUMMARY_SUFFIX}"
 
 
-def catalog_summary_path(root: Path = ARTIFACTS_ROOT) -> Path:
+def catalog_summary_path(root: Path = COVERAGE_ROOT) -> Path:
     """Return the file holding every feature's summary rows together.
 
     Args:
-        root: The artifacts root directory.
+        root: The coverage root directory.
 
     Returns:
         The path to the catalogue-wide summary parquet file.

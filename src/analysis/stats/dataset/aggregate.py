@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 from collections.abc import Sequence
 
 from analysis.stats import configs
@@ -12,13 +11,11 @@ from analysis.stats.models.feature import FeatureStats
 from analysis.stats.models.spread import Spread
 
 
-def dataset_stats(measured: Sequence[FeatureStats], searched: int) -> DatasetStats:
+def dataset_stats(measured: Sequence[FeatureStats]) -> DatasetStats:
     """Read every feature the selection searched as one dataset.
 
     Args:
         measured: What the looks each feature keeps left on it, in any order.
-        searched: How many features the selection searched, the ones holding
-            nothing to measure counted in.
 
     Returns:
         What the filter left of them.
@@ -29,10 +26,8 @@ def dataset_stats(measured: Sequence[FeatureStats], searched: int) -> DatasetSta
     held = [one for one in measured if plausible(one)]
     grounded = [one for one in held if one.window.kept]
     return DatasetStats(
-        features=searched,
         classes=_stats_per_class(held, iids),
         held=aggregate_features(held, iids),
-        widths=Spread.over([math.sqrt(one.window.area_km2) for one in held]),
         offered={
             iid: Spread.over([one.offered.get(iid, 0) for one in held]) for iid in iids
         },
@@ -61,17 +56,10 @@ def aggregate_features(
         What they hold between them.
     """
     kept = [one for one in measured if one.window.kept]
-    # Two features may share ground, so their overlaps are added as an upper bound
-    overlaps: dict[tuple[str, ...], float] = {}
-    for feature in kept:
-        for instrument_names, km2 in feature.overlaps.items():
-            overlaps[instrument_names] = overlaps.get(instrument_names, 0.0) + km2
     return Aggregate(
         searched=len(measured),
         kept=len(kept),
-        area_km2=sum(one.window.area_km2 for one in measured),
         days=Spread.over([one.window.days for one in kept]),
-        geo_mean=Spread.over([one.window.geo_mean for one in kept]),
         reached={
             iid: Spread.over(
                 [
@@ -83,7 +71,6 @@ def aggregate_features(
             )
             for iid in iids
         },
-        landed={iid: _pixels_landed(kept, iid) for iid in iids},
         pixels_per_look={iid: _pixels_per_look(kept, iid) for iid in iids},
         # A pixel is the same size wherever it falls, so every searched feature says
         pixel_km2={
@@ -92,7 +79,6 @@ def aggregate_features(
             )
             for iid in iids
         },
-        overlaps=dict(sorted(overlaps.items(), key=lambda ground: -ground[1])),
     )
 
 
@@ -144,26 +130,6 @@ def _stats_per_class(
     }
 
 
-def _pixels_landed(kept: Sequence[FeatureStats], iid: str) -> Spread:
-    """Read how many pixels one instrument lands on a feature, feature by feature.
-
-    Args:
-        kept: The features that earned a window.
-        iid: The instrument to read.
-
-    Returns:
-        The pixels it lands on a feature, leaving out one carrying no count.
-    """
-    landed: list[float] = []
-    for feature in kept:
-        reach = feature.reached.get(iid)
-        if reach is None:
-            landed.append(0.0)
-        elif reach.pixels is not None:
-            landed.append(reach.pixels)
-    return Spread.over(landed)
-
-
 def _pixels_per_look(kept: Sequence[FeatureStats], iid: str) -> Spread:
     """Read how many pixels one observation of an instrument lands on a feature.
 
@@ -178,7 +144,6 @@ def _pixels_per_look(kept: Sequence[FeatureStats], iid: str) -> Spread:
     per_look: list[float] = []
     for feature in kept:
         reach = feature.reached.get(iid)
-        if reach is None or not reach.observations_taken or reach.pixels is None:
-            continue
-        per_look.append(reach.pixels / reach.observations_taken)
+        if reach is not None and reach.pixels_per_look is not None:
+            per_look.append(reach.pixels_per_look)
     return Spread.over(per_look)

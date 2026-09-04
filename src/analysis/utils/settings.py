@@ -1,4 +1,4 @@
-"""Reading configs/runner.yaml, the only place a run is configured from."""
+"""Reading the analysis runner config, the one place a run is configured from."""
 
 from __future__ import annotations
 
@@ -12,18 +12,20 @@ from analysis.models.instrument import InstrumentSet
 from analysis.models.settings import Settings
 
 
-def load(path: Path = paths.RUNNER_CONFIG_PATH) -> Settings:
+def load(path: Path = paths.RUNNER_CONFIG_PATH, workers: int | None = None) -> Settings:
     """Settle what a run should do, reading the config file once.
 
     Args:
         path: The config file, which carries every setting a run turns on.
+        workers: How many jobs each half runs at once, standing in for the
+            config where a run was given a number of cores of its own.
 
     Returns:
         The settled choices for the run.
     """
     config = yaml.safe_load(path.read_text(encoding="utf-8"))
     plotted = config.get("plot_instruments")
-    workers = config["workers"]
+    workers = workers or config["workers"]
     return Settings(
         grid_cells=config["grid_cells"],
         instrument_sets=tuple(
@@ -33,8 +35,6 @@ def load(path: Path = paths.RUNNER_CONFIG_PATH) -> Settings:
         if plotted
         else None,
         loc=config["loc"],
-        keep_metadata=config["keep_metadata"],
-        force=config["force"],
         refresh_catalog=config["refresh_catalog"],
         workers=workers,
         # The coverage jobs run side by side, so each takes a share of the machine
