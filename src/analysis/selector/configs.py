@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-# How many days of waiting one more percentage point of ground is worth.
-DAYS_PER_PERCENT = 10.0
+# How far round its year Mars may turn for one more percentage point of ground,
+# in degrees. Ten days at the mean rate, which is what the day priced window paid.
+LS_PER_PERCENT = 5.25
 
 # The cells an observation has to reach that no other observation of its own set
 # already does, or the window is trimmed of it. At one only a full repeat is

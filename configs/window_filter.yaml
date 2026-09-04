@@ -10,8 +10,9 @@ constraints:
 # is preferable
 admits: {CTX: 65536, CRISM: 4096, SHARAD: 64}
 
-# How long a window may run, in days.
-span_days: 140.0
+# How far round its year Mars may turn inside a window, in degrees of solar
+# longitude. At 90 a window holds one season's worth of change at most.
+span_ls: 90.0
 
 # What instruments are excluded from the window, and kept for the feature whenever
 # they came.
