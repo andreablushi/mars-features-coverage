@@ -37,10 +37,10 @@ def metres(placement: Placement, frame: FeatureFrame) -> tuple[np.ndarray, np.nd
     )
 
 
-def ground_sample_m(placement: Placement, frame: FeatureFrame) -> float:
-    """Return how much ground one sample of an observation spans.
+def ground_sample_m(placement: Placement, frame: FeatureFrame) -> tuple[float, ...]:
+    """Return how much ground one sample spans, along each of its ground axes.
 
-    Measured off the placement rather than read out of a label, so one number
+    Measured off the placement rather than read out of a label, so one figure
     means the same for a map raster, a swath and a track alike.
 
     Args:
@@ -48,14 +48,16 @@ def ground_sample_m(placement: Placement, frame: FeatureFrame) -> float:
         frame: The feature's local frame, which the offsets are relative to.
 
     Returns:
-        The median distance in metres between samples neighbouring along the
-        ground, over every ground axis the placement has.
+        The median distance in metres between samples neighbouring along each
+        ground axis, in the order those axes run. A map raster near a pole is
+        far finer across than along, so one figure for both would say neither.
     """
-    steps: list[np.ndarray] = []
+    steps: list[float] = []
     for axis in range(len(placement.shape)):
         east, north = metres(_thinned(placement, axis), frame)
-        steps.append(np.hypot(np.diff(east, axis=axis), np.diff(north, axis=axis)))
-    return float(np.median(np.concatenate([step.ravel() for step in steps])))
+        walk = np.hypot(np.diff(east, axis=axis), np.diff(north, axis=axis))
+        steps.append(float(np.median(walk)))
+    return tuple(steps)
 
 
 def _middle(length: int) -> slice:

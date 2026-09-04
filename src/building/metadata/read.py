@@ -13,7 +13,7 @@ from building.metadata.write import FRAMES, RECORDS
 
 
 def read_feature_frames(
-    root: Path = paths.FRAMES_ROOT,
+    root: Path = paths.DATASET_ROOT,
 ) -> dict[tuple[str, str], FeatureFrame]:
     """Read the local frame of every feature, keyed by the feature it belongs to.
 
@@ -39,7 +39,7 @@ def read_feature_frames(
 
 
 def read_observation_records(
-    root: Path = paths.FRAMES_ROOT,
+    root: Path = paths.DATASET_ROOT,
 ) -> list[ObservationRecord]:
     """Read what every stored observation is, in the order they were written.
 
@@ -57,7 +57,12 @@ def read_observation_records(
         raise FileNotFoundError(f"no observation records were written in {root}")
     return [
         ObservationRecord(
-            **{**row, "axes": tuple(row["axes"]), "shape": tuple(row["shape"])}
+            **{
+                **row,
+                "axes": tuple(row["axes"]),
+                "shape": tuple(row["shape"]),
+                "ground_sample_m": tuple(row["ground_sample_m"]),
+            }
         )
         for row in pq.read_table(path, schema=RECORDS).to_pylist()
     ]

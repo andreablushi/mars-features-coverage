@@ -11,9 +11,9 @@ from analysis.selector.models.selection import Selection
 from building.download.common import client as transport
 from building.download.crism import download as crism
 from building.download.ctx import download as ctx
-from building.download.models.job import Job, Outcome
 from building.download.mola import download as mola
 from building.download.sharad import download as sharad
+from building.models.job import Job, Outcome
 
 # How many downloads to run at once. They wait on the network rather than the
 # processor, so threads are what they are run on.

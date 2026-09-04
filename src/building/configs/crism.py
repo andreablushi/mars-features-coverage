@@ -37,6 +37,9 @@ WAVELENGTH_KEY = "MRO:WAVELENGTH_FILE_NAME"
 # The geometry sits in a subdirectory of its own, beside the scan it belongs to.
 CACHE = ProductCache(paths.CRISM_ROOT, {None: (".lbl", ".img")}, {GEOMETRY: "ddr"})
 
+# What each axis of it is called.
+DIMS = ("line", "sample", "band")
+
 # What each axis of the cube holds, in the order it is stored.
 AXES = (observation_axes.GROUND, observation_axes.GROUND, observation_axes.WAVELENGTH)
 

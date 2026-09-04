@@ -26,6 +26,9 @@ NAMING = Naming(
     identity="{scan}",
 )
 
+# What each axis of it is called.
+DIMS = ("line", "sample")
+
 # What each axis of the image holds, in the order it is stored.
 AXES = (observation_axes.GROUND, observation_axes.GROUND)
 

@@ -24,6 +24,9 @@ NAMING = Naming(
     fields={TOPOGRAPHY: {"marker": "t"}, COUNTS: {"marker": "c"}},
 )
 
+# What each axis of it is called.
+DIMS = ("line", "sample")
+
 # What each axis of a plane holds, in the order it is stored.
 AXES = (observation_axes.GROUND, observation_axes.GROUND)
 

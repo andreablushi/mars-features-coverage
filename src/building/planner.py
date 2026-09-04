@@ -1,0 +1,170 @@
+"""Turning what a build could do into the products it still has to fetch and cut."""
+
+from __future__ import annotations
+
+import random
+from collections import defaultdict
+from collections.abc import Sequence
+from datetime import datetime
+from pathlib import Path
+
+import utils.disk.paths as paths
+from analysis import dataset_list
+from analysis.selector.models.selection import Selection
+from building.download.common import client as transport
+from building.download.crism import download as crism
+from building.download.ctx import download as ctx
+from building.download.mola import download as mola
+from building.download.sharad import download as sharad
+from building.metadata import frame as frames
+from building.metadata.models.feature import FeatureFrame
+from building.models.job import Job, Plan
+from building.models.settings import Settings
+from building.writing.common.store import crop_path
+
+# What reads an observation out of a product id the selection kept, for the
+# instruments the selection names.
+OBSERVED = {
+    "CRISM": crism.observation_id,
+    "CTX": ctx.observation_id,
+    "SHARAD": sharad.observation_id,
+}
+
+# The instrument the selection can never name, whose tiles are found from the
+# box of every feature that wants them.
+GRIDDED = "MOLA"
+
+
+def build_plan(
+    settings: Settings,
+    ode: transport.Client | None = None,
+    root: Path = paths.DATASET_ROOT,
+    *,
+    force: bool = False,
+) -> Plan:
+    """Work out every product one build has to fetch, and what to cut it to.
+
+    Args:
+        settings: The settled choices for the build, which size it.
+        ode: The client the gridded tiles are looked up through, or None to
+            leave that instrument out of the plan.
+        root: The dataset's own root directory.
+        force: When True, plan products every crop of which is already written.
+
+    Returns:
+        The plan, its jobs heaviest first so no long one is picked up last.
+
+    Raises:
+        FileNotFoundError: When no selection has been written, or no feature
+            catalogue is cached to read a feature's ground from.
+    """
+    picked = _sampled(dataset_list.read_dataset_list(), settings)
+    catalogued = {
+        (feature.feature_class, feature.name): feature
+        for feature in dataset_list.read_kept_features(picked)
+    }
+    built = {key: frames.feature_frame(feature) for key, feature in catalogued.items()}
+    wanted: dict[tuple[str, str], list[FeatureFrame]] = defaultdict(list)
+    taken: dict[tuple[str, str], datetime] = {}
+    for one in picked:
+        key = (one.feature.feature_class, one.feature.feature_name)
+        if key not in built:
+            continue
+        for kept in _observations(one, settings):
+            read = OBSERVED.get(kept.iid)
+            # Skip a product no instrument here builds, and one whose id names
+            # no observation its instrument can be asked for.
+            if read and (held := read(kept.pdsid)):
+                wanted[(kept.iid, held)].append(built[key])
+                taken.setdefault((kept.iid, held), kept.t_start)
+    if GRIDDED in settings.instruments and ode is not None:
+        for key, frame in built.items():
+            for tile in mola.tiles(catalogued[key], client=ode):
+                wanted[(GRIDDED, tile)].append(frame)
+
+    jobs, skipped = [], 0
+    for (instrument, identifier), held in wanted.items():
+        left = [
+            frame
+            for frame in held
+            if force or not crop_path(frame, instrument, identifier, root).exists()
+        ]
+        skipped += len(held) - len(left)
+        if left:
+            jobs.append(
+                Job(
+                    instrument,
+                    identifier,
+                    tuple(left),
+                    taken.get((instrument, identifier)),
+                )
+            )
+    return Plan(
+        # The heaviest first, so a long job is never the one left running alone.
+        jobs=tuple(sorted(jobs, key=lambda job: -len(job.frames))),
+        frames=tuple(built.values()),
+        feature_count=len(built),
+        skipped_existing=skipped,
+    )
+
+
+def _sampled(picked: Sequence[Selection], settings: Settings) -> list[Selection]:
+    """Keep the features one build covers, drawn evenly across their classes.
+
+    A smaller build is drawn from the same shuffle as a larger one, so raising
+    the cap adds features rather than exchanging them.
+
+    Args:
+        picked: What the search left of every feature it searched.
+        settings: The settled choices for the build.
+
+    Returns:
+        The selections to build, in the order the selection was written.
+    """
+    kept = [one for one in picked if one.feature.kept]
+    if settings.features is None or settings.features >= len(kept):
+        return kept
+    classes: dict[str, list[Selection]] = defaultdict(list)
+    for one in kept:
+        classes[one.feature.feature_class].append(one)
+    draw = random.Random(settings.seed)
+    for held in classes.values():
+        draw.shuffle(held)
+    # One from each class in turn, so every class is reached before any is
+    # drawn from twice and a small build spans as many as it has room for.
+    order = sorted(classes)
+    draw.shuffle(order)
+    taken: list[Selection] = []
+    for depth in range(max(len(held) for held in classes.values())):
+        for name in order:
+            if len(taken) == settings.features:
+                return sorted(taken, key=kept.index)
+            if depth < len(classes[name]):
+                taken.append(classes[name][depth])
+    return sorted(taken, key=kept.index)
+
+
+def _observations(one: Selection, settings: Settings):
+    """Keep the observations one feature contributes, spread across its window.
+
+    Args:
+        one: What the search left of that feature.
+        settings: The settled choices for the build.
+
+    Returns:
+        The observations to build, oldest first.
+    """
+    held = [kept for kept in one.observations if kept.iid in settings.instruments]
+    cap = settings.observations_per_feature
+    if cap is None:
+        return held
+    by_instrument: dict[str, list] = defaultdict(list)
+    for kept in held:
+        by_instrument[kept.iid].append(kept)
+    taken = []
+    for named in by_instrument.values():
+        # Evenly along the window rather than the front of it, so a small build
+        # keeps the spread of time the window was chosen for.
+        step = max(1, len(named) // cap)
+        taken.extend(named[::step][:cap])
+    return sorted(taken, key=lambda kept: kept.t_start)

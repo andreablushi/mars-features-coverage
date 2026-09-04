@@ -25,6 +25,7 @@ disk: 64Gi
 functions:
   pipeline: analysis-pipeline
   stats: select-features
+  build: build-dataset
 
 # What each half publishes, which is what dh_download.sh brings back down.
 publishes:
@@ -34,3 +35,4 @@ publishes:
   selection: selection
   stats: stats
   summary: summary
+  dataset: dataset

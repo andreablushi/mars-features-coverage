@@ -1,0 +1,31 @@
+# What a build of the dataset holds, and how much of it to build.
+
+# How many features to build, drawn stratified by feature class so a small build
+# still spans them. Leave empty for every feature the selection kept.
+features:
+
+# How many observations to keep of each feature, spread across the window it
+# earned rather than taken from the front, so the seasonal spread the selection
+# was made for survives a small build. Leave empty for every one it kept.
+observations_per_feature:
+
+# Which instruments to build. MOLA is placed by the feature's own box rather than
+# by the selection, since the gridded record carries no per observation time.
+instruments:
+  - CTX
+  - CRISM
+  - SHARAD
+  - MOLA
+
+# The number every draw is made with. The same seed and a larger cap gives a
+# superset, so a small build is always part of the full one.
+seed: 42
+
+# Jobs at once: download threads, then build processes.
+workers: 8
+
+# How many downloaded products may wait at once for the builds to reach them.
+# The downloads would otherwise race ahead of the builds that consume them and
+# put the whole archive on disk before the first crops are written. Below the
+# worker count the build pool starves, so keep it well above.
+ready: 32

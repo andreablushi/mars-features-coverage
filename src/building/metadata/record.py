@@ -14,6 +14,7 @@ def observation_record(
     frame: FeatureFrame,
     instrument: str,
     identifier: str,
+    path: str,
     axes: tuple[str, ...],
     shape: tuple[int, ...],
     placement: Placement,
@@ -27,6 +28,7 @@ def observation_record(
         frame: The local frame of the feature it was kept for.
         instrument: The instrument that took it, as ODE names it.
         identifier: What that instrument was asked for.
+        path: Where its arrays were written, relative to the dataset's own root.
         axes: What each axis of the value array holds, in its own order.
         shape: The value array's shape, in that same order.
         placement: Where its samples sit, which the sample size is measured off.
@@ -44,6 +46,7 @@ def observation_record(
         feature_name=frame.feature_name,
         instrument=instrument,
         identifier=identifier,
+        path=path,
         axes=axes,
         shape=shape,
         ground_sample_m=project.ground_sample_m(placement, frame),

@@ -24,8 +24,11 @@ NAMING = Naming(
     fields={OBSERVATION: {"marker": "rgram"}, GEOMETRY: {"marker": "geom"}},
 )
 
-# What each axis of the radargram holds, in the order it is stored. A sounder
-# walks a line rather than sweeping ground, so only one axis is placed.
+# What each axis of the radargram is called.
+DIMS = ("delay", "trace")
+
+# What each axis of it holds, in the order it is stored. A sounder walks a line
+# rather than sweeping ground, so only one axis is placed.
 AXES = (observation_axes.DELAY, observation_axes.GROUND)
 
 # Which geometry field places a trace.

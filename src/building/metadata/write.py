@@ -17,7 +17,7 @@ RECORDS = parquet.schema_of(ObservationRecord)
 def write_metadata(
     frames: Sequence[FeatureFrame],
     records: Sequence[ObservationRecord],
-    root: Path = paths.FRAMES_ROOT,
+    root: Path = paths.DATASET_ROOT,
 ) -> tuple[Path, Path]:
     """Write every feature's frame down, and every observation taken of them.
 
