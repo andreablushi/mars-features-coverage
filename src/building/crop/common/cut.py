@@ -68,6 +68,15 @@ def taken(array: np.ndarray, bounds: tuple[np.ndarray, ...]) -> np.ndarray:
     Returns:
         The part that is left, every axis past the ground's kept whole.
     """
+    # Bounds that neighbour are sliced rather than gathered, which is what all
+    # but an axis rejoined across the meridian keeps, and costs nothing to take.
+    runs = tuple(
+        slice(int(held[0]), int(held[-1]) + 1)
+        for held in bounds
+        if held.size and np.all(np.diff(held) == 1)
+    )
+    if len(runs) == len(bounds):
+        return array[runs]
     return array[np.ix_(*bounds)] if len(bounds) > 1 else array[bounds[0]]
 
 

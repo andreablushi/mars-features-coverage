@@ -33,7 +33,6 @@ def crop(
         sample=CtxSample(
             identifier=sample.identifier,
             image=taken(sample.image, held.bounds),
-            blank=taken(sample.blank, held.bounds),
             latitude=sample.latitude[lines],
             longitude=sample.longitude[samples],
             pixel=sample.pixel,

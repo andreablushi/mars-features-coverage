@@ -9,9 +9,6 @@ from building.configs import ctx as configs
 from building.preprocessing.ctx import geometry
 from building.preprocessing.ctx.models.sample import CtxSample
 
-# What the projection writes where the scan swept no ground.
-BLANK = 0
-
 
 def read(identifier: str) -> CtxSample:
     """Read one scan and place it on the grid its label projects it onto.
@@ -36,6 +33,4 @@ def read(identifier: str) -> CtxSample:
     if image.ndim != 2:
         raise ValueError(f"{identifier} holds a {image.ndim} dimensional image.")
     latitude, longitude = geometry.load(label)
-    return CtxSample(
-        identifier, image, image == BLANK, latitude, longitude, geometry.pixel(label)
-    )
+    return CtxSample(identifier, image, latitude, longitude, geometry.pixel(label))
