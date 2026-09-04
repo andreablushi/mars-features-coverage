@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ProductCache:
     """Where one instrument keeps every product it downloads.
 

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import numpy as np
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class MolaSample:
     """One tile with its two planes joined onto one grid.
 

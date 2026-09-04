@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import numpy as np
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Mask:
     """Where one cube was filled rather than measured, and why.
 

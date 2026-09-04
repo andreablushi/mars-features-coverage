@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass, field
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Naming:
     """How one archive spells the products of one observation.
 

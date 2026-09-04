@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 
 from building.preprocessing.crism import configs
@@ -56,7 +58,7 @@ def remove_spike_columns(
 
     everywhere = np.zeros(cube.shape[1:], dtype=bool)
     everywhere[np.ix_(columns, bands)] = caught
-    return levelled, Mask(**{**vars(mask), "stripes": everywhere})
+    return levelled, replace(mask, stripes=everywhere)
 
 
 def medfilt1(array: np.ndarray, size: int) -> np.ndarray:

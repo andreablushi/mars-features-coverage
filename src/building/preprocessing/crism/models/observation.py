@@ -9,7 +9,7 @@ import numpy as np
 from building.preprocessing.crism.models.mask import Mask
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Detector:
     """One detector's half of an observation, with its geometry beside it.
 
@@ -41,7 +41,7 @@ class Detector:
     mask: Mask | None = None
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class CrismObservation:
     """Both detectors of one scan, read off disk and not yet touched.
 

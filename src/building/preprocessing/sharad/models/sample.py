@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import numpy as np
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class SharadSample:
     """One track holding only the traces its geometry places.
 

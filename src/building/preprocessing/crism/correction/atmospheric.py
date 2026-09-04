@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 
 from building.preprocessing.crism import configs
@@ -32,6 +34,4 @@ def remove_atmospheric_bands(
     caught &= ~mask.bands
     filled = cube.copy()
     filled[:, :, caught] = mask.fill
-    return filled, Mask(
-        **{**vars(mask), "bands": mask.bands | caught, "atmospheric": caught}
-    )
+    return filled, replace(mask, bands=mask.bands | caught, atmospheric=caught)
