@@ -1,0 +1,31 @@
+"""How high the spacecraft flew over one track, which its delay axis is read through."""
+
+from __future__ import annotations
+
+from building.configs import sharad as configs
+from building.preprocessing.sharad.models.sample import SharadSample
+
+# The archive writes both radii in kilometres.
+KM = 1000.0
+
+
+def altitude_m(sample: SharadSample) -> tuple[float, float]:
+    """Return how low and how high the spacecraft was above the ground.
+
+    The delay axis is not turned into a depth here, since that needs a
+    dielectric constant the subsurface is assumed to have, which is a choice
+    about the ground rather than about where the track ran. This keeps what
+    that conversion needs beside the track that would be converted.
+
+    Args:
+        sample: The radargram holding only the traces its geometry places.
+
+    Returns:
+        The lowest and the highest height above the ground in metres, over the
+        traces the track keeps.
+    """
+    above = (
+        sample.geometry[configs.RADII["spacecraft"]]
+        - sample.geometry[configs.RADII["ground"]]
+    ) * KM
+    return float(above.min()), float(above.max())

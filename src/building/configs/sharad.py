@@ -6,6 +6,7 @@ import re
 
 from building.common.naming import Naming
 from building.common.product_cache import ProductCache
+from building.metadata.models import observation as observation_axes
 from utils.disk import paths
 
 # The two products one track is published as.
@@ -22,6 +23,17 @@ NAMING = Naming(
     template="{track}_{marker}",
     fields={OBSERVATION: {"marker": "rgram"}, GEOMETRY: {"marker": "geom"}},
 )
+
+# What each axis of the radargram holds, in the order it is stored. A sounder
+# walks a line rather than sweeping ground, so only one axis is placed.
+AXES = (observation_axes.DELAY, observation_axes.GROUND)
+
+# Which geometry field places a trace.
+PLACEMENT = {"latitude": "LATITUDE", "longitude": "LONGITUDE"}
+
+# Which fields the spacecraft's height above the ground is read between, in km,
+# since that is what the delay axis is turned into a depth through.
+RADII = {"ground": "MARS RADIUS", "spacecraft": "SPACECRAFT RADIUS"}
 
 # Where each product of an observation is kept. The geometry is a table rather
 # than an image, and sits in a subdirectory of its own.

@@ -116,7 +116,8 @@ notebooks/              # The two notebooks that read the results
 src/
   utils/                # What both halves use
     ode/                # The ODE client, its settings, its errors
-    disk/               # Project paths, atomic writes, slugs
+    disk/               # Project paths, atomic writes, slugs, parquet
+    geometry/           # Mars, its longitudes and the local projection
   analysis/             # What the archives cover, and what the notebooks read
     console.py          # Progress bars and totals
     planner.py          # What each half has left to do
@@ -132,6 +133,8 @@ src/
     common/             # Naming, the product cache, the PDS formats
     download/           # Bringing down what the selection kept
     preprocessing/      # Turning what landed into cleaned arrays
+    metadata/           # Where each feature is, and what was taken of it
+    geometry/           # Placing every sample relative to its own feature
 data/                   # Laid out as src is, each half owning what it writes
   _catalog/             # Cached ODE catalogs, read by both halves
   analysis/
@@ -142,5 +145,6 @@ data/                   # Laid out as src is, each half owning what it writes
     selection/          # The features and observations the filter keeps
     stats/              # What the filter left of the dataset
   building/
+    metadata/           # The feature frames and the observation records
     preprocessing/      # One directory per instrument, holding its products
 ```

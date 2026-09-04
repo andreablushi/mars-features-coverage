@@ -7,7 +7,7 @@ from dataclasses import fields
 from datetime import datetime
 from pathlib import Path
 from types import NoneType, UnionType
-from typing import Any, get_args, get_type_hints
+from typing import Any, get_args, get_origin, get_type_hints
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -40,6 +40,11 @@ def schema_of(model: type) -> pa.Schema:
         # A column a row may leave unset is written as the type it holds when set
         if isinstance(kind, UnionType):
             kind = next(one for one in get_args(kind) if one is not NoneType)
+        # A column holding many of one type is written as a list of it
+        if get_origin(kind) is tuple:
+            held = get_args(kind)[0]
+            columns.append((field.name, pa.list_(_ARROW[held])))
+            continue
         columns.append((field.name, _ARROW[kind]))
     return pa.schema(columns)
 

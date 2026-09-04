@@ -6,6 +6,7 @@ import re
 
 from building.common.naming import Naming
 from building.common.product_cache import ProductCache
+from building.metadata.models import observation as observation_axes
 from utils.disk import paths
 
 # The two detectors of one scan, infrared and visible.
@@ -36,5 +37,13 @@ WAVELENGTH_KEY = "MRO:WAVELENGTH_FILE_NAME"
 # The geometry sits in a subdirectory of its own, beside the scan it belongs to.
 CACHE = ProductCache(paths.CRISM_ROOT, {None: (".lbl", ".img")}, {GEOMETRY: "ddr"})
 
+# What each axis of the cube holds, in the order it is stored.
+AXES = (observation_axes.GROUND, observation_axes.GROUND, observation_axes.WAVELENGTH)
+
 # The directory every wavelength file is kept in, shared by every observation.
 WAVELENGTH_DIR = "cdr"
+
+# Which DDR backplane places a pixel. The other twelve are dropped: three carry
+# the null sentinel in every pixel, four barely vary across a scan, and the rest
+# are MOLA resampled onto this grid, which the MOLA tile itself holds better.
+BACKPLANES = {"latitude": 3, "longitude": 4}

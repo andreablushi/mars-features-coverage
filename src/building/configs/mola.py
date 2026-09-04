@@ -6,6 +6,7 @@ import re
 
 from building.common.naming import Naming
 from building.common.product_cache import ProductCache
+from building.metadata.models import observation as observation_axes
 from utils.disk import paths
 
 # The two planes of one tile that are read, the height and how it was measured.
@@ -22,6 +23,9 @@ NAMING = Naming(
     template="meg{marker}{tile}",
     fields={TOPOGRAPHY: {"marker": "t"}, COUNTS: {"marker": "c"}},
 )
+
+# What each axis of a plane holds, in the order it is stored.
+AXES = (observation_axes.GROUND, observation_axes.GROUND)
 
 # Where both planes of a tile are kept, in the one directory of the tile.
 CACHE = ProductCache(paths.MOLA_ROOT, {None: (".lbl", ".img")})

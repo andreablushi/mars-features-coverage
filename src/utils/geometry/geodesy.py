@@ -6,10 +6,14 @@ import math
 
 import numpy as np
 
-from analysis.coverage import configs
+# IAU mean radius for Mars, which every distance here is measured on.
+RADIUS_M = 3_389_500.0
 
 # A degree of longitude vanishes at a pole, so the correction is floored
 MIN_COSINE = 0.05
+
+# How near the antipode the projection is allowed to divide by
+LAEA_MIN_DENOMINATOR = 1e-12
 
 
 def normalise_longitude(lon: np.ndarray | float) -> np.ndarray:
@@ -73,7 +77,7 @@ def bbox_centre(
 
 
 def bbox_ring(
-    min_lat: float, max_lat: float, west_lon: float, east_lon: float
+    min_lat: float, max_lat: float, west_lon: float, east_lon: float, step: float
 ) -> tuple[np.ndarray, np.ndarray]:
     """Return a densified closed lon/lat ring tracing a bounding box.
 
@@ -82,13 +86,13 @@ def bbox_ring(
         max_lat: The northernmost latitude in degrees.
         west_lon: The westernmost longitude in degrees.
         east_lon: The easternmost longitude in degrees.
+        step: The longest segment the ring is densified to, in degrees.
 
     Returns:
         The ring longitudes and latitudes, closed back onto the first point.
     """
     span = longitude_span(west_lon, east_lon)
     east = west_lon + span
-    step = configs.MAX_SEGMENT_DEG
     rise = max_lat - min_lat
     along = np.linspace(west_lon, east, max(2, math.ceil(span / step) + 1))
     up = np.linspace(min_lat, max_lat, max(2, math.ceil(rise / step) + 1))
@@ -122,10 +126,10 @@ def laea_forward(
     phi = np.radians(np.asarray(lat, dtype=float))
     phi0 = math.radians(centre_lat)
     cos_c = math.sin(phi0) * np.sin(phi) + math.cos(phi0) * np.cos(phi) * np.cos(delta)
-    scale = np.sqrt(2.0 / np.maximum(1.0 + cos_c, configs.LAEA_MIN_DENOMINATOR))
-    x = configs.MARS_RADIUS_M * scale * np.cos(phi) * np.sin(delta)
+    scale = np.sqrt(2.0 / np.maximum(1.0 + cos_c, LAEA_MIN_DENOMINATOR))
+    x = RADIUS_M * scale * np.cos(phi) * np.sin(delta)
     y = (
-        configs.MARS_RADIUS_M
+        RADIUS_M
         * scale
         * (math.cos(phi0) * np.sin(phi) - math.sin(phi0) * np.cos(phi) * np.cos(delta))
     )
@@ -150,7 +154,7 @@ def haversine_length(lon: np.ndarray, lat: np.ndarray) -> float:
         np.sin(np.diff(phi) / 2.0) ** 2
         + np.cos(phi[:-1]) * np.cos(phi[1:]) * np.sin(np.diff(lam) / 2.0) ** 2
     )
-    steps = 2.0 * configs.MARS_RADIUS_M * np.arcsin(np.sqrt(np.clip(hav, 0.0, 1.0)))
+    steps = 2.0 * RADIUS_M * np.arcsin(np.sqrt(np.clip(hav, 0.0, 1.0)))
     return float(steps.sum())
 
 
@@ -176,7 +180,7 @@ def laea_inverse(
     phi0 = math.radians(centre_lat)
     rho = np.hypot(x, y)
     safe = np.where(rho == 0.0, 1.0, rho)
-    c = 2.0 * np.arcsin(np.clip(rho / (2.0 * configs.MARS_RADIUS_M), -1.0, 1.0))
+    c = 2.0 * np.arcsin(np.clip(rho / (2.0 * RADIUS_M), -1.0, 1.0))
     sin_c, cos_c = np.sin(c), np.cos(c)
     lat = np.arcsin(
         np.clip(cos_c * math.sin(phi0) + y * sin_c * math.cos(phi0) / safe, -1.0, 1.0)
