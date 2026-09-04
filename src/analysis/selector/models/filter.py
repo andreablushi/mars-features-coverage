@@ -17,7 +17,7 @@ class Filter:
     Attributes:
         constraints: What a window meets all of, any one instrument answering each.
         admits: The pixels each instrument has to land on a feature to count, by iid.
-        span_days: How long a window may run, in days.
+        span_ls: How far round its year Mars may turn inside a window, in degrees.
         timeless: The instruments the ground answers for whenever they came.
         least: The pixels each set has to land on the feature, by set.
         windowed: What a window is scored on, tightest constraint first.
@@ -26,7 +26,7 @@ class Filter:
 
     constraints: tuple[dict[str, float], ...]
     admits: dict[str, float]
-    span_days: float
+    span_ls: float
     timeless: frozenset[str] = frozenset()
     least: list[float] = field(default_factory=list)
     windowed: Constraints = field(default_factory=list)

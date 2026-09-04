@@ -9,7 +9,7 @@ import numpy as np
 
 from analysis.coverage.models.coverage import Event, SetCoverage
 from analysis.selector import configs
-from analysis.selector.filters import admissible
+from analysis.selector.filters import admissible, season
 from analysis.selector.filters.clean_window import clean_window
 from analysis.selector.models.filter import Filter
 from analysis.selector.models.grid import Grid
@@ -23,6 +23,8 @@ class Track:
     Attributes:
         observations: The observations the search may pick from, oldest first.
         times: When each of them started, in days, which is what a span is measured in.
+        ls: How far round its year Mars had turned as each was taken, in degrees,
+            which is what a window's width is held to.
         owners: The instrument set each belongs to, as its index into labels.
         cells: The feature's cells each fills, in the same order, each named once.
         labels: The name of each set, in the order owners index them.
@@ -34,6 +36,7 @@ class Track:
 
     observations: list[Event]
     times: list[float]
+    ls: list[float]
     owners: list[int]
     cells: list[np.ndarray]
     labels: list[str]
@@ -65,6 +68,7 @@ def build(
             observation.t_start.timestamp() / configs.DAY_SECONDS
             for observation, _, _ in held
         ],
+        ls=season.arcs([observation.t_start for observation, _, _ in held]),
         owners=[owner for _, owner, _ in held],
         cells=[np.asarray(cells, dtype=np.intp) for _, _, cells in held],
         labels=[instrument.label for instrument in coverage],
