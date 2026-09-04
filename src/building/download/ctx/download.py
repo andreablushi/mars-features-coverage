@@ -1,16 +1,13 @@
-"""Given a number, fetch the projected scan it picks out from ASU into the cache."""
+"""Bringing one projected CTX scan down from ASU into the cache."""
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from urllib.parse import quote
 
-from building.preprocessing.common import download
-from building.preprocessing.common.disk import catalogue
-from building.preprocessing.ctx import configs
-
-# The metadata file each feature keeps its CTX products in.
-EDR_METADATA_NAME = "mro_ctx_edr.jsonl"
+from building.configs import ctx as configs
+from building.download.common import client as transport
 
 # What ODE publishes CTX under.
 ODE = {"ihid": "MRO", "iid": "CTX"}
@@ -22,47 +19,40 @@ PRODUCT_TYPE = "EDR"
 # The suffix ODE names a raw scan by, whose URL says which volume it is on.
 ODE_SUFFIX = ".img"
 
+# The PDS volume a scan was archived on, which its download path runs through.
+VOLUME = re.compile(r"/(?P<volume>mrox_\d+)/")
+
 # Where ASU serves what it built, given the path the file sits at.
 ASU_URL = "https://image.mars.asu.edu/stream/{name}?image={path}"
 
 # Where ASU keeps one product of a scan, under the volume it was archived on.
 ASU_PATH = "/mars/images/ctx/{volume}/{place}/{name}"
 
+# Which ASU directory each kind is kept in, and what it is called there.
+DIRECTORIES = {configs.IMAGE: "prj_full", configs.LABEL: "stage"}
+REMOTE_SUFFIXES = {configs.IMAGE: ".tiff", configs.LABEL: ".scyl.isis.hdr"}
 
-def available() -> list[str]:
-    """Read the ids of every scan the metadata names.
-
-    Returns:
-        The observation ids, sorted and without repeats.
-    """
-    return catalogue.observations(
-        configs.METADATA_ROOT,
-        EDR_METADATA_NAME,
-        # ODE spells a scan in lower case, and ASU serves it in upper.
-        lambda product_id: (
-            (scan := configs.NAMING.parse(product_id.lower())) and scan.upper()
-        ),
-    )
+# How long to wait for the scan, which ASU builds on the way out.
+TIMEOUT = 900.0
 
 
-def sample(seed: int = 42, client: download.Client | None = None) -> Path:
-    """Bring down the one scan a number picks out.
+def observation_id(product_id: str) -> str | None:
+    """Read which scan one product the selection kept belongs to.
 
     Args:
-        seed: The number to draw with.
-        client: A client to reuse, or None to open one for this call.
+        product_id: The PDS product identifier, as the selection spells it.
 
     Returns:
-        The path to the scan's label, whose image sits beside it.
+        The scan to download, as ASU spells it, or None when the product is not
+        one this instrument reads.
 
-    Raises:
-        ValueError: When the metadata holds no CTX products.
     """
-    wanted = "CTX product in the metadata"
-    return fetch(catalogue.sample(available(), seed, wanted), client)
+    # ODE spells a scan in lower case, and ASU serves it in upper.
+    scan = configs.NAMING.parse(product_id.lower())
+    return scan.upper() if scan else None
 
 
-def fetch(observation_id: str, client: download.Client | None = None) -> Path:
+def fetch(observation_id: str, client: transport.Client | None = None) -> Path:
     """Bring the projected scan and its label down, or return what is here.
 
     ASU keeps what it built under the volume the raw scan came from, and only
@@ -81,17 +71,17 @@ def fetch(observation_id: str, client: download.Client | None = None) -> Path:
     """
     destination = configs.CACHE.files(observation_id, observation_id)
     if any(not path.exists() for path in destination.values()):
-        with download.opened(client) as ode:
+        with transport.opened(client) as ode:
             offered = ode.offers(observation_id, pt=PRODUCT_TYPE, **ODE)
             if ODE_SUFFIX not in offered:
                 raise FileNotFoundError(
                     f"ODE carries no raw scan for {observation_id}."
                 )
-            archived = configs.VOLUME.search(offered[ODE_SUFFIX])
+            archived = VOLUME.search(offered[ODE_SUFFIX])
             if not archived:
                 raise ValueError(f"{offered[ODE_SUFFIX]} names no CTX volume.")
             volume_id = archived["volume"]
-            ode.bring(destination, _asu(observation_id, volume_id), configs.TIMEOUT)
+            ode.bring(destination, _asu(observation_id, volume_id), TIMEOUT)
     return destination[configs.SUFFIXES[configs.LABEL]]
 
 
@@ -112,8 +102,8 @@ def _asu(observation_id: str, volume_id: str) -> dict[str, str]:
             path=quote(
                 ASU_PATH.format(
                     volume=volume_id,
-                    place=configs.DIRECTORIES[kind],
-                    name=f"{observation_id}{configs.REMOTE_SUFFIXES[kind]}",
+                    place=DIRECTORIES[kind],
+                    name=f"{observation_id}{REMOTE_SUFFIXES[kind]}",
                 )
             ),
         )

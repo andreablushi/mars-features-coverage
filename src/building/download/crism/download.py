@@ -1,17 +1,12 @@
-"""Given a number, fetch the observation it picks out from ODE into the cache."""
+"""Bringing one CRISM observation down from ODE into the cache."""
 
 from __future__ import annotations
 
-from collections import defaultdict
 from pathlib import Path
 
-from building.preprocessing.common import download
-from building.preprocessing.common.disk import catalogue
-from building.preprocessing.common.pds import labels
-from building.preprocessing.crism import configs
-
-# The metadata file each feature keeps its multispectral survey products in.
-MSP_METADATA_NAME = "mro_crism_trdr_msp.jsonl"
+from building.common.pds import labels
+from building.configs import crism as configs
+from building.download.common import client as transport
 
 # What ODE publishes CRISM under.
 ODE = {"ihid": "MRO", "iid": "CRISM"}
@@ -23,42 +18,24 @@ TYPES = {configs.OBSERVATION: "TRDR", configs.GEOMETRY: "DDR"}
 WAVELENGTH_TYPE = "CDR"
 
 
-def available() -> list[str]:
-    """Read the ids of every observation both detectors were published for.
-
-    Returns:
-        The observation ids, sorted and without repeats.
-    """
-    found: dict[str, set[str]] = defaultdict(set)
-    for product_id in catalogue.product_ids(configs.METADATA_ROOT, MSP_METADATA_NAME):
-        # Keep only wanted observations, which name a detector of their own.
-        parts = configs.NAMING.parts(product_id.lower())
-        if parts and parts["detector"]:
-            found[configs.NAMING.parse(product_id.lower())].add(parts["detector"])
-    return sorted(
-        name for name, seen in found.items() if seen.issuperset(configs.DETECTORS)
-    )
-
-
-def sample(seed: int = 42, client: download.Client | None = None) -> dict[str, Path]:
-    """Bring down the one observation a number picks out.
+def observation_id(product_id: str) -> str | None:
+    """Read which observation one product the selection kept belongs to.
 
     Args:
-        seed: The number to draw with.
-        client: A client to reuse, or None to open one for this call.
+        product_id: The PDS product identifier, as the selection spells it.
 
     Returns:
-        The path to each detector's label, keyed by detector.
-
-    Raises:
-        ValueError: When the metadata holds no multispectral survey products.
+        The observation to download, or None when the product names no detector
+        of its own and so is not one both detectors can be fetched from.
     """
-    wanted = "multispectral survey product in the metadata"
-    return fetch(catalogue.sample(available(), seed, wanted), client)
+    product_id = product_id.lower()
+    parts = configs.NAMING.parts(product_id)
+    # Keep only wanted products, which name a detector of their own.
+    return configs.NAMING.parse(product_id) if parts and parts["detector"] else None
 
 
 def fetch(
-    observation_id: str, client: download.Client | None = None
+    observation_id: str, client: transport.Client | None = None
 ) -> dict[str, Path]:
     """Bring both detectors of one observation down, or return what is here.
 
@@ -74,7 +51,7 @@ def fetch(
         FileNotFoundError: When ODE offers no download for a product.
         KeyError: When a label names no wavelength file.
     """
-    with download.opened(client) as ode:
+    with transport.opened(client) as ode:
         for detector in configs.DETECTORS:
             for kind, product_type in TYPES.items():
                 product_id = configs.NAMING.product(

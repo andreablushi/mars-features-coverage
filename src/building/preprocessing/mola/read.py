@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from building.preprocessing.common.pds import images
-from building.preprocessing.mola import configs, geometry
+from building.common.pds import images
+from building.configs import mola as configs
+from building.preprocessing.mola import geometry
 from building.preprocessing.mola.models.observation import MolaObservation, Plane
 from building.preprocessing.mola.models.sample import MolaSample
 

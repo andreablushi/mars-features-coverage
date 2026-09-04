@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
-from building.preprocessing.common.pds import labels
+from building.common.pds import labels
 
 # What each column type is read as, floats where the label names nothing else.
 _DTYPES = {"ASCII_INTEGER": "i8", "TIME": "M8[ms]"}

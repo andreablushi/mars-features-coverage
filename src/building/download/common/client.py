@@ -158,6 +158,25 @@ class Client:
         """
         self._ode.close()
 
+    def __enter__(self) -> Client:
+        """Return the client, so it can be opened in a with statement.
+
+        Returns:
+            The client itself.
+        """
+        return self
+
+    def __exit__(self, *exception: object) -> None:
+        """Close the client on the way out of a with statement.
+
+        Args:
+            exception: The exception being raised, which is not handled here.
+
+        Returns:
+            None.
+        """
+        self.close()
+
 
 @contextmanager
 def opened(client: Client | None) -> Iterator[Client]:

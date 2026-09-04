@@ -7,8 +7,9 @@ from pathlib import Path
 
 import numpy as np
 
-from building.preprocessing.common.pds import images
-from building.preprocessing.crism import configs
+from building.common.pds import images
+from building.configs import crism as configs
+from building.preprocessing.crism import configs as cleaning
 from building.preprocessing.crism.correction import (
     atmospheric,
     bands_calibration,
@@ -54,7 +55,7 @@ def read(identifier: str) -> CrismObservation:
         written = images.load_cube(record)[0][0]
         # Say what was never calibrated with NaN rather than a number.
         wavelengths = np.where(
-            written >= configs.UNCALIBRATED, np.nan, written.astype("f8")
+            written >= cleaning.UNCALIBRATED, np.nan, written.astype("f8")
         )
         # Order the bands by wavelength and mark what was never calibrated.
         cube, table = bands_calibration.calibrate(cube, wavelengths)

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-from building.preprocessing.common.pds import images, tables
-from building.preprocessing.sharad import configs
+from building.common.pds import images, tables
+from building.configs import sharad as configs
 from building.preprocessing.sharad.models.observation import SharadObservation
 from building.preprocessing.sharad.models.sample import SharadSample
+
+# The field the geometry names each radargram column in, counted from one.
+COLUMN_FIELD = "RADARGRAM COLUMN"
 
 
 def read(identifier: str) -> SharadSample:
@@ -39,7 +42,7 @@ def read(identifier: str) -> SharadSample:
     observation = SharadObservation(identifier, power, label, table, geometry_label)
 
     # The geometry counts columns from one, and the radargram from zero.
-    traces = observation.geometry[configs.COLUMN_FIELD].astype("i8") - 1
+    traces = observation.geometry[COLUMN_FIELD].astype("i8") - 1
     return SharadSample(
         observation.identifier,
         observation.power[:, traces],

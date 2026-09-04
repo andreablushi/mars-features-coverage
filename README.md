@@ -128,7 +128,10 @@ src/
     stats/              # What the filter left, measured over one feature or all
     visualization/      # What the notebooks draw
   building/             # What a chosen observation is turned into
-    preprocessing/      # One package per instrument, and what they share
+    configs/            # What each instrument is, read by every stage
+    common/             # Naming, the product cache, the PDS formats
+    download/           # Bringing down what the selection kept
+    preprocessing/      # Turning what landed into cleaned arrays
 data/                   # Laid out as src is, each half owning what it writes
   _catalog/             # Cached ODE catalogs, read by both halves
   analysis/

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
-from building.preprocessing.common.pds import labels
+from building.common.pds import labels
 
 
 def build_cube(image: Path, label: dict[str, str]) -> np.ndarray:

@@ -1,11 +1,11 @@
-"""Central configuration for reading a SHARAD radargram."""
+"""What a SHARAD radargram is published as, and where it lands."""
 
 from __future__ import annotations
 
 import re
 
-from building.preprocessing.common.disk.naming import Naming
-from building.preprocessing.common.disk.product_cache import ProductCache
+from building.common.naming import Naming
+from building.common.product_cache import ProductCache
 from utils.disk import paths
 
 # The two products one track is published as.
@@ -23,9 +23,6 @@ NAMING = Naming(
     fields={OBSERVATION: {"marker": "rgram"}, GEOMETRY: {"marker": "geom"}},
 )
 
-# Where the metadata download stage writes what it fetched from ODE.
-METADATA_ROOT = paths.METADATA_ROOT
-
 # Where each product of an observation is kept. The geometry is a table rather
 # than an image, and sits in a subdirectory of its own.
 CACHE = ProductCache(
@@ -33,6 +30,3 @@ CACHE = ProductCache(
     {OBSERVATION: (".lbl", ".img"), GEOMETRY: (".lbl", ".tab")},
     {GEOMETRY: "geom"},
 )
-
-# The field the geometry names each radargram column in, counted from one.
-COLUMN_FIELD = "RADARGRAM COLUMN"
