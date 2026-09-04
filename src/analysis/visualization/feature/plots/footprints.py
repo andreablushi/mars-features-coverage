@@ -31,9 +31,7 @@ def plot(coverage: Coverage) -> widgets.Widget:
     if not coverage:
         return panels.unavailable()
     summary = coverage[0].summary
-    grid = placing.placed(
-        summary.feature_class, summary.feature_name, summary.grid_side
-    )
+    grid = placing.placed(summary.feature_class, summary.feature_name)
     if grid is None:
         return panels.unavailable(mosaic.BASEMAP_FAILED.format(reason=mosaic.NO_BOX))
     looks = read.read_feature(coverage)

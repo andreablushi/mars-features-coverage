@@ -178,7 +178,6 @@ def _pixels_per_look(kept: Sequence[FeatureStats], iid: str) -> Spread:
     per_look: list[float] = []
     for feature in kept:
         reach = feature.reached.get(iid)
-        if reach is None or not reach.observations_taken or reach.pixels is None:
-            continue
-        per_look.append(reach.pixels / reach.observations_taken)
+        if reach is not None and reach.pixels_per_look is not None:
+            per_look.append(reach.pixels_per_look)
     return Spread.over(per_look)

@@ -46,12 +46,6 @@ def measured_feature(looks: FeatureLooks) -> FeatureStats:
     return FeatureStats(
         window=window,
         iids=list(dict.fromkeys(track.iids)),
-        refused=sum(
-            1
-            for observation, _, _ in track.refused
-            if window.kept and window.start <= observation.t_start <= window.end
-        ),
-        turned_away=len(track.refused),
         offered=dict(Counter(track.iids[owner] for owner in track.owners)),
         pixel_km2=pixel_km2,
         reached={

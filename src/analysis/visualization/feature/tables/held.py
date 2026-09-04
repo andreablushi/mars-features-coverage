@@ -30,32 +30,24 @@ def plot(coverage: Coverage) -> widgets.Widget:
         if window.kept
         else _NONE
     )
-    counted = [reach.pixels for reach in stats.reached.values()]
-    held = None if any(count is None for count in counted) else sum(counted)
     rows: list[Row] = [
         ("Ground the feature covers", quantities.area(window.area_km2)),
         ("How long its window lasts", lasted),
-        (
-            "Ground its window reaches",
-            f"{window.geo_mean:.0%}" if window.kept else _NONE,
-        ),
-        (
-            "Looks too small inside the window",
-            f"{stats.refused:,}, with {stats.turned_away:,} too small for the "
-            f"feature at all",
-        ),
-        ("Pixels its window holds", wording.pixels(held) if window.kept else _NONE),
     ]
     for iid in sorted(stats.reached):
         reach = stats.reached[iid]
         taken = wording.counted(reach.observations_taken, "observation")
-        rows.append(
+        rows += [
             (
                 f"Ground {iid} reaches",
                 f"{reach.km2 / window.area_km2:.0%}, "
                 f"{wording.pixels(reach.pixels)}, from {taken}",
-            )
-        )
+            ),
+            (
+                f"Mean pixels per {iid} observation",
+                wording.pixels(reach.pixels_per_look),
+            ),
+        ]
     rows += [
         (
             f"Ground reached by {wording.counted(shared, 'instrument')}",

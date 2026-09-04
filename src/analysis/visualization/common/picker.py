@@ -10,12 +10,15 @@ from IPython.display import display
 import analysis.utils.settings as settings
 from analysis.coverage.artifacts import index
 from analysis.metadata.loaders.features import load_features
+from analysis.stats.artifacts import selection
 from analysis.visualization.common import panels
 from analysis.visualization.common.models.coverage import Coverage
 from utils.disk.slugify import slugify
 
 DEFAULT_CLASS = "Crater"
 NO_DATA_SUFFIX = "  (no data)"
+KEPT_SUFFIX = "  (kept)"
+NO_WINDOW_SUFFIX = "  (no window)"
 DROPDOWN = widgets.Layout(width="300px")
 
 
@@ -34,6 +37,7 @@ class FeaturePicker:
         for names in self._names.values():
             names.sort()
         self._computed = index.computed_features()
+        self._kept = _kept_features()
         self.coverage: Coverage = []
         self._areas: list[tuple[widgets.Box, Callable[[Coverage], widgets.Widget]]] = []
         self._class = widgets.Dropdown(
@@ -67,14 +71,18 @@ class FeaturePicker:
     def _refresh_names(self, _change=None) -> None:
         """Repopulate the name dropdown for the selected feature class."""
         feature_class = self._class.value
+
+        def marked(name: str) -> str:
+            """Say what a name is marked with: what it holds, then what it earned."""
+            if (slugify(feature_class), slugify(name)) not in self._computed:
+                return name + NO_DATA_SUFFIX
+            kept = self._kept.get((feature_class, name))
+            if kept is None:
+                return name
+            return name + (KEPT_SUFFIX if kept else NO_WINDOW_SUFFIX)
+
         self._name.options = [
-            (
-                name
-                if (slugify(feature_class), slugify(name)) in self._computed
-                else name + NO_DATA_SUFFIX,
-                name,
-            )
-            for name in self._names[feature_class]
+            (marked(name), name) for name in self._names[feature_class]
         ]
 
     def _confirmed(self, _button=None) -> None:
@@ -112,3 +120,17 @@ class FeaturePicker:
             area.children = ()
         for area, render in self._areas:
             area.children = (render(self.coverage),)
+
+
+def _kept_features() -> dict[tuple[str, str], bool]:
+    """Say which searched features earned a window.
+
+    Returns:
+        Whether each searched feature was kept, by class and name, and nothing
+        at all where no selection has been written to read it off.
+    """
+    try:
+        picked = selection.selection_by_feature()
+    except FileNotFoundError:
+        return {}
+    return {key: one.feature.kept for key, one in picked.items()}

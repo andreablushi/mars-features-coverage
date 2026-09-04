@@ -18,13 +18,9 @@ from analysis.visualization.common.models.colours import Colour
 from analysis.visualization.common.models.coverage import Coverage
 
 GREY = "#8a8a8a"
-KEPT = "#2e7d32"
-REFUSED = "#c62828"
 
 FIGURE_WIDTH = 11
 
-KEY_HEIGHT = 0.085
-KEY_DROP = 0.015
 KEY_WIDTH = 0.78
 KEY_SIDE = 0.80
 KEY_TOP = 0.92
@@ -52,19 +48,6 @@ def stacked(count: int, height: float, **shared) -> tuple[Figure, list[Axes]]:
     figure = Figure(figsize=(FIGURE_WIDTH, height))
     axes = figure.subplots(count, 1, squeeze=False, **shared)
     return figure, [axis for row in axes for axis in row]
-
-
-def key_below(figure: Figure, handles: Sequence) -> None:
-    """Set a key under a map, in a strip left clear of the axis and its label."""
-    figure.tight_layout(rect=(0.0, KEY_HEIGHT, 1.0, 1.0))
-    figure.legend(
-        handles=handles,
-        fontsize=8,
-        loc="lower left",
-        bbox_to_anchor=(0.02, KEY_DROP),
-        ncols=3,
-        frameon=False,
-    )
 
 
 def key_beside(figure: Figure, handles: Sequence) -> None:

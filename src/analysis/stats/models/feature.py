@@ -52,6 +52,18 @@ class InstrumentReach:
     pixels: float | None
     observations_taken: int
 
+    @property
+    def pixels_per_look(self) -> float | None:
+        """Return the pixels one of its observations lands on the feature.
+
+        Returns:
+            The mean over the observations the window keeps, or None where any
+            of them carries no pixel count.
+        """
+        if self.pixels is None or not self.observations_taken:
+            return None
+        return self.pixels / self.observations_taken
+
 
 @dataclass(frozen=True, slots=True)
 class FeatureStats:
@@ -61,8 +73,6 @@ class FeatureStats:
         window: The window the selection gave it, carrying its class and name,
             how much ground it covers and how long its window runs.
         iids: The instruments it holds, in the order they are drawn.
-        refused: How many looks fell inside the window but were too small for it.
-        turned_away: How many looks were too small for the feature at all.
         offered: How many observations of each instrument landed on it at all.
         pixel_km2: The ground one pixel of each instrument covers, read off the
             observations offered to the feature rather than off the ones a window kept.
@@ -72,8 +82,6 @@ class FeatureStats:
 
     window: SelectedFeature
     iids: list[str]
-    refused: int
-    turned_away: int
     offered: dict[str, int]
     pixel_km2: dict[str, float]
     reached: dict[str, InstrumentReach]

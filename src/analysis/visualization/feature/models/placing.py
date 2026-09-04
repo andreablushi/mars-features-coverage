@@ -1,4 +1,4 @@
-"""Where a feature's grid falls back onto lon and lat."""
+"""Where a feature's ground falls back onto lon and lat."""
 
 from __future__ import annotations
 
@@ -41,42 +41,52 @@ class Box:
 
 
 class Placed:
-    """Where one feature's grid falls on the mosaic, in lon and lat.
+    """Where one feature's ground falls on the mosaic, in lon and lat."""
 
-    Attributes:
-        side: How many cells the grid holds along each axis.
-    """
+    def __init__(self, feature: Feature) -> None:
+        """Project one feature and lay its bounds back onto lon and lat.
 
-    def __init__(self, feature: Feature, side: int) -> None:
-        """Project one feature and lay its grid back onto lon and lat."""
+        Args:
+            feature: The catalogued feature to place.
+        """
         region = footprints.feature_region(feature)
-        west, south, east, north = region.shape.bounds
         self._centre = (region.centre_lon, region.centre_lat)
-        self._west, self._south = west, south
-        self._dx = (east - west) / side
-        self._dy = (north - south) / side
-        self.side = side
+        self._bounds = region.shape.bounds
 
     def outline(self) -> tuple[np.ndarray, np.ndarray]:
-        """Trace the whole feature as a closed lon/lat ring."""
-        right = self._west + self.side * self._dx
-        top = self._south + self.side * self._dy
-        along = np.linspace(self._west, right, RING_SAMPLES)
-        up = np.linspace(self._south, top, RING_SAMPLES)
+        """Trace the whole feature as a closed lon/lat ring.
+
+        Returns:
+            The longitudes and latitudes of the ring, closing where it opened.
+        """
+        west, south, east, north = self._bounds
+        along = np.linspace(west, east, RING_SAMPLES)
+        up = np.linspace(south, north, RING_SAMPLES)
         flat = np.full(RING_SAMPLES, 0.0)
         lon, lat = geodesy.laea_inverse(
-            np.concatenate([along, flat + right, along[::-1], flat + self._west]),
-            np.concatenate([flat + self._south, up, flat + top, up[::-1]]),
+            np.concatenate([along, flat + east, along[::-1], flat + west]),
+            np.concatenate([flat + south, up, flat + north, up[::-1]]),
             *self._centre,
         )
         return self.around(lon), lat
 
     def around(self, lon: np.ndarray) -> np.ndarray:
-        """Bring longitudes onto the same turn as the feature's own."""
+        """Bring longitudes onto the same turn as the feature's own.
+
+        Args:
+            lon: The longitudes to bring around, in degrees.
+
+        Returns:
+            The same longitudes, on the feature's own turn.
+        """
         return self._centre[0] + geodesy.normalise_longitude(lon - self._centre[0])
 
     def box(self) -> Box:
-        """Return the lon/lat box the whole grid falls in, held open to a minimum."""
+        """Return the lon/lat box the whole feature falls in, held open to a minimum.
+
+        Returns:
+            The box a mosaic crop is asked for over.
+        """
         lon, lat = self.outline()
         centre_lat = float((lat.min() + lat.max()) / 2.0)
         south, north = _floored(float(lat.min()), float(lat.max()), MIN_SPAN_DEG)
@@ -89,7 +99,16 @@ class Placed:
 
 
 def _floored(low: float, high: float, minimum: float) -> tuple[float, float]:
-    """Hold a side of a box open to a minimum width, about its middle."""
+    """Hold a side of a box open to a minimum width, about its middle.
+
+    Args:
+        low: The lower edge.
+        high: The upper edge.
+        minimum: The width to hold it open to.
+
+    Returns:
+        The edges, widened about their middle when they sit closer than the minimum.
+    """
     if high - low >= minimum:
         return low, high
     centre = (low + high) / 2.0
