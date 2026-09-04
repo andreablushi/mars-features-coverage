@@ -73,17 +73,15 @@ def write_crop(
         The directory the crop was written in.
     """
     ground = layout.ground
-    placed: Arrays = (
-        {
-            NORTH: (held.placement.north, ground[:1]),
-            EAST: (held.placement.east, ground[1:]),
-        }
-        if held.placement.separable
-        else {
-            NORTH: (held.placement.north, ground),
-            EAST: (held.placement.east, ground),
-        }
+    # A separable placement holds one ground axis each, and any other a value
+    # for every sample, so it runs along the whole of the ground.
+    north, east = (
+        (ground[:1], ground[1:]) if held.placement.separable else (ground, ground)
     )
+    placed: Arrays = {
+        NORTH: (held.placement.north, north),
+        EAST: (held.placement.east, east),
+    }
     if held.inside is not None:
         placed[INSIDE] = (held.inside, ground)
 
@@ -91,10 +89,11 @@ def write_crop(
     path = crop_path(frame, layout.instrument, identifier, root)
     path.parent.mkdir(parents=True, exist_ok=True)
     group = zarr.open_group(store=path, mode="w")
-    for name, (values, along) in (placed | arrays).items():
+    for name, (values, along) in placed.items():
+        _written(group, name, np.asarray(values), along)
+    for name, (values, along) in arrays.items():
         stored = _written(group, name, np.asarray(values), along)
-        if name in arrays:
-            stored.attrs[COORDINATES] = f"{NORTH} {EAST}"
+        stored.attrs[COORDINATES] = f"{NORTH} {EAST}"
     group.attrs.update(
         {
             "instrument": layout.instrument,
@@ -102,7 +101,7 @@ def write_crop(
             "feature_class": frame.feature_class,
             "feature_name": frame.feature_name,
             "measurement": layout.measurement,
-            "separable": bool(held.placement.separable),
+            "separable": held.placement.separable,
             "centre_lon": frame.centre_lon,
             "centre_lat": frame.centre_lat,
         }

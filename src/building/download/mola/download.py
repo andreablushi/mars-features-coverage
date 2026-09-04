@@ -35,11 +35,7 @@ PAGE = 500
 RESOLUTION = 128
 
 
-def tiles(
-    feature: Feature,
-    wanted: int = RESOLUTION,
-    client: transport.Client | None = None,
-) -> list[str]:
+def tiles(feature: Feature, client: transport.Client | None = None) -> list[str]:
     """Read which tiles hold one feature's ground.
 
     The gridded record carries no per observation time, so the selection never
@@ -47,22 +43,30 @@ def tiles(
 
     Args:
         feature: The feature whose ground the tiles have to cover.
-        wanted: How fine a grid to keep, in pixels per degree.
         client: A client to reuse, or None to open one for this call.
 
     Returns:
         The tile ids both planes are published for, sorted and without repeats.
-
-    Raises:
-        ValueError: When the resolution is not one MEGDR is published at.
     """
-    if wanted not in configs.RESOLUTIONS.values():
-        raise ValueError(f"MEGDR is not published at {wanted} pixels per degree.")
+    # A feature circling a pole is asked for in halves, since no single box
+    # reaches round every longitude.
+    spans = (
+        ode_configs.LONGITUDE_HALVES
+        if feature.circles_a_pole
+        else ((feature.west_lon, feature.east_lon),)
+    )
     names: set[str] = set()
     with transport.opened(client) as ode:
-        for box in _boxes(feature):
+        for west, east in spans:
             entries = ode.query(
-                pt=PRODUCT_TYPE, loc=LOCATION, limit=str(PAGE), **ODE, **box
+                pt=PRODUCT_TYPE,
+                loc=LOCATION,
+                limit=str(PAGE),
+                minlat=str(feature.min_lat),
+                maxlat=str(feature.max_lat),
+                westernlon=str(west),
+                easternlon=str(east),
+                **ODE,
             )
             names.update(
                 Path(filename).stem
@@ -74,37 +78,12 @@ def tiles(
     for name in names:
         # Keep only wanted tiles, which drops the polar stereographic ones.
         tile = configs.NAMING.parse(name)
-        if tile and configs.resolution(tile) == wanted:
+        if tile and configs.resolution(tile) == RESOLUTION:
             found[tile].add(name)
     return sorted(
         tile
         for tile, seen in found.items()
         if seen.issuperset(configs.NAMING.product(tile, kind) for kind in configs.KINDS)
-    )
-
-
-def _boxes(feature: Feature) -> tuple[dict[str, str], ...]:
-    """Return the lat/lon boxes one feature has to be asked for in.
-
-    Args:
-        feature: The feature to query.
-
-    Returns:
-        One box of ODE query parameters, or two around a pole.
-    """
-    spans = (
-        ode_configs.LONGITUDE_HALVES
-        if feature.circles_a_pole
-        else ((feature.west_lon, feature.east_lon),)
-    )
-    return tuple(
-        {
-            "minlat": str(feature.min_lat),
-            "maxlat": str(feature.max_lat),
-            "westernlon": str(west),
-            "easternlon": str(east),
-        }
-        for west, east in spans
     )
 
 
