@@ -6,6 +6,7 @@ import random
 from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime
+from itertools import chain, zip_longest
 from pathlib import Path
 
 import utils.disk.paths as paths
@@ -115,24 +116,19 @@ def _sampled(picked: Sequence[Selection], settings: Settings) -> list[Selection]
     kept = [one for one in picked if one.feature.kept]
     if settings.features is None or settings.features >= len(kept):
         return kept
-    classes: dict[str, list[Selection]] = defaultdict(list)
-    for one in kept:
-        classes[one.feature.feature_class].append(one)
+    classes: dict[str, list[int]] = defaultdict(list)
+    for at, one in enumerate(kept):
+        classes[one.feature.feature_class].append(at)
     draw = random.Random(settings.seed)
     for held in classes.values():
         draw.shuffle(held)
-    # One from each class in turn, so every class is reached before any is
-    # drawn from twice and a small build spans as many as it has room for.
     order = sorted(classes)
     draw.shuffle(order)
-    taken: list[Selection] = []
-    for depth in range(max(len(held) for held in classes.values())):
-        for name in order:
-            if len(taken) == settings.features:
-                return sorted(taken, key=kept.index)
-            if depth < len(classes[name]):
-                taken.append(classes[name][depth])
-    return sorted(taken, key=kept.index)
+    # One from each class in turn, so every class is reached before any is
+    # drawn from twice and a small build spans as many as it has room for.
+    rounds = zip_longest(*(classes[name] for name in order))
+    taken = [at for at in chain.from_iterable(rounds) if at is not None]
+    return [kept[at] for at in sorted(taken[: settings.features])]
 
 
 def _observations(one: Selection, settings: Settings):

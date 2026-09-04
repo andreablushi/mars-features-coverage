@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import queue
 import threading
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Iterator, Sequence
 from concurrent.futures import Future, ProcessPoolExecutor, ThreadPoolExecutor
 from contextlib import closing
+from functools import partial
 from pathlib import Path
 
 from rich.console import Console
@@ -100,43 +101,52 @@ def _built(
     """
     finished: queue.Queue[Outcome] = queue.Queue()
 
-    def collect(job: Job) -> Callable[[Future[Outcome]], None]:
-        """Return what to do with one job's build once the pool is done with it."""
+    def built(job: Job, done: Future[Outcome]) -> None:
+        """Put what one job's build left on the queue, and give its place back.
 
-        def collected(done: Future[Outcome]) -> None:
-            """Put what the build left on the queue, and give its place back."""
-            try:
-                finished.put(done.result())
-            except Exception as error:  # noqa: BLE001
-                finished.put(Outcome(job, error=error))
-            finally:
-                waiting.release()
+        Args:
+            job: The job that was built.
+            done: What the build pool left, an outcome or the error it raised.
 
-        return collected
-
-    def land(job: Job) -> Callable[[Future[Outcome]], None]:
-        """Return what to do with one job's product once it has come down."""
-
-        def landed(done: Future[Outcome]) -> None:
-            """Send a product that came down whole on to be built."""
-            # Every path here leaves exactly one outcome on the queue and gives
-            # back the one place it took, since a job that left neither would be
-            # waited on for ever.
-            try:
-                outcome = done.result()
-                if not outcome.failed:
-                    built = building.submit(build.build, job, root)
-                    built.add_done_callback(collect(job))
-                    return
-            except Exception as error:  # noqa: BLE001
-                outcome = Outcome(job, error=error)
-            finished.put(outcome)
+        Returns:
+            None.
+        """
+        try:
+            finished.put(done.result())
+        except Exception as error:  # noqa: BLE001
+            finished.put(Outcome(job, error=error))
+        finally:
             waiting.release()
 
-        return landed
+    def landed(job: Job, done: Future[Outcome]) -> None:
+        """Send a product that came down whole on to be built.
+
+        Every path here leaves exactly one outcome on the queue and gives back
+        the one place it took, since a job that left neither would be waited on
+        for ever.
+
+        Args:
+            job: The job whose product came down.
+            done: What the download left, an outcome or the error it raised.
+
+        Returns:
+            None.
+        """
+        try:
+            outcome = done.result()
+            if not outcome.failed:
+                build_done = building.submit(build.build, job, root)
+                build_done.add_done_callback(partial(built, job))
+                return
+        except Exception as error:  # noqa: BLE001
+            outcome = Outcome(job, error=error)
+        finished.put(outcome)
+        waiting.release()
 
     for job in jobs:
-        fetching.submit(_fetch, job, ode, waiting).add_done_callback(land(job))
+        fetching.submit(_fetch, job, ode, waiting).add_done_callback(
+            partial(landed, job)
+        )
     for _ in jobs:
         yield finished.get()
 

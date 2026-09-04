@@ -16,6 +16,18 @@ _DTYPES = {
 }
 
 
+def _value(text: str) -> str:
+    """Return one label value, its quotes and its unit suffix stripped.
+
+    Args:
+        text: What the label writes after the equals sign.
+
+    Returns:
+        The value alone.
+    """
+    return text.strip().strip('"').split("<")[0].strip()
+
+
 def load(path: Path) -> dict[str, str]:
     """Read a label into its keys and values.
 
@@ -41,7 +53,7 @@ def load(path: Path) -> dict[str, str]:
             continue
         key = key.strip()
         if key and key not in label:
-            label[key] = value.strip('"').split("<")[0].strip()
+            label[key] = _value(value)
     return label
 
 
@@ -91,5 +103,5 @@ def columns(path: Path) -> list[dict[str, str]]:
             found.append(inside)
             inside = None
         elif inside is not None and key:
-            inside[key] = value.strip('"').split("<")[0].strip()
+            inside[key] = _value(value)
     return found
