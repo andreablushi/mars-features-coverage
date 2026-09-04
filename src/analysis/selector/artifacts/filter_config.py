@@ -51,7 +51,6 @@ def load(path: Path = paths.FILTER_CONFIG_PATH) -> Filter:
             for constraint in constraints
         ),
         admits={str(iid): float(pixels) for iid, pixels in admits.items()},
-        span_days=float(spec["span_days"]),
         timeless=frozenset(str(iid) for iid in timeless),
     )
 

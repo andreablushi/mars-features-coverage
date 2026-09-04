@@ -19,6 +19,8 @@ class SelectedFeature:
             it earned no window.
         end: When the latest one was taken, or None where it earned none.
         days: How long the window runs, in days.
+        mars_year: The Mars year its season falls in, or zero where it earned none.
+        season: The season inside that year, or empty where it earned none.
         geo_mean: The insisted shares rooted together, as a share of the feature.
         taken: How many observations it keeps, the standing looks counted in.
     """
@@ -30,6 +32,8 @@ class SelectedFeature:
     start: datetime | None
     end: datetime | None
     days: float
+    mars_year: int
+    season: str
     geo_mean: float
     taken: int
 
