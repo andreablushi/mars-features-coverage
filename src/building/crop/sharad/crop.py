@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from building.crop.common.cut import cut, cut_placement, feature_box
+from building.crop.common.cut import cut, cut_placement
 from building.crop.common.models.crop import Crop
 from building.geometry.common.models.placement import Placement
 from building.metadata.models.feature import FeatureFrame
@@ -25,7 +25,7 @@ def crop(
     Returns:
         The crop, or None where the track reaches none of the feature.
     """
-    held = cut(placement, feature_box(frame))
+    held = cut(placement, frame)
     if held is None:
         return None
     (traces,) = held.bounds

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+from building.common.layout import Layout
 from building.common.naming import Naming
 from building.common.product_cache import ProductCache
 from building.metadata.models import observation as observation_axes
@@ -24,12 +25,14 @@ NAMING = Naming(
     fields={OBSERVATION: {"marker": "rgram"}, GEOMETRY: {"marker": "geom"}},
 )
 
-# What each axis of the radargram is called.
-DIMS = ("delay", "trace")
-
-# What each axis of it holds, in the order it is stored. A sounder walks a line
-# rather than sweeping ground, so only one axis is placed.
-AXES = (observation_axes.DELAY, observation_axes.GROUND)
+# What the arrays of one track hold, and which of them is stored for. A sounder
+# walks a line rather than sweeping ground, so only one axis is placed.
+LAYOUT = Layout(
+    instrument="SHARAD",
+    dims=("delay", "trace"),
+    axes=(observation_axes.DELAY, observation_axes.GROUND),
+    measurement="power",
+)
 
 # Which geometry field places a trace.
 PLACEMENT = {"latitude": "LATITUDE", "longitude": "LONGITUDE"}

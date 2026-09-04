@@ -12,26 +12,16 @@ import utils.disk.paths as paths
 from analysis import dataset_list
 from analysis.selector.models.selection import Selection
 from building.download.common import client as transport
-from building.download.crism import download as crism
-from building.download.ctx import download as ctx
 from building.download.mola import download as mola
-from building.download.sharad import download as sharad
+from building.instruments import INSTRUMENTS
 from building.metadata import frame as frames
 from building.metadata.models.feature import FeatureFrame
 from building.models.job import Job, Plan
 from building.models.settings import Settings
 from building.writing.common.store import crop_path
 
-# What reads an observation out of a product id the selection kept, for the
-# instruments the selection names.
-OBSERVED = {
-    "CRISM": crism.observation_id,
-    "CTX": ctx.observation_id,
-    "SHARAD": sharad.observation_id,
-}
-
 # The instrument the selection can never name, whose tiles are found from the
-# box of every feature that wants them.
+# box of every feature that wants them rather than from a product id.
 GRIDDED = "MOLA"
 
 
@@ -71,9 +61,10 @@ def build_plan(
         if key not in built:
             continue
         for kept in _observations(one, settings):
-            read = OBSERVED.get(kept.iid)
+            named = INSTRUMENTS.get(kept.iid)
             # Skip a product no instrument here builds, and one whose id names
             # no observation its instrument can be asked for.
+            read = named.observation_id if named else None
             if read and (held := read(kept.pdsid)):
                 wanted[(kept.iid, held)].append(built[key])
                 taken.setdefault((kept.iid, held), kept.t_start)

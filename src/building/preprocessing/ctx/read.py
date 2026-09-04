@@ -7,7 +7,6 @@ import tifffile
 from building.common.pds import labels
 from building.configs import ctx as configs
 from building.preprocessing.ctx import geometry
-from building.preprocessing.ctx.models.observation import CtxObservation
 from building.preprocessing.ctx.models.sample import CtxSample
 
 # What the projection writes where the scan swept no ground.
@@ -36,12 +35,7 @@ def read(identifier: str) -> CtxSample:
     image = tifffile.imread(files[configs.SUFFIXES[configs.IMAGE]])
     if image.ndim != 2:
         raise ValueError(f"{identifier} holds a {image.ndim} dimensional image.")
-    observation = CtxObservation(identifier, image, label, *geometry.load(label))
+    latitude, longitude = geometry.load(label)
     return CtxSample(
-        observation.identifier,
-        observation.image,
-        observation.image == BLANK,
-        observation.latitude,
-        observation.longitude,
-        geometry.pixel(observation.label),
+        identifier, image, image == BLANK, latitude, longitude, geometry.pixel(label)
     )

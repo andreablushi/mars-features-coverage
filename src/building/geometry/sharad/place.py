@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from building.configs import sharad as configs
 from building.geometry.common.models.placement import Placement
+from building.geometry.common.place import offsets
 from building.metadata.models.feature import FeatureFrame
 from building.preprocessing.sharad.models.sample import SharadSample
-from utils.geometry import geodesy
 
 
 def place(sample: SharadSample, frame: FeatureFrame) -> Placement:
@@ -22,10 +22,9 @@ def place(sample: SharadSample, frame: FeatureFrame) -> Placement:
     Returns:
         The placement, a pair per trace.
     """
-    return Placement(
-        north=sample.geometry[configs.PLACEMENT["latitude"]] - frame.centre_lat,
-        east=geodesy.normalise_longitude(
-            sample.geometry[configs.PLACEMENT["longitude"]] - frame.centre_lon
-        ),
+    return offsets(
+        sample.geometry[configs.PLACEMENT["latitude"]],
+        sample.geometry[configs.PLACEMENT["longitude"]],
+        frame,
         separable=False,
     )

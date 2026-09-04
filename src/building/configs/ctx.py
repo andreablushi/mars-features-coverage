@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+from building.common.layout import Layout
 from building.common.naming import Naming
 from building.common.product_cache import ProductCache
 from building.metadata.models import observation as observation_axes
@@ -26,11 +27,13 @@ NAMING = Naming(
     identity="{scan}",
 )
 
-# What each axis of it is called.
-DIMS = ("line", "sample")
-
-# What each axis of the image holds, in the order it is stored.
-AXES = (observation_axes.GROUND, observation_axes.GROUND)
+# What the arrays of one scan hold, and which of them is stored for.
+LAYOUT = Layout(
+    instrument="CTX",
+    dims=("line", "sample"),
+    axes=(observation_axes.GROUND, observation_axes.GROUND),
+    measurement="image",
+)
 
 # Where both products of a scan are kept. ASU names them after the scan itself,
 # so the suffix is all that tells them apart.

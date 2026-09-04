@@ -52,58 +52,43 @@ def ground_sample_m(placement: Placement, frame: FeatureFrame) -> tuple[float, .
         ground axis, in the order those axes run. A map raster near a pole is
         far finer across than along, so one figure for both would say neither.
     """
+
+    def stride(length: int, walked: bool) -> slice:
+        """Return the samples of one axis to measure over.
+
+        The frame is a feature's own, and an equal-area projection shortens a
+        step the further it falls from that feature, so the samples nearest the
+        middle are the ones that say what a sample spans.
+
+        Args:
+            length: How many samples the axis holds.
+            walked: Whether this is the axis being measured along, rather than
+                one held at a single sample while it is.
+
+        Returns:
+            The slice of it to measure, at most MEASURED samples long.
+        """
+        if not walked:
+            return slice(length // 2, length // 2 + 1)
+        kept = min(length, MEASURED)
+        start = (length - kept) // 2
+        return slice(start, start + kept)
+
     steps: list[float] = []
     for axis in range(len(placement.shape)):
-        east, north = metres(_thinned(placement, axis), frame)
+        if placement.separable:
+            thinned = Placement(
+                placement.north[stride(placement.north.size, axis == 0)],
+                placement.east[stride(placement.east.size, axis == 1)],
+                True,
+            )
+        else:
+            taken = tuple(
+                stride(size, held == axis)
+                for held, size in enumerate(placement.north.shape)
+            )
+            thinned = Placement(placement.north[taken], placement.east[taken], False)
+        east, north = metres(thinned, frame)
         walk = np.hypot(np.diff(east, axis=axis), np.diff(north, axis=axis))
         steps.append(float(np.median(walk)))
     return tuple(steps)
-
-
-def _middle(length: int) -> slice:
-    """Return the stride to measure one axis over, taken about its middle.
-
-    The frame is a feature's own, and an equal-area projection shortens a step
-    the further it falls from that feature, so the samples nearest the middle
-    are the ones that say what a sample spans.
-
-    Args:
-        length: How many samples the axis holds.
-
-    Returns:
-        The slice of it to measure, at most MEASURED samples long.
-    """
-    kept = min(length, MEASURED)
-    start = (length - kept) // 2
-    return slice(start, start + kept)
-
-
-def _thinned(placement: Placement, axis: int) -> Placement:
-    """Return the placement cut down to a stride of one of its ground axes.
-
-    Args:
-        placement: The placement to cut down.
-        axis: Which ground axis to keep neighbours along.
-
-    Returns:
-        A placement holding at most MEASURED neighbouring samples of that axis,
-        taken about its middle, and one middle sample of every other.
-    """
-    if placement.separable:
-        held = placement.north if axis == 0 else placement.east
-        other = placement.east if axis == 0 else placement.north
-        kept = held[_middle(held.size)]
-        centre = other[other.size // 2 : other.size // 2 + 1]
-        north, east = (kept, centre) if axis == 0 else (centre, kept)
-        return Placement(north=north, east=east, separable=True)
-    taken = tuple(
-        _middle(placement.north.shape[held])
-        if held == axis
-        else slice(
-            placement.north.shape[held] // 2, placement.north.shape[held] // 2 + 1
-        )
-        for held in range(placement.north.ndim)
-    )
-    return Placement(
-        north=placement.north[taken], east=placement.east[taken], separable=False
-    )

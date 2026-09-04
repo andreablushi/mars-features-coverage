@@ -5,7 +5,6 @@ from __future__ import annotations
 from building.common.pds import images
 from building.configs import mola as configs
 from building.preprocessing.mola import geometry
-from building.preprocessing.mola.models.observation import MolaObservation, Plane
 from building.preprocessing.mola.models.sample import MolaSample
 
 
@@ -28,17 +27,17 @@ def read(identifier: str) -> MolaSample:
     planes = {}
     for kind in configs.KINDS:
         product = configs.NAMING.product(identifier, kind)
-        values, label = images.load_plane(
+        planes[kind] = images.load_plane(
             configs.CACHE.files(identifier, product, kind)[".img"]
         )
-        planes[kind] = Plane(kind, values, label, *geometry.load(label))
-    observation = MolaObservation(identifier, planes)
-    height, shots = observation.topography, observation.counts
+    # Both planes are written on the one grid, so the height's places them all.
+    height, label = planes[configs.TOPOGRAPHY]
+    latitude, longitude = geometry.load(label)
     return MolaSample(
-        observation.identifier,
-        height.values,
-        shots.values,
-        height.latitude,
-        height.longitude,
-        observation.resolution,
+        identifier,
+        height,
+        planes[configs.COUNTS][0],
+        latitude,
+        longitude,
+        configs.resolution(identifier),
     )

@@ -11,11 +11,6 @@ from building.metadata.models.feature import FeatureFrame
 from building.preprocessing.ctx.models.sample import CtxSample
 from building.writing.common import store
 
-# Which of the arrays written is the measurement itself.
-MEASUREMENT = "image"
-
-GROUND = store.ground_dims(configs.DIMS, configs.AXES)
-
 
 def write(
     held: Crop[CtxSample], frame: FeatureFrame, root: Path = paths.DATASET_ROOT
@@ -33,13 +28,10 @@ def write(
     return store.write_crop(
         held,
         {
-            MEASUREMENT: (held.sample.image, configs.DIMS),
-            "blank": (held.sample.blank, configs.DIMS),
+            configs.LAYOUT.measurement: (held.sample.image, configs.LAYOUT.dims),
+            "blank": (held.sample.blank, configs.LAYOUT.dims),
         },
-        MEASUREMENT,
-        GROUND,
+        configs.LAYOUT,
         frame,
-        "CTX",
-        held.sample.identifier,
         root,
     )

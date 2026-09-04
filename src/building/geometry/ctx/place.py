@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from building.geometry.common.models.placement import Placement
+from building.geometry.common.place import offsets
 from building.metadata.models.feature import FeatureFrame
 from building.preprocessing.ctx.models.sample import CtxSample
-from utils.geometry import geodesy
 
 
 def place(sample: CtxSample, frame: FeatureFrame) -> Placement:
@@ -21,8 +21,4 @@ def place(sample: CtxSample, frame: FeatureFrame) -> Placement:
     Returns:
         The placement, one axis each.
     """
-    return Placement(
-        north=sample.latitude - frame.centre_lat,
-        east=geodesy.normalise_longitude(sample.longitude - frame.centre_lon),
-        separable=True,
-    )
+    return offsets(sample.latitude, sample.longitude, frame, separable=True)

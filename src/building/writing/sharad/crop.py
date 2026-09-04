@@ -11,11 +11,6 @@ from building.metadata.models.feature import FeatureFrame
 from building.preprocessing.sharad.models.sample import SharadSample
 from building.writing.common import store
 
-# Which of the arrays written is the measurement itself.
-MEASUREMENT = "power"
-
-GROUND = store.ground_dims(configs.DIMS, configs.AXES)
-
 
 def write(
     held: Crop[SharadSample], frame: FeatureFrame, root: Path = paths.DATASET_ROOT
@@ -30,17 +25,14 @@ def write(
     Returns:
         The directory the crop was written in.
     """
-    (trace,) = GROUND
+    (trace,) = configs.LAYOUT.ground
     return store.write_crop(
         held,
         {
-            MEASUREMENT: (held.sample.power, configs.DIMS),
+            configs.LAYOUT.measurement: (held.sample.power, configs.LAYOUT.dims),
             "traces": (held.sample.traces, (trace,)),
         },
-        MEASUREMENT,
-        GROUND,
+        configs.LAYOUT,
         frame,
-        "SHARAD",
-        held.sample.identifier,
         root,
     )

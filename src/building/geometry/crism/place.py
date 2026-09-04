@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from building.configs import crism as configs
 from building.geometry.common.models.placement import Placement
+from building.geometry.common.place import offsets
 from building.metadata.models.feature import FeatureFrame
 from building.preprocessing.crism.models.sample import CrismSample
-from utils.geometry import geodesy
 
 
 def place(sample: CrismSample, frame: FeatureFrame) -> Placement:
@@ -22,10 +22,9 @@ def place(sample: CrismSample, frame: FeatureFrame) -> Placement:
     Returns:
         The placement, a pair per pixel.
     """
-    return Placement(
-        north=sample.geometry[:, :, configs.BACKPLANES["latitude"]] - frame.centre_lat,
-        east=geodesy.normalise_longitude(
-            sample.geometry[:, :, configs.BACKPLANES["longitude"]] - frame.centre_lon
-        ),
+    return offsets(
+        sample.geometry[:, :, configs.BACKPLANES["latitude"]],
+        sample.geometry[:, :, configs.BACKPLANES["longitude"]],
+        frame,
         separable=False,
     )

@@ -11,11 +11,6 @@ from building.metadata.models.feature import FeatureFrame
 from building.preprocessing.mola.models.sample import MolaSample
 from building.writing.common import store
 
-# Which of the arrays written is the measurement itself.
-MEASUREMENT = "topography"
-
-GROUND = store.ground_dims(configs.DIMS, configs.AXES)
-
 
 def write(
     held: Crop[MolaSample], frame: FeatureFrame, root: Path = paths.DATASET_ROOT
@@ -33,13 +28,10 @@ def write(
     return store.write_crop(
         held,
         {
-            MEASUREMENT: (held.sample.topography, configs.DIMS),
-            "counts": (held.sample.counts, configs.DIMS),
+            configs.LAYOUT.measurement: (held.sample.topography, configs.LAYOUT.dims),
+            "counts": (held.sample.counts, configs.LAYOUT.dims),
         },
-        MEASUREMENT,
-        GROUND,
+        configs.LAYOUT,
         frame,
-        "MOLA",
-        held.sample.identifier,
         root,
     )

@@ -8,9 +8,9 @@ import numpy as np
 import zarr
 
 import utils.disk.paths as paths
+from building.common.layout import Layout
 from building.crop.common.models.crop import Crop
 from building.metadata.models.feature import FeatureFrame
-from building.metadata.models.observation import GROUND
 from utils.disk.slugify import slugify
 
 # What the arrays placing a crop are called, and what the mask beside them is.
@@ -27,21 +27,6 @@ COORDINATES = "coordinates"
 CHUNK = 1 << 22
 
 Arrays = dict[str, tuple[np.ndarray, tuple[str, ...]]]
-
-
-def ground_dims(dims: tuple[str, ...], axes: tuple[str, ...]) -> tuple[str, ...]:
-    """Return which of an instrument's axes hold ground.
-
-    Args:
-        dims: What each axis of the instrument's arrays is called.
-        axes: What each of those axes holds, in the same order.
-
-    Returns:
-        The names of the axes a placement places.
-    """
-    return tuple(
-        name for name, holds in zip(dims, axes, strict=True) if holds == GROUND
-    )
 
 
 def crop_path(
@@ -70,11 +55,8 @@ def crop_path(
 def write_crop(
     held: Crop,
     arrays: Arrays,
-    measurement: str,
-    ground: tuple[str, ...],
+    layout: Layout,
     frame: FeatureFrame,
-    instrument: str,
-    identifier: str,
     root: Path = paths.DATASET_ROOT,
 ) -> Path:
     """Write one crop's arrays down, each saying which axes it runs along.
@@ -83,16 +65,14 @@ def write_crop(
         held: The crop, whose placement and mask are written beside the values.
         arrays: What the instrument publishes, keyed by the name to write it as,
             each with the names of its own axes.
-        measurement: Which of them is the measurement itself.
-        ground: Which axes a placement places, outermost first.
+        layout: How that instrument's arrays are laid out.
         frame: The feature the crop was cut to.
-        instrument: The instrument that took it, as ODE names it.
-        identifier: What that instrument was asked for.
         root: The dataset's own root directory.
 
     Returns:
         The directory the crop was written in.
     """
+    ground = layout.ground
     placed: Arrays = (
         {
             NORTH: (held.placement.north, ground[:1]),
@@ -107,7 +87,8 @@ def write_crop(
     if held.inside is not None:
         placed[INSIDE] = (held.inside, ground)
 
-    path = crop_path(frame, instrument, identifier, root)
+    identifier = held.sample.identifier
+    path = crop_path(frame, layout.instrument, identifier, root)
     path.parent.mkdir(parents=True, exist_ok=True)
     group = zarr.open_group(store=path, mode="w")
     for name, (values, along) in (placed | arrays).items():
@@ -116,11 +97,11 @@ def write_crop(
             stored.attrs[COORDINATES] = f"{NORTH} {EAST}"
     group.attrs.update(
         {
-            "instrument": instrument,
+            "instrument": layout.instrument,
             "identifier": identifier,
             "feature_class": frame.feature_class,
             "feature_name": frame.feature_name,
-            "measurement": measurement,
+            "measurement": layout.measurement,
             "separable": bool(held.placement.separable),
             "centre_lon": frame.centre_lon,
             "centre_lat": frame.centre_lat,

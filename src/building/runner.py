@@ -15,7 +15,7 @@ import utils.disk.paths as paths
 from building import build, planner
 from building import console as printing
 from building.download.common import client as transport
-from building.download.dataset import FETCH
+from building.instruments import INSTRUMENTS
 from building.metadata import read as metadata_read
 from building.metadata import write as metadata
 from building.models.job import Job, Outcome, Plan
@@ -154,11 +154,13 @@ def _fetch(job: Job, ode: transport.Client, waiting: threading.Semaphore) -> Out
             which is taken here and given back once the product has been built.
 
     Returns:
-        The outcome, holding where the product landed or what stopped it.
+        The outcome, holding nothing when the product came down and the error
+        that stopped it otherwise.
     """
     waiting.acquire()
     try:
-        return Outcome(job, landed=FETCH[job.instrument](job.identifier, ode))
+        INSTRUMENTS[job.instrument].fetch(job.identifier, ode)
+        return Outcome(job)
     except Exception as error:  # noqa: BLE001
         return Outcome(job, error=error)
 

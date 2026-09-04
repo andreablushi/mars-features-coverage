@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+from building.common.layout import Layout
 from building.common.naming import Naming
 from building.common.product_cache import ProductCache
 from building.metadata.models import observation as observation_axes
@@ -24,11 +25,13 @@ NAMING = Naming(
     fields={TOPOGRAPHY: {"marker": "t"}, COUNTS: {"marker": "c"}},
 )
 
-# What each axis of it is called.
-DIMS = ("line", "sample")
-
-# What each axis of a plane holds, in the order it is stored.
-AXES = (observation_axes.GROUND, observation_axes.GROUND)
+# What the arrays of one tile hold, and which of them is stored for.
+LAYOUT = Layout(
+    instrument="MOLA",
+    dims=("line", "sample"),
+    axes=(observation_axes.GROUND, observation_axes.GROUND),
+    measurement="topography",
+)
 
 # Where both planes of a tile are kept, in the one directory of the tile.
 CACHE = ProductCache(paths.MOLA_ROOT, {None: (".lbl", ".img")})

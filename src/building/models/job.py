@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
 
 from building.metadata.models.feature import FeatureFrame
 from building.metadata.models.observation import ObservationRecord
@@ -46,14 +45,12 @@ class Outcome:
 
     Attributes:
         job: The job that was run.
-        landed: Where each product it brought down sits on disk.
         records: What each crop it wrote is, for the index to be built from.
         missed: How many features it reached none of, which is not a failure.
         error: The error raised, or None on success.
     """
 
     job: Job
-    landed: tuple[Path, ...] = ()
     records: tuple[ObservationRecord, ...] = ()
     missed: int = 0
     error: Exception | None = None

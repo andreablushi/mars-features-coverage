@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from building.common.pds import images, tables
 from building.configs import sharad as configs
-from building.preprocessing.sharad.models.observation import SharadObservation
 from building.preprocessing.sharad.models.sample import SharadSample
 
 # The field the geometry names each radargram column in, counted from one.
@@ -28,24 +27,20 @@ def read(identifier: str) -> SharadSample:
         ValueError: When the geometry holds fewer rows than its label promises.
     """
     # The echoes themselves, then the places they were sounded at.
-    power, label = images.load_plane(
+    power = images.load_plane(
         configs.CACHE.files(
             identifier,
             configs.NAMING.product(identifier, configs.OBSERVATION),
             configs.OBSERVATION,
         )[".img"]
-    )
-    geometry = configs.NAMING.product(identifier, configs.GEOMETRY)
-    table, geometry_label = tables.load_table(
-        configs.CACHE.files(identifier, geometry, configs.GEOMETRY)[".tab"]
-    )
-    observation = SharadObservation(identifier, power, label, table, geometry_label)
-
+    )[0]
+    geometry = tables.load_table(
+        configs.CACHE.files(
+            identifier,
+            configs.NAMING.product(identifier, configs.GEOMETRY),
+            configs.GEOMETRY,
+        )[".tab"]
+    )[0]
     # The geometry counts columns from one, and the radargram from zero.
-    traces = observation.geometry[COLUMN_FIELD].astype("i8") - 1
-    return SharadSample(
-        observation.identifier,
-        observation.power[:, traces],
-        observation.geometry,
-        traces,
-    )
+    traces = geometry[COLUMN_FIELD].astype("i8") - 1
+    return SharadSample(identifier, power[:, traces], geometry, traces)

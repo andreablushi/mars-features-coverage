@@ -16,9 +16,11 @@ from building.preprocessing.crism.correction import (
     despike,
     destripe,
     masking,
+    merge_detectors,
     ratio,
 )
 from building.preprocessing.crism.models.observation import CrismObservation, Detector
+from building.preprocessing.crism.models.sample import CrismSample
 
 
 def read(identifier: str) -> CrismObservation:
@@ -102,3 +104,20 @@ def clean(identifier: str) -> CrismObservation:
         cube[:, :, kept] = block
         detectors[name] = replace(detector, cube=cube, mask=mask)
     return CrismObservation(identifier, detectors)
+
+
+def read_sample(identifier: str) -> CrismSample:
+    """Read one observation, clean it, and join its two detectors into one cube.
+
+    Args:
+        identifier: The observation, whose files must already be in the cache
+            that `download.fetch` puts them in.
+
+    Returns:
+        The joined sample, its bands ascending in wavelength.
+
+    Raises:
+        FileNotFoundError: When any file the observation needs is missing.
+        ValueError: When a window keeps no band of a cube.
+    """
+    return merge_detectors.merge_detectors(clean(identifier))

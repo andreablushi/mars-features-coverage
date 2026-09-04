@@ -13,51 +13,48 @@ from utils.geometry import geodesy
 TURN = 360.0
 
 
-def feature_box(frame: FeatureFrame) -> Box:
-    """Return one feature's extent as offsets from its own centre.
-
-    Args:
-        frame: The feature's local frame, carrying the box the catalogue gives it.
-
-    Returns:
-        The extent, in the same degrees from the centre a placement holds.
-    """
-    return Box(
-        south=frame.min_lat - frame.centre_lat,
-        north=frame.max_lat - frame.centre_lat,
-        west=geodesy.normalise_longitude(frame.west_lon - frame.centre_lon),
-        span=geodesy.longitude_span(frame.west_lon, frame.east_lon),
-    )
-
-
-def cut(placement: Placement, box: Box) -> Cut | None:
+def cut(placement: Placement, frame: FeatureFrame) -> Cut | None:
     """Return what one feature's box keeps of an observation placed against it.
 
     Args:
         placement: Where the observation's samples sit, in degrees from the
             feature centre.
-        box: The feature's extent, in those same degrees.
+        frame: The feature's local frame, carrying the box the catalogue gives
+            it, which is read as the same degrees from that centre.
 
     Returns:
         The cut, or None where the observation reaches none of the box at all.
     """
+    box = Box(
+        south=frame.min_lat - frame.centre_lat,
+        north=frame.max_lat - frame.centre_lat,
+        west=geodesy.normalise_longitude(frame.west_lon - frame.centre_lon),
+        span=geodesy.longitude_span(frame.west_lon, frame.east_lon),
+    )
     if placement.separable:
         # The box is a rectangle on a grid whose axes run north and east, so
         # each axis is asked on its own and what they keep is exactly the box.
         lines = np.flatnonzero(_upward(placement.north, box))
-        samples = _eastward_run(placement.east, box)
+        # An axis counts from its own first longitude, and a box running over
+        # the meridian keeps two ends of it that are one strip of ground, so
+        # ordering by how far east each lies is what joins those ends back up.
+        reach = _eastward(placement.east, box)
+        held = np.flatnonzero(reach <= box.span)
+        samples = held[np.argsort(reach[held], kind="stable")]
         if not lines.size or not samples.size:
             return None
         return Cut((lines, samples), None)
-    held = _upward(placement.north, box) & (_eastward(placement.east, box) <= box.span)
-    if not held.any():
+    inside = _upward(placement.north, box) & (
+        _eastward(placement.east, box) <= box.span
+    )
+    if not inside.any():
         return None
-    where = np.argwhere(held)
+    where = np.argwhere(inside)
     bounds = tuple(
         np.arange(int(low), int(high) + 1)
         for low, high in zip(where.min(axis=0), where.max(axis=0), strict=True)
     )
-    kept = taken(held, bounds)
+    kept = taken(inside, bounds)
     return Cut(bounds, None if kept.all() else kept)
 
 
@@ -88,9 +85,7 @@ def cut_placement(placement: Placement, held: Cut) -> Placement:
         lines, samples = held.bounds
         return Placement(placement.north[lines], placement.east[samples], True)
     return Placement(
-        taken(placement.north, held.bounds),
-        taken(placement.east, held.bounds),
-        False,
+        taken(placement.north, held.bounds), taken(placement.east, held.bounds), False
     )
 
 
@@ -119,23 +114,3 @@ def _eastward(east: np.ndarray, box: Box) -> np.ndarray:
         so the meridian the box may run over is no edge at all.
     """
     return (east - box.west) % TURN
-
-
-def _eastward_run(east: np.ndarray, box: Box) -> np.ndarray:
-    """Return the samples of one longitude axis the box keeps, west to east.
-
-    An axis counts from its own first longitude, and a box running over the
-    meridian keeps two ends of it that are one strip of ground. Ordering what
-    is kept by how far east it lies is what joins those ends back up.
-
-    Args:
-        east: The eastward offsets of every sample of the axis, in degrees.
-        box: The feature's extent.
-
-    Returns:
-        The samples to keep, in the order they cross the box from its western
-        edge, which is one run of ground however the axis is numbered.
-    """
-    reach = _eastward(east, box)
-    kept = np.flatnonzero(reach <= box.span)
-    return kept[np.argsort(reach[kept], kind="stable")]
