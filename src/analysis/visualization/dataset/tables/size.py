@@ -1,11 +1,11 @@
-"""How big a dataset the filter leaves, and how good its features are."""
+"""How big a dataset the filter leaves, and how long its windows run."""
 
 from __future__ import annotations
 
 import ipywidgets as widgets
 
 from analysis.stats.models.dataset import DatasetStats
-from analysis.visualization.common import tables
+from analysis.visualization.common import quantities, tables, wording
 from analysis.visualization.common.models.tables import Row
 
 _HEADINGS = ("Statistic", "Value")
@@ -17,7 +17,8 @@ def final(read: DatasetStats) -> widgets.Widget:
     rows: list[Row] = [
         ("Features searched", f"{held.searched:,}"),
         ("Features kept", f"{held.kept:,}"),
-        ("Share kept", f"{held.kept / held.searched:.1%}"),
+        ("Mean window", wording.spread(held.days, quantities.duration)),
+        ("Longest window", quantities.duration(held.days.high)),
     ]
     for iid in read.iids:
         measured = read.offered[iid]

@@ -1,8 +1,7 @@
-"""The grids a coverage measurement counts cells on: one feature's, and Mars'."""
+"""The grid a coverage measurement counts cells on, over one feature's box."""
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 from functools import cached_property
 
@@ -72,39 +71,3 @@ class Grid:
             ],
             dtype=object,
         )
-
-
-@dataclass(frozen=True)
-class PlanetGrid:
-    """A cylindrical equal-area grid of the whole of a planet.
-
-    The grid is equal area, so a cell covers the same ground wherever it falls,
-    which is what lets the cells of overlapping features simply be counted.
-
-    Attributes:
-        radius_km: The planet's radius in kilometres.
-        across: How many cells the grid holds around the equator.
-        down: How many it holds from pole to pole.
-    """
-
-    radius_km: float
-    across: int
-    down: int
-
-    @cached_property
-    def cells(self) -> int:
-        """Return how many cells the grid holds in all.
-
-        Returns:
-            The number of cells over the whole planet.
-        """
-        return self.across * self.down
-
-    @cached_property
-    def cell_km2(self) -> float:
-        """Return how much ground one cell of the grid covers.
-
-        Returns:
-            The area of one cell in square kilometres.
-        """
-        return 4.0 * math.pi * self.radius_km**2 / self.cells

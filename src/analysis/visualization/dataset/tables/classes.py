@@ -1,4 +1,4 @@
-"""What the filter leaves of the features of each class."""
+"""What each feature class holds, and what the filter leaves of it."""
 
 from __future__ import annotations
 
@@ -6,50 +6,38 @@ import ipywidgets as widgets
 
 from analysis.stats.models.catalogue import CatalogueStats
 from analysis.stats.models.dataset import DatasetStats
-from analysis.visualization.common import tables, wording
+from analysis.visualization.common import quantities, tables, wording
 from analysis.visualization.common.models.tables import Row
 
-_SELECTED = (
+_HEADINGS = (
     "Feature class",
     "Features measured",
+    "Mean feature size",
     "Features selected",
-    "Share selected",
 )
 
 
-def selected(stats: CatalogueStats, read: DatasetStats) -> widgets.Widget:
-    """Tabulate how many features of each class the filter selects."""
+def held(stats: CatalogueStats, read: DatasetStats) -> widgets.Widget:
+    """Tabulate what each class holds and what the filter keeps of it."""
     rows: list[Row] = []
     for name, measured in stats.classes.items():
         made = read.classes.get(name)
-        taken = made.selected if made else 0
         rows.append(
             (
                 name,
                 f"{measured:,}",
-                f"{taken:,}" if taken else wording.NOTHING,
-                f"{taken / measured:.0%}" if taken else wording.NOTHING,
+                wording.spread(stats.class_km2[name], quantities.area),
+                f"{made.selected:,}" if made else wording.NOTHING,
+                *(
+                    wording.spread(made.taken[iid], lambda counted: f"{counted:,.0f}")
+                    if made
+                    else wording.NOTHING
+                    for iid in read.iids
+                ),
             )
         )
     return tables.written(
-        "How many features of each class the filter selects", _SELECTED, rows
-    )
-
-
-def taken(stats: CatalogueStats, read: DatasetStats) -> widgets.Widget:
-    """Tabulate how many observations of a feature of each class are kept."""
-    rows: list[Row] = []
-    for name in stats.classes:
-        made = read.classes.get(name)
-        cells = [
-            wording.spread(made.taken[iid], lambda counted: f"{counted:,.0f}")
-            if made
-            else wording.NOTHING
-            for iid in read.iids
-        ]
-        rows.append((name, *cells))
-    return tables.written(
-        "How many observations of a selected feature each instrument keeps",
-        ("Feature class",) + tuple(read.iids),
+        "What each feature class holds and what the filter keeps of it",
+        _HEADINGS + tuple(read.iids),
         rows,
     )

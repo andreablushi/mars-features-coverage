@@ -2,23 +2,23 @@
 
 from __future__ import annotations
 
+import math
+
 import ipywidgets as widgets
 
 from analysis.stats.models.catalogue import CatalogueStats
-from analysis.visualization.common import quantities, tables, wording
+from analysis.stats.models.dataset import DatasetStats
+from analysis.visualization.common import tables, wording
 
 _FEATURES = ("Statistic", "Value")
 _INSTRUMENTS = (
     "Instrument",
     "Features reached",
     "Observations",
-    "Mean number of observations",
-    "Ground reached",
-    "Share of the ground",
+    "Resolution",
     "First look",
     "Last look",
 )
-_CLASSES = ("Feature class", "Features measured", "Mean feature size")
 
 
 def measured(stats: CatalogueStats) -> widgets.Widget:
@@ -31,13 +31,11 @@ def measured(stats: CatalogueStats) -> widgets.Widget:
             ("Features dropped as points", f"{stats.points:,}"),
             ("Features measured", f"{stats.features:,}"),
             ("Feature classes", f"{len(stats.classes):,}"),
-            ("Ground, features summed", quantities.area(stats.area_km2)),
-            ("Ground, overlaps removed", quantities.area(stats.union_km2)),
         ],
     )
 
 
-def instruments(stats: CatalogueStats) -> widgets.Widget:
+def instruments(stats: CatalogueStats, read: DatasetStats) -> widgets.Widget:
     """Tabulate what each instrument holds of the measured dataset."""
     return tables.written(
         "Global instrument coverage",
@@ -47,11 +45,7 @@ def instruments(stats: CatalogueStats) -> widgets.Widget:
                 instrument.iid,
                 f"{instrument.features:,}",
                 f"{instrument.observations:,}",
-                wording.spread(
-                    instrument.per_feature, lambda counted: f"{counted:,.0f}"
-                ),
-                quantities.area(instrument.union_km2),
-                f"{instrument.union_km2 / stats.union_km2:.1%}",
+                _resolution(read, instrument.iid),
                 instrument.first.date().isoformat(),
                 instrument.last.date().isoformat(),
             )
@@ -60,17 +54,18 @@ def instruments(stats: CatalogueStats) -> widgets.Widget:
     )
 
 
-def held(stats: CatalogueStats) -> widgets.Widget:
-    """Tabulate how many features each class holds and how big they are."""
-    return tables.written(
-        "What each feature class holds",
-        _CLASSES,
-        [
-            (
-                name,
-                f"{counted:,}",
-                wording.spread(stats.class_km2[name], quantities.area),
-            )
-            for name, counted in stats.classes.items()
-        ],
-    )
+def _resolution(read: DatasetStats, iid: str) -> str:
+    """Write how wide the ground one pixel of an instrument covers is.
+
+    Args:
+        read: What the filter left of the dataset, holding the pixel sizes.
+        iid: The instrument to write it for.
+
+    Returns:
+        The side of that ground in metres, or that it was never measured.
+    """
+    # The median, since a handful of records publish a pixel far out from the rest
+    measured = read.held.pixel_km2.get(iid)
+    if measured is None or not measured.counted:
+        return wording.UNCOUNTED
+    return f"{math.sqrt(measured.middle) * 1000.0:,.1f} m"

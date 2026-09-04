@@ -71,8 +71,7 @@ def save_stats(project):
     print(f"reading what the filter left of {len(picked):,} features", flush=True)
     store.write_stats_file(
         aggregate.dataset_stats(
-            read.measure_every_feature(picked, workers, console.logged("stats")),
-            len(picked),
+            read.measure_every_feature(picked, workers, console.logged("stats"))
         )
     )
     print("uploading the stats", flush=True)
