@@ -135,6 +135,7 @@ src/
     preprocessing/      # Turning what landed into cleaned arrays
     metadata/           # Where each feature is, and what was taken of it
     geometry/           # Placing every sample relative to its own feature
+    crop/               # Cutting each observation to its feature's extent
 data/                   # Laid out as src is, each half owning what it writes
   _catalog/             # Cached ODE catalogs, read by both halves
   analysis/

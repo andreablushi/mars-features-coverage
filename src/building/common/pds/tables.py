@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -10,6 +11,33 @@ from building.common.pds import labels
 
 # What each column type is read as, floats where the label names nothing else.
 _DTYPES = {"ASCII_INTEGER": "i8", "TIME": "M8[ms]"}
+
+# How the archive writes a second it rounded up, which no calendar holds.
+_ROLLED = ":60."
+
+
+def _times(text: np.ndarray) -> np.ndarray:
+    """Read a time column, rolling a rounded up second into the minute after it.
+
+    Args:
+        text: The column's values, one fixed width byte string per row.
+
+    Returns:
+        The times, as datetimes.
+
+    Raises:
+        ValueError: When a stamp is not one that can be read at all.
+    """
+    values = text.astype("U")
+    rolled = np.flatnonzero(np.char.find(values, _ROLLED) > 0)
+    if rolled.size:
+        stamps = values.tolist()
+        for at in rolled:
+            head, _, rest = stamps[at].rpartition(_ROLLED)
+            whole = datetime.fromisoformat(f"{head}:00.{rest}") + timedelta(minutes=1)
+            stamps[at] = whole.isoformat(timespec="milliseconds")
+        values = np.array(stamps, dtype=values.dtype)
+    return values.astype(_DTYPES["TIME"])
 
 
 def build_table(table: Path, label: dict[str, str], fields: list[dict[str, str]]):
@@ -35,7 +63,11 @@ def build_table(table: Path, label: dict[str, str], fields: list[dict[str, str]]
         start = int(field["START_BYTE"]) - 1
         cut = records[:, start : start + int(field["BYTES"])]
         text = np.char.strip(cut.view(f"S{cut.shape[1]}").reshape(rows))
-        built[field["NAME"]] = text.astype(_DTYPES.get(field["DATA_TYPE"], "f8"))
+        built[field["NAME"]] = (
+            _times(text)
+            if field["DATA_TYPE"] == "TIME"
+            else text.astype(_DTYPES.get(field["DATA_TYPE"], "f8"))
+        )
     return np.rec.fromarrays(list(built.values()), names=list(built))
 
 
