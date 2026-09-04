@@ -30,11 +30,9 @@ def plot(coverage: Coverage) -> widgets.Widget:
         if window.kept
         else _NONE
     )
-    season = f"{window.season}, Mars year {window.mars_year}" if window.kept else _NONE
     rows: list[Row] = [
         ("Ground the feature covers", quantities.area(window.area_km2)),
-        ("The season it is studied over", season),
-        ("How long its looks are spread", lasted),
+        ("How long its window lasts", lasted),
     ]
     for iid in sorted(stats.reached):
         reach = stats.reached[iid]

@@ -69,8 +69,6 @@ def selected(study: Study) -> Selection:
         start=survey.start if survey else None,
         end=survey.end if survey else None,
         days=survey.days if survey else 0.0,
-        mars_year=survey.mars_year if survey else 0,
-        season=survey.season if survey else "",
         geo_mean=survey.geo_mean if survey else 0.0,
         taken=len(survey.taken) if survey else 0,
     )

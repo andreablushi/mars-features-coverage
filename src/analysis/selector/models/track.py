@@ -14,7 +14,6 @@ from analysis.selector.filters.clean_window import clean_window
 from analysis.selector.models.filter import Filter
 from analysis.selector.models.grid import Grid
 from analysis.utils import mask as packing
-from utils.mars import seasons as mars
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,8 +23,6 @@ class Track:
     Attributes:
         observations: The observations the search may pick from, oldest first.
         times: When each of them started, in days, which is what a span is measured in.
-        ls: The solar longitude Mars stood at when each was taken, in degrees.
-        seasons: The Mars season each falls in, counted from the first Mars year.
         owners: The instrument set each belongs to, as its index into labels.
         cells: The feature's cells each fills, in the same order, each named once.
         labels: The name of each set, in the order owners index them.
@@ -37,8 +34,6 @@ class Track:
 
     observations: list[Event]
     times: list[float]
-    ls: list[float]
-    seasons: list[int]
     owners: list[int]
     cells: list[np.ndarray]
     labels: list[str]
@@ -64,15 +59,12 @@ def build(
     if not held:
         return None
     held.sort(key=lambda item: item[0].t_start)
-    placed = [mars.placed(observation.t_start) for observation, _, _ in held]
     return Track(
         observations=[observation for observation, _, _ in held],
         times=[
             observation.t_start.timestamp() / configs.DAY_SECONDS
             for observation, _, _ in held
         ],
-        ls=[longitude for longitude, _ in placed],
-        seasons=[season for _, season in placed],
         owners=[owner for _, owner, _ in held],
         cells=[np.asarray(cells, dtype=np.intp) for _, _, cells in held],
         labels=[instrument.label for instrument in coverage],

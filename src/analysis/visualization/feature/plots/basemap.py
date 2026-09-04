@@ -8,7 +8,7 @@ import ipywidgets as widgets
 
 from analysis.selector.artifacts import filter_config as filtering
 from analysis.stats.feature import read
-from analysis.visualization.common import panels, wording
+from analysis.visualization.common import panels, quantities, wording
 from analysis.visualization.common.models.coverage import Coverage
 from analysis.visualization.feature.models.placing import Box, Placed
 from analysis.visualization.feature.plots import mosaic, placing
@@ -50,7 +50,7 @@ def plot(coverage: Coverage) -> widgets.Widget:
             f"  {iid} counts at {wording.pixels(pixels)} a look"
             for iid, pixels in criteria.admits.items()
         ]
-        + ["  a window is the one Mars season the feature is best seen in"]
+        + [f"  a window runs {quantities.duration(criteria.span_days)} at most"]
         + [f"  {iid} counts whenever it came" for iid in sorted(criteria.timeless)]
     )
     body = "\n".join(

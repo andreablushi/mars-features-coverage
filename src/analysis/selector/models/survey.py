@@ -13,15 +13,13 @@ from analysis.selector.models.filter import Filter
 
 @dataclass(frozen=True, slots=True)
 class Survey:
-    """The Mars season one feature is best studied over.
+    """The stretch of time one feature is best studied over.
 
     Attributes:
         area_km2: How much ground the feature covers.
         start: When the earliest observation inside it was taken.
         end: When the latest one was taken.
         days: How long it lasts.
-        mars_year: The Mars year the season falls in.
-        season: The season inside that year, such as "N summer".
         geo_mean: The insisted shares rooted together, as a share of the feature.
         kept: The observations it holds, as their places on the timeline, oldest first.
         standing: The observations kept from outside the window, oldest first.
@@ -31,8 +29,6 @@ class Survey:
     start: datetime
     end: datetime
     days: float
-    mars_year: int
-    season: str
     geo_mean: float
     kept: tuple[int, ...]
     standing: tuple[int, ...]
