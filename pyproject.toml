@@ -1,7 +1,7 @@
 [project]
-name = "mars-remote-sensing-pipeline"
+name = "mars-multisensor-features"
 version = "0.1.0"
-description = "Automated pipeline to measure and visualize coverage of Mars geological features in orbital remote sensing data."
+description = "A multi-sensor dataset of Mars geological features: co-temporal CTX, CRISM and SHARAD observations cropped to each feature."
 readme = "README.md"
 authors = [
     { name = "Andrea Blushi", email = "andreablushi@gmail.com" }
@@ -25,7 +25,6 @@ build-backend = "uv_build"
 module-name = [
     "analysis",
     "building",
-    "ode",
     "utils",
 ]
 

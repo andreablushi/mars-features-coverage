@@ -206,9 +206,9 @@ def main() -> int:
         from dhub import submit
 
         if arguments.only_stats:
-            return submit.submitted("stats", STATS_HANDLER, arguments.ref)
+            return submit.submitted("selection", STATS_HANDLER, arguments.ref)
         return submit.submitted(
-            "survey", SURVEY_HANDLER, arguments.ref, force=arguments.force
+            "coverage", SURVEY_HANDLER, arguments.ref, force=arguments.force
         )
     failed = 0 if arguments.only_stats else survey(arguments.force)
     stats()

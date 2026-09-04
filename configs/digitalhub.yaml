@@ -1,10 +1,10 @@
 # What a run submitted to DigitalHub is given, and what it publishes.
 
 # The project every run and every published archive belongs to.
-project: mars-features-coverage
+project: mars-multisensor-features
 
 # The repository the platform clones, and where that clone lands on the job.
-repository: https://github.com/andreablushi/mars-features-coverage
+repository: https://github.com/andreablushi/mars-multisensor-features
 source_root: /shared
 
 # The image a job is built on. The extras are what the platform itself asks
@@ -20,11 +20,11 @@ cpu:
 memory: 16Gi
 disk: 64Gi
 
-# The function each half is registered as. The project scopes them already,
-# so a name says what it is and carries no prefix.
+# The function each half is registered as, keyed by what it publishes. The
+# project scopes them already, so a name says what it does and carries no prefix.
 functions:
-  survey: build-coverage
-  stats: select-features
+  coverage: measure-coverage
+  selection: select-features
 
 # What each half publishes, which is what dh_download.sh brings back down.
 publishes:
