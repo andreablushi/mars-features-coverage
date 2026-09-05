@@ -33,13 +33,6 @@ LAYOUT = Layout(
     measurement="power",
 )
 
-# Which geometry field places a trace.
-PLACEMENT = {"latitude": "LATITUDE", "longitude": "LONGITUDE"}
-
-# Which fields the spacecraft's height above the ground is read between, in km,
-# since that is what the delay axis is turned into a depth through.
-RADII = {"ground": "MARS RADIUS", "spacecraft": "SPACECRAFT RADIUS"}
-
 # Where each product of an observation is kept. The geometry is a table rather
 # than an image, and sits in a subdirectory of its own.
 CACHE = ProductCache(

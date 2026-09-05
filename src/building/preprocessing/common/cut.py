@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import numpy as np
 
-from building.crop.common.models.cut import Box, Cut
-from building.geometry.common.models.placement import Placement
 from building.metadata.models.feature import FeatureFrame
+from building.preprocessing.common.models.cut import Box, Cut
+from building.preprocessing.common.models.placement import Placement
 from utils.geometry import geodesy
 
 # The whole turn, which a longitude offset is measured round.

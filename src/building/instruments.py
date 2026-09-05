@@ -14,22 +14,14 @@ from building.configs import crism as crism_configs
 from building.configs import ctx as ctx_configs
 from building.configs import mola as mola_configs
 from building.configs import sharad as sharad_configs
-from building.crop.crism import crop as crism_crop
-from building.crop.ctx import crop as ctx_crop
-from building.crop.mola import crop as mola_crop
-from building.crop.sharad import crop as sharad_crop
 from building.download import crism as crism_download
 from building.download import ctx as ctx_download
 from building.download import mola as mola_download
 from building.download import sharad as sharad_download
-from building.geometry.crism import place as crism_place
-from building.geometry.ctx import place as ctx_place
-from building.geometry.mola import place as mola_place
-from building.geometry.sharad import altitude
-from building.geometry.sharad import place as sharad_place
 from building.preprocessing.crism import read as crism_read
 from building.preprocessing.ctx import read as ctx_read
 from building.preprocessing.mola import read as mola_read
+from building.preprocessing.sharad import altitude
 from building.preprocessing.sharad import read as sharad_read
 from building.writing.crism import crop as crism_write
 from building.writing.ctx import crop as ctx_write
@@ -48,8 +40,6 @@ class Instrument:
         layout: What its arrays hold, and which of them it is stored for.
         fetch: What brings one product of it down into the cache.
         sample: What reads a fetched product off disk into its own sample.
-        place: What places that sample against one feature.
-        crop: What cuts it to that feature.
         write: What writes the crop into the dataset.
         observation_id: What reads which observation a product the selection
             kept belongs to, or None for an instrument the selection can never
@@ -64,8 +54,6 @@ class Instrument:
     layout: Layout
     fetch: Callable[[str, httpx.Client], None]
     sample: Callable[[str], Any]
-    place: Callable[..., Any]
-    crop: Callable[..., Any]
     write: Callable[..., Path]
     observation_id: Callable[[str], str | None] | None = None
     identifiers: Callable[[Feature, httpx.Client], list[str]] | None = None
@@ -77,8 +65,6 @@ INSTRUMENTS = {
         crism_configs.LAYOUT,
         crism_download.fetch,
         crism_read.read_sample,
-        crism_place.place,
-        crism_crop.crop,
         crism_write.write,
         observation_id=crism_configs.NAMING.parse,
     ),
@@ -86,8 +72,6 @@ INSTRUMENTS = {
         ctx_configs.LAYOUT,
         ctx_download.fetch,
         ctx_read.read,
-        ctx_place.place,
-        ctx_crop.crop,
         ctx_write.write,
         observation_id=ctx_configs.NAMING.parse,
     ),
@@ -95,8 +79,6 @@ INSTRUMENTS = {
         mola_configs.LAYOUT,
         mola_download.fetch,
         mola_read.read,
-        mola_place.place,
-        mola_crop.crop,
         mola_write.write,
         identifiers=mola_download.tiles,
     ),
@@ -104,8 +86,6 @@ INSTRUMENTS = {
         sharad_configs.LAYOUT,
         sharad_download.fetch,
         sharad_read.read,
-        sharad_place.place,
-        sharad_crop.crop,
         sharad_write.write,
         observation_id=sharad_configs.NAMING.parse,
         altitude=altitude.altitude_m,

@@ -23,6 +23,8 @@ from building.metadata import write as metadata
 from building.metadata.models.observation import ObservationRecord
 from building.models.job import Job, Outcome, Plan
 from building.models.settings import Settings
+from building.preprocessing.common.crop import crop
+from building.preprocessing.common.place import place
 
 
 def run_build(
@@ -199,7 +201,7 @@ def build_product(job: Job, root: Path = paths.DATASET_ROOT) -> Outcome:
     missed = 0
     for frame in job.frames:
         try:
-            held = steps.crop(sample, steps.place(sample, frame), frame)
+            held = crop(sample, place(sample, frame), frame)
         except Exception as error:  # noqa: BLE001
             # What is already on disk is handed back, so a later failure never
             # leaves a written crop out of the index.

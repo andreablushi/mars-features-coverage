@@ -3,8 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Self
 
 import numpy as np
+
+from building.preprocessing.common.models.cut import Cut
+
+# Which geometry field places a trace.
+PLACEMENT = {"latitude": "LATITUDE", "longitude": "LONGITUDE"}
+
+# Which fields the spacecraft's height above the ground is read between, in km,
+# since that is what the delay axis is turned into a depth through.
+RADII = {"ground": "MARS RADIUS", "spacecraft": "SPACECRAFT RADIUS"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,3 +33,46 @@ class SharadSample:
     power: np.ndarray
     geometry: np.recarray
     traces: np.ndarray
+
+    # A sounder walks a line rather than sweeping ground, so every trace carries
+    # the pair its own geometry sounded it at.
+    separable = False
+
+    def cut(self, held: Cut) -> Self:
+        """Return this track holding only what one cut keeps.
+
+        A sounder walks a line, so only the traces are cut and the delay each
+        one was sounded over is left whole. The traces are the second axis of
+        the radargram, which is why it is not cut on its leading axes.
+
+        Args:
+            held: What the feature's box keeps of it.
+
+        Returns:
+            The track cut to it, its delay axis unchanged.
+        """
+        (traces,) = held.bounds
+        return type(self)(
+            identifier=self.identifier,
+            power=self.power[:, traces],
+            geometry=self.geometry[traces],
+            traces=self.traces[traces],
+        )
+
+    @property
+    def latitude(self) -> np.ndarray:
+        """Return the latitude every kept trace was sounded at.
+
+        Returns:
+            One per trace, in degrees.
+        """
+        return self.geometry[PLACEMENT["latitude"]]
+
+    @property
+    def longitude(self) -> np.ndarray:
+        """Return the longitude every kept trace was sounded at.
+
+        Returns:
+            One per trace, in degrees.
+        """
+        return self.geometry[PLACEMENT["longitude"]]

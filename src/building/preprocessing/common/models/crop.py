@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from building.geometry.common.models.placement import Placement
+from building.preprocessing.common.models.placement import Placement
 
 
 @dataclass(frozen=True, slots=True)

@@ -51,8 +51,3 @@ LAYOUT = Layout(
 
 # The directory every wavelength file is kept in, shared by every observation.
 WAVELENGTH_DIR = "cdr"
-
-# Which DDR backplane places a pixel. The other twelve are dropped: three carry
-# the null sentinel in every pixel, four barely vary across a scan, and the rest
-# are MOLA resampled onto this grid, which the MOLA tile itself holds better.
-BACKPLANES = {"latitude": 3, "longitude": 4}

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from building.geometry.common.models.placement import Placement
 from building.metadata.models.feature import FeatureFrame
+from building.preprocessing.common.models.placement import Placement
 from utils.geometry import geodesy
 
 # How many samples of an axis to measure a ground sample size over. A grid is

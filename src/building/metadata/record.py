@@ -5,10 +5,10 @@ from __future__ import annotations
 from datetime import datetime
 
 from building.common.layout import Layout
-from building.crop.common.models.crop import Crop
-from building.geometry.common import project
 from building.metadata.models.feature import FeatureFrame
 from building.metadata.models.observation import ObservationRecord
+from building.preprocessing.common import project
+from building.preprocessing.common.models.crop import Crop
 
 
 def observation_record(

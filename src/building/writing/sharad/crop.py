@@ -6,8 +6,8 @@ from pathlib import Path
 
 import utils.disk.paths as paths
 from building.configs import sharad as configs
-from building.crop.common.models.crop import Crop
 from building.metadata.models.feature import FeatureFrame
+from building.preprocessing.common.models.crop import Crop
 from building.preprocessing.sharad.models.sample import SharadSample
 from building.writing.common import store
 

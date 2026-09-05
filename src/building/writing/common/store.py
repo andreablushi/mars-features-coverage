@@ -9,8 +9,8 @@ import zarr
 
 import utils.disk.paths as paths
 from building.common.layout import Layout
-from building.crop.common.models.crop import Crop
 from building.metadata.models.feature import FeatureFrame
+from building.preprocessing.common.models.crop import Crop
 from utils.disk.slugify import slugify
 
 # What the arrays placing a crop are called, and what the mask beside them is.

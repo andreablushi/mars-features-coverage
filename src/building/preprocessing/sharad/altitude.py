@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from building.configs import sharad as configs
-from building.preprocessing.sharad.models.sample import SharadSample
+from building.preprocessing.sharad.models.sample import RADII, SharadSample
 
 # The archive writes both radii in kilometres.
 KM = 1000.0
@@ -25,7 +24,6 @@ def altitude_m(sample: SharadSample) -> tuple[float, float]:
         traces the track keeps.
     """
     above = (
-        sample.geometry[configs.RADII["spacecraft"]]
-        - sample.geometry[configs.RADII["ground"]]
+        sample.geometry[RADII["spacecraft"]] - sample.geometry[RADII["ground"]]
     ) * KM
     return float(above.min()), float(above.max())
