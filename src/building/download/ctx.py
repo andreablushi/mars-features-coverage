@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
 from urllib.parse import quote
 
 import httpx
@@ -38,24 +37,8 @@ REMOTE_SUFFIXES = {configs.IMAGE: ".tiff", configs.LABEL: ".scyl.isis.hdr"}
 TIMEOUT = 900.0
 
 
-def observation_id(product_id: str) -> str | None:
-    """Read which scan one product the selection kept belongs to.
-
-    Args:
-        product_id: The PDS product identifier, as the selection spells it.
-
-    Returns:
-        The scan to download, as ASU spells it, or None when the product is not
-        one this instrument reads.
-
-    """
-    # ODE spells a scan in lower case, and ASU serves it in upper.
-    scan = configs.NAMING.parse(product_id.lower())
-    return scan.upper() if scan else None
-
-
-def fetch(observation_id: str, client: httpx.Client) -> Path:
-    """Bring the projected scan and its label down, or return what is here.
+def fetch(observation_id: str, client: httpx.Client) -> None:
+    """Bring the projected scan and its label down, or leave what is here.
 
     ASU keeps what it built under the volume the raw scan came from, and only
     ODE knows which that is.
@@ -65,7 +48,7 @@ def fetch(observation_id: str, client: httpx.Client) -> Path:
         client: The client whose connections every query is asked over.
 
     Returns:
-        The path to the scan's label, whose image sits beside it.
+        None.
 
     Raises:
         FileNotFoundError: When ODE carries no raw scan to read the volume off.
@@ -80,7 +63,6 @@ def fetch(observation_id: str, client: httpx.Client) -> Path:
         if not archived:
             raise ValueError(f"{offered[ODE_SUFFIX]} names no CTX volume.")
         archive.bring(destination, _asu(observation_id, archived["volume"]), TIMEOUT)
-    return destination[configs.SUFFIXES[configs.LABEL]]
 
 
 def _asu(observation_id: str, volume_id: str) -> dict[str, str]:
@@ -94,14 +76,16 @@ def _asu(observation_id: str, volume_id: str) -> dict[str, str]:
     Returns:
         The URL each product is streamed from, keyed by its suffix on disk.
     """
+    # ODE spells a scan in lower case, and ASU serves it in upper.
+    scan = observation_id.upper()
     return {
         configs.SUFFIXES[kind]: ASU_URL.format(
-            name=f"{observation_id}{configs.SUFFIXES[kind]}",
+            name=f"{scan}{configs.SUFFIXES[kind]}",
             path=quote(
                 ASU_PATH.format(
                     volume=volume_id,
                     place=DIRECTORIES[kind],
-                    name=f"{observation_id}{REMOTE_SUFFIXES[kind]}",
+                    name=f"{scan}{REMOTE_SUFFIXES[kind]}",
                 )
             ),
         )

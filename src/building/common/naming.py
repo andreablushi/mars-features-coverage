@@ -47,13 +47,13 @@ class Naming:
         """Read which observation a product id names.
 
         Args:
-            product_id: The id to read.
+            product_id: The id to read, in whichever case its archive spells it.
 
         Returns:
             The identifier of the observation it belongs to, or None when the
             id is not a product this instrument wants.
         """
-        parts = self.parts(product_id)
+        parts = self.parts(product_id.lower())
         if parts is None or not all(parts.get(mark) for mark in self.marks):
             return None
         return self.identity.format(**parts)

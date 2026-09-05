@@ -20,32 +20,15 @@ TYPES = {configs.OBSERVATION: "TRDR", configs.GEOMETRY: "DDR"}
 WAVELENGTH_TYPE = "CDR"
 
 
-def observation_id(product_id: str) -> str | None:
-    """Read which observation one product the selection kept belongs to.
-
-    Args:
-        product_id: The PDS product identifier, as the selection spells it.
-
-    Returns:
-        The observation to download, or None when the product names no detector
-        of its own and so is not one both detectors can be fetched from.
-    """
-    product_id = product_id.lower()
-    parts = configs.NAMING.parts(product_id)
-    # Keep only wanted products, which name a detector of their own.
-    return configs.NAMING.parse(product_id) if parts and parts["detector"] else None
-
-
-def fetch(observation_id: str, client: httpx.Client) -> dict[str, Path]:
-    """Bring both detectors of one observation down, or return what is here.
+def fetch(observation_id: str, client: httpx.Client) -> None:
+    """Bring both detectors of one observation down, or leave what is here.
 
     Args:
         observation_id: The observation to fetch.
         client: The client whose connections every query is asked over.
 
     Returns:
-        The path to each detector's label, whose image sits beside it and whose
-        geometry sits in the `ddr` subdirectory.
+        None.
 
     Raises:
         FileNotFoundError: When ODE offers no download for a product.
@@ -80,4 +63,3 @@ def fetch(observation_id: str, client: httpx.Client) -> dict[str, Path]:
             pt=WAVELENGTH_TYPE,
             **ODE,
         )
-    return found

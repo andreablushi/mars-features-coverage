@@ -5,7 +5,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+import httpx
 
 from building.common.layout import Layout
 from building.configs import crism as crism_configs
@@ -34,6 +36,9 @@ from building.writing.ctx import crop as ctx_write
 from building.writing.mola import crop as mola_write
 from building.writing.sharad import crop as sharad_write
 
+if TYPE_CHECKING:
+    from analysis.models.feature import Feature
+
 
 @dataclass(frozen=True, slots=True)
 class Instrument:
@@ -47,19 +52,23 @@ class Instrument:
         crop: What cuts it to that feature.
         write: What writes the crop into the dataset.
         observation_id: What reads which observation a product the selection
-            kept belongs to, or None for a gridded instrument the selection can
-            never name.
+            kept belongs to, or None for an instrument the selection can never
+            name.
+        identifiers: What asks an archive which of its products hold one
+            feature's ground, for the instrument the selection cannot name, and
+            None for every instrument named by a product id.
         altitude: What reads how high the spacecraft flew, for a sounder whose
             delay axis is read through it, and None for every other instrument.
     """
 
     layout: Layout
-    fetch: Callable[..., Any]
+    fetch: Callable[[str, httpx.Client], None]
     sample: Callable[[str], Any]
     place: Callable[..., Any]
     crop: Callable[..., Any]
     write: Callable[..., Path]
     observation_id: Callable[[str], str | None] | None = None
+    identifiers: Callable[[Feature, httpx.Client], list[str]] | None = None
     altitude: Callable[[Any], tuple[float, float]] | None = None
 
 
@@ -71,7 +80,7 @@ INSTRUMENTS = {
         crism_place.place,
         crism_crop.crop,
         crism_write.write,
-        observation_id=crism_download.observation_id,
+        observation_id=crism_configs.NAMING.parse,
     ),
     ctx_configs.LAYOUT.instrument: Instrument(
         ctx_configs.LAYOUT,
@@ -80,7 +89,7 @@ INSTRUMENTS = {
         ctx_place.place,
         ctx_crop.crop,
         ctx_write.write,
-        observation_id=ctx_download.observation_id,
+        observation_id=ctx_configs.NAMING.parse,
     ),
     mola_configs.LAYOUT.instrument: Instrument(
         mola_configs.LAYOUT,
@@ -89,6 +98,7 @@ INSTRUMENTS = {
         mola_place.place,
         mola_crop.crop,
         mola_write.write,
+        identifiers=mola_download.tiles,
     ),
     sharad_configs.LAYOUT.instrument: Instrument(
         sharad_configs.LAYOUT,
@@ -97,7 +107,7 @@ INSTRUMENTS = {
         sharad_place.place,
         sharad_crop.crop,
         sharad_write.write,
-        observation_id=sharad_download.observation_id,
+        observation_id=sharad_configs.NAMING.parse,
         altitude=altitude.altitude_m,
     ),
 }

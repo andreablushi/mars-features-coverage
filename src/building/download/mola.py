@@ -89,16 +89,15 @@ def tiles(feature: Feature, client: httpx.Client) -> list[str]:
     )
 
 
-def fetch(tile: str, client: httpx.Client) -> Path:
-    """Bring both planes of one tile down, or return what is here.
+def fetch(tile: str, client: httpx.Client) -> None:
+    """Bring both planes of one tile down, or leave what is here.
 
     Args:
         tile: The tile to fetch, such as 00n180hb.
         client: The client whose connections every query is asked over.
 
     Returns:
-        The path to the topography label, whose image sits beside it and whose
-        counts plane sits in the same directory.
+        None.
 
     Raises:
         FileNotFoundError: When ODE offers no download for a plane.
@@ -125,4 +124,3 @@ def fetch(tile: str, client: httpx.Client) -> Path:
                     if Path(name).stem == product
                 },
             )
-    return wanted[configs.TOPOGRAPHY][".lbl"]

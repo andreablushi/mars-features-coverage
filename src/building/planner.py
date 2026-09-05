@@ -14,17 +14,12 @@ import httpx
 import utils.disk.paths as paths
 from analysis import dataset_list
 from analysis.selector.models.selection import Selection
-from building.download import mola
 from building.instruments import INSTRUMENTS
 from building.metadata import frame as frames
 from building.metadata.models.feature import FeatureFrame
 from building.models.job import Job, Plan
 from building.models.settings import Settings
 from building.writing.common.store import crop_path
-
-# The instrument the selection can never name, whose tiles are found from the
-# box of every feature that wants them rather than from a product id.
-GRIDDED = "MOLA"
 
 
 def build_plan(
@@ -38,8 +33,8 @@ def build_plan(
 
     Args:
         settings: The settled choices for the build, which size it.
-        ode: The client the gridded tiles are looked up through, or None to
-            leave that instrument out of the plan.
+        ode: The client an instrument searched by ground is looked up through,
+            or None to leave those instruments out of the plan.
         root: The dataset's own root directory.
         force: When True, plan products every crop of which is already written.
 
@@ -70,10 +65,16 @@ def build_plan(
             if read and (held := read(kept.pdsid)):
                 wanted[(kept.iid, held)].append(built[key])
                 taken.setdefault((kept.iid, held), kept.t_start)
-    if GRIDDED in settings.instruments and ode is not None:
-        for key, frame in built.items():
-            for tile in mola.tiles(catalogued[key], client=ode):
-                wanted[(GRIDDED, tile)].append(frame)
+    if ode is not None:
+        # An instrument the selection can never name is asked which of its
+        # products hold each feature's ground.
+        for name in settings.instruments:
+            named = INSTRUMENTS.get(name)
+            if not named or not named.identifiers:
+                continue
+            for key, frame in built.items():
+                for held in named.identifiers(catalogued[key], ode):
+                    wanted[(name, held)].append(frame)
 
     jobs, skipped = [], 0
     for (instrument, identifier), held in wanted.items():
