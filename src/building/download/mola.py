@@ -10,7 +10,6 @@ import httpx
 
 from building.configs import mola as configs
 from building.download import archive
-from utils.fetch import ode_configs
 
 if TYPE_CHECKING:
     from analysis.models.feature import Feature
@@ -24,9 +23,9 @@ PRODUCT_TYPE = "MEGDR"
 # ODE names a gridded product by its image file, suffix included.
 ODE_SUFFIX = ".img"
 
-# Which products a box returns: every tile whose footprint overlaps it, so a
-# feature lying across an edge is answered with both the tiles it touches.
-LOCATION = "f"
+# Each tile's own extent alongside its files, so which tiles a feature falls on
+# is worked out here rather than by a query for every feature that wants them.
+FIELDS = "opmf"
 
 # How many products to ask for at once. The whole record is under a hundred, so
 # one page holds every tile of every resolution.
@@ -36,52 +35,72 @@ PAGE = 500
 # and 128, and only 128 is finer than a kilometre.
 RESOLUTION = 128
 
+Box = tuple[float, float, float, float]
+
+# The whole record, which is under a hundred products and never changes, so it
+# is read once and answers every feature and every tile of a run.
+_RECORD: dict[str, tuple[str, Box]] = {}
+
+
+def record(client: httpx.Client) -> dict[str, tuple[str, Box]]:
+    """Read the whole gridded record, once per run.
+
+    Args:
+        client: The client whose connections the query is asked over.
+
+    Returns:
+        Where each published file is served from and the ground its product
+        covers, keyed by the file's own lowercase name.
+    """
+    if not _RECORD:
+        for entry in archive.query(
+            client, pt=PRODUCT_TYPE, limit=str(PAGE), results=FIELDS, **ODE
+        ):
+            covers = (
+                float(entry["Minimum_latitude"]),
+                float(entry["Maximum_latitude"]),
+                float(entry["Westernmost_longitude"]),
+                float(entry["Easternmost_longitude"]),
+            )
+            for name, url in archive.published(entry).items():
+                _RECORD[name] = (url, covers)
+    return _RECORD
+
 
 def tiles(feature: Feature, client: httpx.Client) -> list[str]:
     """Read which tiles hold one feature's ground.
 
     The gridded record carries no per observation time, so the selection never
-    names a tile and ODE is asked which ones the feature's box falls on.
+    names a tile and each tile's own extent is what the feature is matched to.
 
     Args:
         feature: The feature whose ground the tiles have to cover.
-        client: The client whose connections every query is asked over.
+        client: The client whose connections the query is asked over.
 
     Returns:
         The tile ids both planes are published for, sorted and without repeats.
     """
-    # A feature circling a pole is asked for in halves, since no single box
-    # reaches round every longitude.
-    spans = (
-        ode_configs.LONGITUDE_HALVES
-        if feature.circles_a_pole
-        else ((feature.west_lon, feature.east_lon),)
-    )
-    names: set[str] = set()
-    for west, east in spans:
-        entries = archive.query(
-            client,
-            pt=PRODUCT_TYPE,
-            loc=LOCATION,
-            limit=str(PAGE),
-            minlat=str(feature.min_lat),
-            maxlat=str(feature.max_lat),
-            westernlon=str(west),
-            easternlon=str(east),
-            **ODE,
-        )
-        names.update(
-            Path(filename).stem
-            for entry in entries
-            for filename in archive.published(entry)
-            if filename.endswith(ODE_SUFFIX)
-        )
+    # A feature circling a pole reaches every longitude, and one running over
+    # the meridian is two runs, since a number line holds only one of them.
+    if feature.circles_a_pole:
+        spans = ((0.0, 360.0),)
+    elif feature.west_lon > feature.east_lon:
+        spans = ((feature.west_lon, 360.0), (0.0, feature.east_lon))
+    else:
+        spans = ((feature.west_lon, feature.east_lon),)
     found: dict[str, set[str]] = defaultdict(set)
-    for name in names:
+    for name, (_, covers) in record(client).items():
+        if not name.endswith(ODE_SUFFIX):
+            continue
         # Keep only wanted tiles, which drops the polar stereographic ones.
-        tile = configs.NAMING.parse(name)
-        if tile and configs.resolution(tile) == RESOLUTION:
-            found[tile].add(name)
+        tile = configs.NAMING.parse(Path(name).stem)
+        if not tile or configs.resolution(tile) != RESOLUTION:
+            continue
+        min_lat, max_lat, west_lon, east_lon = covers
+        if feature.min_lat > max_lat or min_lat > feature.max_lat:
+            continue
+        if any(west <= east_lon and west_lon <= east for west, east in spans):
+            found[tile].add(Path(name).stem)
     return sorted(
         tile
         for tile, seen in found.items()
@@ -94,7 +113,7 @@ def fetch(tile: str, client: httpx.Client) -> None:
 
     Args:
         tile: The tile to fetch, such as 00n180hb.
-        client: The client whose connections every query is asked over.
+        client: The client whose connections the query is asked over.
 
     Returns:
         None.
@@ -109,18 +128,14 @@ def fetch(tile: str, client: httpx.Client) -> None:
     if any(not path.exists() for files in wanted.values() for path in files.values()):
         # ODE gives a gridded product no id of its own, so it is reached by the
         # name of the file it is published as and not by a product id.
-        offered = {
-            name: url
-            for entry in archive.query(client, pt=PRODUCT_TYPE, limit=str(PAGE), **ODE)
-            for name, url in archive.published(entry).items()
-        }
+        offered = record(client)
         for kind, files in wanted.items():
             product = configs.NAMING.product(tile, kind)
             archive.bring(
                 files,
                 {
                     Path(name).suffix: url
-                    for name, url in offered.items()
+                    for name, (url, _) in offered.items()
                     if Path(name).stem == product
                 },
             )

@@ -8,7 +8,6 @@ from pathlib import Path
 import pyarrow.parquet as pq
 
 import utils.disk.paths as paths
-from analysis.metadata.loaders.features import load_features
 from analysis.models.feature import Feature
 from analysis.selector.artifacts.write import FEATURES, OBSERVATIONS
 from analysis.selector.models.selection import (
@@ -57,31 +56,24 @@ def read_dataset_list(root: Path = paths.SELECTION_ROOT) -> list[Selection]:
     ]
 
 
-def read_kept_features(
-    picked: Sequence[Selection], cache_dir: Path = paths.CATALOG_ROOT
-) -> list[Feature]:
-    """Read the catalogued extent of every feature the filter kept.
-
-    The selection names a feature but not the ground it covers, and an
-    instrument the selection cannot name is asked for that ground by its box.
+def kept_features(picked: Sequence[Selection]) -> list[Feature]:
+    """Read the ground of every feature the filter kept, as the selection holds it.
 
     Args:
         picked: What the search left of each feature, as the selection was read.
-        cache_dir: Directory holding the cached feature catalogue.
 
     Returns:
-        The catalogue entry of each kept feature, in the order they were written.
-
-    Raises:
-        FileNotFoundError: When no feature catalogue is cached.
-        KeyError: When the catalogue holds no entry for a kept feature.
+        The ground of each kept feature, in the order they were written.
     """
-    catalogued = {
-        (feature.feature_class, feature.name): feature
-        for feature in load_features(cache_dir=cache_dir)
-    }
     return [
-        catalogued[(one.feature.feature_class, one.feature.feature_name)]
+        Feature(
+            name=one.feature.feature_name,
+            feature_class=one.feature.feature_class,
+            min_lat=one.feature.min_lat,
+            max_lat=one.feature.max_lat,
+            west_lon=one.feature.west_lon,
+            east_lon=one.feature.east_lon,
+        )
         for one in picked
         if one.feature.kept
     ]

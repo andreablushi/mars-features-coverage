@@ -12,6 +12,10 @@ from analysis.models.instrument import InstrumentSet
 from utils.fetch import ode_configs
 from utils.fetch.ode_configs import ODEError
 
+# A feature running through every longitude is asked for in two halves, since
+# no single box ODE accepts reaches round every longitude at once.
+LONGITUDE_HALVES = ((0.0, 180.0), (180.0, 360.0))
+
 PAGE_SIZE = 5000
 PAGE_ORDER = "oba"
 
@@ -46,7 +50,7 @@ def _boxes(feature: Feature) -> tuple[Box, ...]:
     if feature.circles_a_pole:
         return tuple(
             (feature.min_lat, feature.max_lat, west, east)
-            for west, east in ode_configs.LONGITUDE_HALVES
+            for west, east in LONGITUDE_HALVES
         )
     return ((feature.min_lat, feature.max_lat, feature.west_lon, feature.east_lon),)
 

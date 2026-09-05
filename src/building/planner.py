@@ -42,13 +42,12 @@ def build_plan(
         The plan, its jobs heaviest first so no long one is picked up last.
 
     Raises:
-        FileNotFoundError: When no selection has been written, or no feature
-            catalogue is cached to read a feature's ground from.
+        FileNotFoundError: When no selection has been written to build from.
     """
     picked = _sampled(dataset_list.read_dataset_list(), settings)
     catalogued = {
         (feature.feature_class, feature.name): feature
-        for feature in dataset_list.read_kept_features(picked)
+        for feature in dataset_list.kept_features(picked)
     }
     built = {key: frames.feature_frame(feature) for key, feature in catalogued.items()}
     wanted: dict[tuple[str, str], list[FeatureFrame]] = defaultdict(list)

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from urllib.parse import quote
 
 import httpx
@@ -17,11 +16,10 @@ ODE = {"ihid": "MRO", "iid": "CTX"}
 # the calibrated and projected one, and is asked for it directly.
 PRODUCT_TYPE = "EDR"
 
-# The suffix ODE names a raw scan by, whose URL says which volume it is on.
-ODE_SUFFIX = ".img"
-
-# The PDS volume a scan was archived on, which its download path runs through.
-VOLUME = re.compile(r"/(?P<volume>mrox_\d+)/")
+# The scan's own metadata, which is where the volume it was archived on is
+# published, rather than a download URL the volume would have to be read out of.
+FIELDS = "opm"
+VOLUME_KEY = "PDSVolume_Id"
 
 # Where ASU serves what it built, given the path the file sits at.
 ASU_URL = "https://image.mars.asu.edu/stream/{name}?image={path}"
@@ -52,17 +50,16 @@ def fetch(observation_id: str, client: httpx.Client) -> None:
 
     Raises:
         FileNotFoundError: When ODE carries no raw scan to read the volume off.
-        ValueError: When ODE offers that scan from no volume this can read.
     """
     destination = configs.CACHE.files(observation_id, observation_id)
     if any(not path.exists() for path in destination.values()):
-        offered = archive.offers(client, observation_id, pt=PRODUCT_TYPE, **ODE)
-        if ODE_SUFFIX not in offered:
-            raise FileNotFoundError(f"ODE carries no raw scan for {observation_id}.")
-        archived = VOLUME.search(offered[ODE_SUFFIX])
+        entries = archive.query(
+            client, productid=observation_id, results=FIELDS, pt=PRODUCT_TYPE, **ODE
+        )
+        archived = entries[0].get(VOLUME_KEY) if entries else None
         if not archived:
-            raise ValueError(f"{offered[ODE_SUFFIX]} names no CTX volume.")
-        archive.bring(destination, _asu(observation_id, archived["volume"]), TIMEOUT)
+            raise FileNotFoundError(f"ODE carries no raw scan for {observation_id}.")
+        archive.bring(destination, _asu(observation_id, str(archived).lower()), TIMEOUT)
 
 
 def _asu(observation_id: str, volume_id: str) -> dict[str, str]:
