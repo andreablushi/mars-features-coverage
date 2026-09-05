@@ -14,11 +14,13 @@ import httpx
 from rich.console import Console
 
 import utils.disk.paths as paths
-from building import build, planner
 from building import console as printing
+from building import planner
 from building.instruments import INSTRUMENTS
 from building.metadata import read as metadata_read
+from building.metadata import record
 from building.metadata import write as metadata
+from building.metadata.models.observation import ObservationRecord
 from building.models.job import Job, Outcome, Plan
 from building.models.settings import Settings
 
@@ -57,7 +59,7 @@ def run_build(
             ProcessPoolExecutor(max_workers=settings.workers) as building,
             ThreadPoolExecutor(max_workers=settings.workers) as fetching,
         ):
-            held = _built(plan.jobs, ode, fetching, building, root, settings.ready)
+            held = _outcomes(plan.jobs, ode, fetching, building, root, settings.ready)
             with closing(held) as outcomes:
                 collected = printing.render(
                     outcomes, len(plan.jobs), "building", console
@@ -66,7 +68,7 @@ def run_build(
     return collected
 
 
-def _built(
+def _outcomes(
     jobs: tuple[Job, ...],
     ode: httpx.Client,
     fetching: ThreadPoolExecutor,
@@ -101,7 +103,7 @@ def _built(
     finished: queue.Queue[Outcome] = queue.Queue()
     waiting = threading.Semaphore(ready)
 
-    def fetched(job: Job) -> Outcome:
+    def downloaded(job: Job) -> Outcome:
         """Take a place on disk for one product and bring it down into it.
 
         The place is taken before the download rather than after, so the room a
@@ -122,12 +124,40 @@ def _built(
         except Exception as error:  # noqa: BLE001
             return Outcome(job, error=error)
 
-    def built(job: Job, done: Future[Outcome]) -> None:
+    def send_to_build(job: Job, done: Future[Outcome]) -> None:
+        """Hand a product that came down whole to the build pool.
+
+        Every path here leaves exactly one outcome on the queue and gives back
+        the one place it took, since a job that left neither would be waited on
+        for ever.
+
+        Args:
+            job: The job whose product came down.
+            done: What the download left, which `downloaded` never raises from.
+
+        Returns:
+            None.
+        """
+        outcome = done.result()
+        if not outcome.failed:
+            try:
+                building.submit(build_product, job, root).add_done_callback(
+                    partial(collect, job)
+                )
+                return
+            except RuntimeError as error:
+                # The build pool is shutting down, so this job builds nowhere.
+                outcome = Outcome(job, error=error)
+        finished.put(outcome)
+        waiting.release()
+
+    def collect(job: Job, done: Future[Outcome]) -> None:
         """Put what one job's build left on the queue, and give its place back.
 
         Args:
             job: The job that was built.
-            done: What the build pool left, an outcome or the error it raised.
+            done: What the build pool left, an outcome or the error it raised,
+                a worker it lost included.
 
         Returns:
             None.
@@ -139,35 +169,59 @@ def _built(
         finally:
             waiting.release()
 
-    def landed(job: Job, done: Future[Outcome]) -> None:
-        """Send a product that came down whole on to be built.
-
-        Every path here leaves exactly one outcome on the queue and gives back
-        the one place it took, since a job that left neither would be waited on
-        for ever.
-
-        Args:
-            job: The job whose product came down.
-            done: What the download left, an outcome or the error it raised.
-
-        Returns:
-            None.
-        """
-        try:
-            outcome = done.result()
-            if not outcome.failed:
-                build_done = building.submit(build.build, job, root)
-                build_done.add_done_callback(partial(built, job))
-                return
-        except Exception as error:  # noqa: BLE001
-            outcome = Outcome(job, error=error)
-        finished.put(outcome)
-        waiting.release()
-
     for job in jobs:
-        fetching.submit(fetched, job).add_done_callback(partial(landed, job))
+        fetching.submit(downloaded, job).add_done_callback(partial(send_to_build, job))
     for _ in jobs:
         yield finished.get()
+
+
+def build_product(job: Job, root: Path = paths.DATASET_ROOT) -> Outcome:
+    """Cut one downloaded product to every feature that kept it, and write each.
+
+    The product is read and cleaned once however many features want it, which is
+    what makes the product rather than the feature the unit of work.
+
+    Args:
+        job: The product to build, and the features to cut it to.
+        root: The dataset's own root directory.
+
+    Returns:
+        The outcome, holding the record of every crop written, and the error
+        that stopped it where one did after some were already on disk.
+
+    Raises:
+        Exception: Whatever reading the product off disk raised, which the pool
+            hands back for the runner to collect as this job's own failure.
+    """
+    steps = INSTRUMENTS[job.instrument]
+    sample = steps.sample(job.identifier)
+    written: list[ObservationRecord] = []
+    missed = 0
+    for frame in job.frames:
+        try:
+            held = steps.crop(sample, steps.place(sample, frame), frame)
+        except Exception as error:  # noqa: BLE001
+            # What is already on disk is handed back, so a later failure never
+            # leaves a written crop out of the index.
+            return Outcome(job, records=tuple(written), error=error)
+        # A product reaching none of a feature is no failure: the coverage it
+        # was kept for is a box overlap, and a crop can still come out empty.
+        if held is None:
+            missed += 1
+            continue
+        path = steps.write(held, frame, root)
+        written.append(
+            record.observation_record(
+                held,
+                frame,
+                steps.layout,
+                job.identifier,
+                str(path.relative_to(root)),
+                t_start=job.t_start,
+                altitude=steps.altitude(held.sample) if steps.altitude else None,
+            )
+        )
+    return Outcome(job, records=tuple(written), missed=missed)
 
 
 def _indexed(plan: Plan, collected: Sequence[Outcome], root: Path) -> None:
