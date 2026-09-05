@@ -6,7 +6,7 @@ import tifffile
 
 from building.common.pds import labels
 from building.configs import ctx as configs
-from building.preprocessing.ctx import geometry
+from building.preprocessing.ctx import projection
 from building.preprocessing.ctx.models.sample import CtxSample
 
 
@@ -32,5 +32,5 @@ def read(identifier: str) -> CtxSample:
     image = tifffile.imread(files[configs.SUFFIXES[configs.IMAGE]])
     if image.ndim != 2:
         raise ValueError(f"{identifier} holds a {image.ndim} dimensional image.")
-    latitude, longitude = geometry.load(label)
-    return CtxSample(identifier, image, latitude, longitude, geometry.pixel(label))
+    latitude, longitude = projection.load(label)
+    return CtxSample(identifier, image, latitude, longitude, projection.pixel(label))

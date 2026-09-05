@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Protocol, Self
+from collections.abc import Callable
 
 from building.metadata.models.feature import FeatureFrame
 from building.preprocessing.common.cut import cut, cut_placement
@@ -11,32 +11,21 @@ from building.preprocessing.common.models.cut import Cut
 from building.preprocessing.common.models.placement import Placement
 
 
-class Cuttable(Protocol):
-    """What every instrument's sample can do when a feature keeps part of it."""
-
-    def cut(self, held: Cut) -> Self:
-        """Return this sample holding only the samples one cut keeps.
-
-        Each instrument publishes its arrays in its own shape, and which axis of
-        one is ground differs between them, so a sample cuts itself rather than
-        being cut by a rule imposed from outside.
-
-        Args:
-            held: What the feature's box keeps of it.
-
-        Returns:
-            The sample, every array of it cut the way that array is laid out.
-        """
-        ...
-
-
-def crop[Sample: Cuttable](
-    sample: Sample, placement: Placement, frame: FeatureFrame
+def crop[Sample](
+    sample: Sample,
+    cut_sample: Callable[[Sample, Cut], Sample],
+    placement: Placement,
+    frame: FeatureFrame,
 ) -> Crop[Sample] | None:
     """Return one observation cut to the box of the feature it was kept for.
 
+    Which samples the box keeps is the same question for every instrument, and
+    cutting the arrays to them is not: which axis of one is ground differs, so
+    that half is the instrument's own and is handed in.
+
     Args:
         sample: The observation as it was read off disk.
+        cut_sample: What cuts that instrument's own arrays to what a cut keeps.
         placement: Where its samples sit, against that same feature.
         frame: The local frame of the feature it was kept for.
 
@@ -47,7 +36,7 @@ def crop[Sample: Cuttable](
     if held is None:
         return None
     return Crop(
-        sample=sample.cut(held),
+        sample=cut_sample(sample, held),
         placement=cut_placement(placement, held),
         inside=held.inside,
     )

@@ -19,7 +19,7 @@ from building.metadata import frame as frames
 from building.metadata.models.feature import FeatureFrame
 from building.models.job import Job, Plan
 from building.models.settings import Settings
-from building.writing.common.store import crop_path
+from building.preprocessing.common.store import crop_path
 
 
 def build_plan(

@@ -7,9 +7,9 @@ from pathlib import Path
 import utils.disk.paths as paths
 from building.configs import crism as configs
 from building.metadata.models.feature import FeatureFrame
+from building.preprocessing.common import store
 from building.preprocessing.common.models.crop import Crop
 from building.preprocessing.crism.models.sample import CrismSample
-from building.writing.common import store
 
 
 def write(

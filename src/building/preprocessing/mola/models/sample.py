@@ -3,12 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Self
 
 import numpy as np
-
-from building.preprocessing.common.cut import taken
-from building.preprocessing.common.models.cut import Cut
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,25 +31,3 @@ class MolaSample:
 
     # A gridded tile is simple cylindrical, so one axis places each side.
     separable = True
-
-    def cut(self, held: Cut) -> Self:
-        """Return this tile holding only what one cut keeps.
-
-        The box is a rectangle on the grid, so both planes are cut at once by a
-        range of lines and a range of samples.
-
-        Args:
-            held: What the feature's box keeps of it.
-
-        Returns:
-            The tile cut to it, how fine its grid is unchanged.
-        """
-        lines, samples = held.bounds
-        return type(self)(
-            identifier=self.identifier,
-            topography=taken(self.topography, held.bounds),
-            counts=taken(self.counts, held.bounds),
-            latitude=self.latitude[lines],
-            longitude=self.longitude[samples],
-            resolution=self.resolution,
-        )

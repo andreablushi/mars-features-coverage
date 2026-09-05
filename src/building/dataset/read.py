@@ -5,8 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import utils.disk.paths as paths
+from building.dataset.models.dataset import Dataset
 from building.metadata import read as metadata
-from building.writing.models.dataset import Dataset
 
 
 def read_dataset(root: Path = paths.DATASET_ROOT) -> Dataset:

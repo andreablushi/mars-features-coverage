@@ -201,7 +201,7 @@ def build_product(job: Job, root: Path = paths.DATASET_ROOT) -> Outcome:
     missed = 0
     for frame in job.frames:
         try:
-            held = crop(sample, place(sample, frame), frame)
+            held = crop(sample, steps.cut, place(sample, frame), frame)
         except Exception as error:  # noqa: BLE001
             # What is already on disk is handed back, so a later failure never
             # leaves a written crop out of the index.

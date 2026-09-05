@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from building.common.pds import images
 from building.configs import mola as configs
-from building.preprocessing.mola import geometry
+from building.preprocessing.mola import projection
 from building.preprocessing.mola.models.sample import MolaSample
 
 
@@ -32,7 +32,7 @@ def read(identifier: str) -> MolaSample:
         )
     # Both planes are written on the one grid, so the height's places them all.
     height, label = planes[configs.TOPOGRAPHY]
-    latitude, longitude = geometry.load(label)
+    latitude, longitude = projection.load(label)
     return MolaSample(
         identifier,
         height,
