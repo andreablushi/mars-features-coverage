@@ -9,10 +9,11 @@ from datetime import datetime
 from itertools import chain, zip_longest
 from pathlib import Path
 
+import httpx
+
 import utils.disk.paths as paths
 from analysis import dataset_list
 from analysis.selector.models.selection import Selection
-from building.download.common import client as transport
 from building.download.mola import download as mola
 from building.instruments import INSTRUMENTS
 from building.metadata import frame as frames
@@ -28,7 +29,7 @@ GRIDDED = "MOLA"
 
 def build_plan(
     settings: Settings,
-    ode: transport.Client | None = None,
+    ode: httpx.Client | None = None,
     root: Path = paths.DATASET_ROOT,
     *,
     force: bool = False,

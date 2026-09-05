@@ -6,8 +6,10 @@ import re
 from pathlib import Path
 from urllib.parse import quote
 
+import httpx
+
 from building.configs import ctx as configs
-from building.download.common import client as transport
+from building.download import archive
 
 # What ODE publishes CTX under.
 ODE = {"ihid": "MRO", "iid": "CTX"}
@@ -52,7 +54,7 @@ def observation_id(product_id: str) -> str | None:
     return scan.upper() if scan else None
 
 
-def fetch(observation_id: str, client: transport.Client | None = None) -> Path:
+def fetch(observation_id: str, client: httpx.Client) -> Path:
     """Bring the projected scan and its label down, or return what is here.
 
     ASU keeps what it built under the volume the raw scan came from, and only
@@ -60,7 +62,7 @@ def fetch(observation_id: str, client: transport.Client | None = None) -> Path:
 
     Args:
         observation_id: The observation to fetch.
-        client: A client to reuse, or None to open one for this call.
+        client: The client whose connections every query is asked over.
 
     Returns:
         The path to the scan's label, whose image sits beside it.
@@ -71,17 +73,13 @@ def fetch(observation_id: str, client: transport.Client | None = None) -> Path:
     """
     destination = configs.CACHE.files(observation_id, observation_id)
     if any(not path.exists() for path in destination.values()):
-        with transport.opened(client) as ode:
-            offered = ode.offers(observation_id, pt=PRODUCT_TYPE, **ODE)
-            if ODE_SUFFIX not in offered:
-                raise FileNotFoundError(
-                    f"ODE carries no raw scan for {observation_id}."
-                )
-            archived = VOLUME.search(offered[ODE_SUFFIX])
-            if not archived:
-                raise ValueError(f"{offered[ODE_SUFFIX]} names no CTX volume.")
-            volume_id = archived["volume"]
-            ode.bring(destination, _asu(observation_id, volume_id), TIMEOUT)
+        offered = archive.offers(client, observation_id, pt=PRODUCT_TYPE, **ODE)
+        if ODE_SUFFIX not in offered:
+            raise FileNotFoundError(f"ODE carries no raw scan for {observation_id}.")
+        archived = VOLUME.search(offered[ODE_SUFFIX])
+        if not archived:
+            raise ValueError(f"{offered[ODE_SUFFIX]} names no CTX volume.")
+        archive.bring(destination, _asu(observation_id, archived["volume"]), TIMEOUT)
     return destination[configs.SUFFIXES[configs.LABEL]]
 
 

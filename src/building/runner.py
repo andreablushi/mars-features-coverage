@@ -10,12 +10,12 @@ from contextlib import closing
 from functools import partial
 from pathlib import Path
 
+import httpx
 from rich.console import Console
 
 import utils.disk.paths as paths
 from building import build, planner
 from building import console as printing
-from building.download.common import client as transport
 from building.instruments import INSTRUMENTS
 from building.metadata import read as metadata_read
 from building.metadata import write as metadata
@@ -47,7 +47,7 @@ def run_build(
     Raises:
         FileNotFoundError: When no selection has been written to build from.
     """
-    with transport.Client() as ode:
+    with httpx.Client() as ode:
         plan = planner.build_plan(settings, ode, root, force=force)
         printing.describe(plan, settings, console)
         if not plan.jobs:
@@ -68,7 +68,7 @@ def run_build(
 
 def _built(
     jobs: tuple[Job, ...],
-    ode: transport.Client,
+    ode: httpx.Client,
     fetching: ThreadPoolExecutor,
     building: ProcessPoolExecutor,
     root: Path,

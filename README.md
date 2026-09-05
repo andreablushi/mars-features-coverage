@@ -95,6 +95,10 @@ observations are spread across the window each feature earned, so a small build
 still spans the classes and the seasons. The same seed and a larger cap gives a
 superset, so a small build is always part of the full one.
 
+`ready` holds the downloads to the room they were given, so they cannot race
+ahead and put the whole archive on disk before the first crops are written. Keep
+it well above `workers`, or the build pool starves waiting for products.
+
 ## Using the dataset
 
 The dataset is one directory: the crops, and beside them the index that says
