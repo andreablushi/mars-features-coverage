@@ -16,10 +16,10 @@ from building.crop.crism import crop as crism_crop
 from building.crop.ctx import crop as ctx_crop
 from building.crop.mola import crop as mola_crop
 from building.crop.sharad import crop as sharad_crop
-from building.download.crism import download as crism_download
-from building.download.ctx import download as ctx_download
-from building.download.mola import download as mola_download
-from building.download.sharad import download as sharad_download
+from building.download import crism as crism_download
+from building.download import ctx as ctx_download
+from building.download import mola as mola_download
+from building.download import sharad as sharad_download
 from building.geometry.crism import place as crism_place
 from building.geometry.ctx import place as ctx_place
 from building.geometry.mola import place as mola_place
